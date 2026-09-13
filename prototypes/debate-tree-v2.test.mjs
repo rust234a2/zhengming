@@ -31,14 +31,22 @@ const documentStub = {
     return [];
   },
 };
-const windowStub = { open(){}, };
+const persisted = new Map();
+const localStorageStub = {
+  getItem(key){ return persisted.has(key) ? persisted.get(key) : null; },
+  setItem(key, value){ persisted.set(key, String(value)); },
+  removeItem(key){ persisted.delete(key); },
+};
+const windowStub = { open(){}, localStorage:localStorageStub };
 
 const exports_ = new Function('document', 'window', 'console',
   m[1] + `
   return { tree, byId, parentOf, depthOf, expanded, init, render,
     addClaim, addQuestion, respondToQuestion, vote, doToggle, doVote,
     validQuestionText, stanceStats, isImbalanced, canAddChild, countNodes,
-    selfTest, DEPTH_MAX, CHILD_MAX, QUESTION_MAX };
+    selfTest, DEPTH_MAX, CHILD_MAX, QUESTION_MAX, TREE_SCHEMA_VERSION,
+    snapshotTree, restoreTree, migrateTreeDocument, validateTreeDocument,
+    createTreeRepository, loadPersistedTree };
 `) (documentStub, windowStub, console);
 
 const V = exports_;
@@ -130,6 +138,34 @@ ok(fails.length === 0, 'selfTest 仍全绿', fails.join(' | '));
 console.log('场景10 失衡判定');
 ok(V.isImbalanced({ pro:7, neu:1, con:1 }), '7:1:1 判失衡');
 ok(!V.isImbalanced({ pro:3, neu:2, con:2 }), '3:2:2 不判失衡');
+
+/* ---------- 场景 11: 版本化持久化与迁移 ---------- */
+console.log('场景11 版本化持久化与迁移');
+const snapshot = V.snapshotTree();
+ok(snapshot.schemaVersion === V.TREE_SCHEMA_VERSION, '快照带 schemaVersion');
+ok(Number.isInteger(snapshot.revision) && snapshot.revision > 0, '变更后 revision 已递增');
+ok(Array.isArray(snapshot.expanded), '折叠状态进入快照');
+const legacy = V.migrateTreeDocument(snapshot.tree);
+ok(legacy.schemaVersion === V.TREE_SCHEMA_VERSION && legacy.revision === 0, '旧版裸树可迁移');
+const duplicate = JSON.parse(JSON.stringify(snapshot));
+duplicate.tree.children[1].id = duplicate.tree.children[0].id;
+ok(!V.validateTreeDocument(duplicate).ok, '重复节点 id 被校验拦截');
+
+/* ---------- 场景 12: repository revision 冲突 ---------- */
+console.log('场景12 repository revision 冲突');
+const isolatedStore = new Map();
+const storage = {
+  getItem(key){ return isolatedStore.get(key) ?? null; },
+  setItem(key, value){ isolatedStore.set(key, value); },
+};
+const repo = V.createTreeRepository(storage, 'tree');
+const first = JSON.parse(JSON.stringify(snapshot));
+first.revision = 0;
+const saved = repo.save(first, 0);
+ok(saved.ok && saved.document.revision === 1, '首次保存 revision=1');
+const stale = repo.save(first, 0);
+ok(!stale.ok && stale.conflict && stale.actualRevision === 1, '旧 revision 写入被拒绝');
+ok(repo.load().document.tree.id === 'root', '仓储可读回合法 root');
 
 console.log(`\n结果: ${pass} 通过, ${fail} 失败`);
 process.exit(fail ? 1 : 0);
