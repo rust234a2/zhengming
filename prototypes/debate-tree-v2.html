@@ -282,6 +282,114 @@ function register(n, pid, depth){
 register(tree, null, 0);
 
 const DEPTH_MAX = 4, CHILD_MAX = 8, QUESTION_MAX = 3;
+const TREE_SCHEMA_VERSION = 1;
+const TREE_STORAGE_KEY = 'zhengming.debateTree.v1';
+let revision = 0;
+
+function cloneJson(value){ return JSON.parse(JSON.stringify(value)); }
+
+function migrateTreeDocument(input){
+  if (!input || typeof input !== 'object') return null;
+  if (input.schemaVersion === TREE_SCHEMA_VERSION) return cloneJson(input);
+  if (input.id === 'root'){
+    return { schemaVersion:TREE_SCHEMA_VERSION, revision:0, tree:cloneJson(input), expanded:[] };
+  }
+  return null;
+}
+
+function validateTreeDocument(input){
+  const doc = migrateTreeDocument(input);
+  const errors = [];
+  if (!doc){ return { ok:false, errors:['不支持的辩论树文档'] }; }
+  if (!Number.isInteger(doc.revision) || doc.revision < 0) errors.push('revision 必须是非负整数');
+  if (!doc.tree || doc.tree.id !== 'root' || doc.tree.type !== 'root') errors.push('必须有且仅有一个 root');
+  if (!Array.isArray(doc.expanded)) errors.push('expanded 必须是节点 id 数组');
+  const ids = new Set();
+  function walk(node, depth){
+    if (!node || typeof node !== 'object') { errors.push('节点必须是对象'); return; }
+    if (!node.id || ids.has(node.id)) errors.push('节点 id 缺失或重复: ' + (node.id || '(empty)'));
+    ids.add(node.id);
+    if (!['root','claim','question'].includes(node.type)) errors.push('未知节点类型: ' + node.type);
+    if (depth > DEPTH_MAX) errors.push('节点深度超过 ' + DEPTH_MAX + ': ' + node.id);
+    const children = Array.isArray(node.children) ? node.children : [];
+    if (children.length > CHILD_MAX) errors.push('子节点超过 ' + CHILD_MAX + ': ' + node.id);
+    if (children.filter(function(c){ return c && c.type === 'question'; }).length > QUESTION_MAX){
+      errors.push('追问超过 ' + QUESTION_MAX + ': ' + node.id);
+    }
+    if (node.type === 'claim' && !['pro','con','neu'].includes(node.stance)) errors.push('claim 立场无效: ' + node.id);
+    if (node.type === 'question' && typeof node.answered !== 'boolean') errors.push('question 缺少 answered: ' + node.id);
+    children.forEach(function(child){ walk(child, depth + 1); });
+  }
+  if (doc.tree) walk(doc.tree, 0);
+  (doc.expanded || []).forEach(function(id){ if (!ids.has(id)) errors.push('expanded 引用了不存在的节点: ' + id); });
+  return { ok:errors.length === 0, errors:errors, document:doc };
+}
+
+function snapshotTree(){
+  return { schemaVersion:TREE_SCHEMA_VERSION, revision:revision, tree:cloneJson(tree), expanded:Array.from(expanded) };
+}
+
+function rebuildIndexes(){
+  Object.keys(byId).forEach(function(id){ delete byId[id]; });
+  Object.keys(parentOf).forEach(function(id){ delete parentOf[id]; });
+  Object.keys(depthOf).forEach(function(id){ delete depthOf[id]; });
+  register(tree, null, 0);
+}
+
+function restoreTree(input){
+  const checked = validateTreeDocument(input);
+  if (!checked.ok) return checked;
+  Object.keys(tree).forEach(function(key){ delete tree[key]; });
+  Object.assign(tree, cloneJson(checked.document.tree));
+  revision = checked.document.revision;
+  expanded.clear();
+  checked.document.expanded.forEach(function(id){ expanded.add(id); });
+  rebuildIndexes();
+  return { ok:true, document:snapshotTree() };
+}
+
+function createTreeRepository(storage, key){
+  return {
+    load:function(){
+      const raw = storage && storage.getItem ? storage.getItem(key) : null;
+      if (!raw) return { ok:true, document:null };
+      try {
+        const checked = validateTreeDocument(JSON.parse(raw));
+        return checked.ok ? { ok:true, document:checked.document } : checked;
+      } catch (_err) { return { ok:false, errors:['持久化数据不是合法 JSON'] }; }
+    },
+    save:function(doc, expectedRevision){
+      const checked = validateTreeDocument(doc);
+      if (!checked.ok) return checked;
+      const current = this.load();
+      if (!current.ok) return current;
+      const actual = current.document ? current.document.revision : 0;
+      if (expectedRevision !== actual){
+        return { ok:false, conflict:true, errors:['revision 冲突'], actualRevision:actual };
+      }
+      const next = cloneJson(checked.document);
+      next.revision = actual + 1;
+      if (storage && storage.setItem) storage.setItem(key, JSON.stringify(next));
+      return { ok:true, document:next };
+    }
+  };
+}
+
+function treeRepository(){
+  return createTreeRepository(typeof window !== 'undefined' ? window.localStorage : null, TREE_STORAGE_KEY);
+}
+
+function persistTree(){
+  const saved = treeRepository().save(snapshotTree(), revision);
+  if (saved.ok) revision = saved.document.revision;
+  return saved;
+}
+
+function loadPersistedTree(){
+  const loaded = treeRepository().load();
+  if (loaded.ok && loaded.document) return restoreTree(loaded.document);
+  return loaded;
+}
 
 /* ================= 纯逻辑（可测试） ================= */
 
@@ -323,6 +431,7 @@ function addClaim(pid, opts){
   byId[pid].children.push(node);
   register(node, pid, depthOf[pid] + 1);
   expanded.add(pid);
+  persistTree();
   return { ok:true, node:node };
 }
 
@@ -350,6 +459,7 @@ function addQuestion(pid, text, author){
   p.children.push(node);
   register(node, pid, depthOf[pid] + 1);
   expanded.add(pid);
+  persistTree();
   return { ok:true, node:node };
 }
 
@@ -360,7 +470,7 @@ function respondToQuestion(qid, opts){
   const parentClaim = byId[parentOf[qid]];
   opts = Object.assign({}, opts, { stance: parentClaim && parentClaim.stance !== 'root' ? parentClaim.stance : 'neu' });
   const r = addClaim(qid, opts);
-  if (r.ok) q.answered = true;
+  if (r.ok){ q.answered = true; persistTree(); }
   return r;
 }
 
@@ -368,10 +478,12 @@ function vote(id, dir){
   const n = byId[id];
   if (!n || !n.votes) return;
   if (dir > 0) n.votes.up++; else n.votes.down++;
+  persistTree();
 }
 
 function toggleNode(id){
   if (expanded.has(id)) expanded.delete(id); else expanded.add(id);
+  persistTree();
 }
 
 /* ================= 渲染层 ================= */
@@ -642,6 +754,7 @@ function selfTest(){
 }
 
 function init(){
+  loadPersistedTree();
   render();
   const fails = selfTest();
   const bar = el('testbar');
