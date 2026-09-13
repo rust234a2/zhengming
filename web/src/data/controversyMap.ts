@@ -4,21 +4,21 @@
  *
  * 数据来源：zhihu-cli search zhihu 真实检索（5 次调用，覆盖 5 个检索簇）
  *          → LLM 提炼论点与立场 → LLM 跨议题语义挖掘 → 主张簇归一
- * 生成时间：2026-09-12T06:38:11.325Z
+ * 生成时间：2026-09-13T17:10:04.160Z
  */
 
 import type { ControversyMapData } from "../types/map";
 
 export const CONTROVERSY_MAP: ControversyMapData = {
-  "generatedAt": "2026-09-12T06:38:11.325Z",
+  "generatedAt": "2026-09-13T17:10:04.160Z",
   "source": "zhihu-cli search zhihu（真实检索，5 次调用）",
   "stats": {
     "topics": 15,
     "claims": 23,
-    "clusters": 5,
-    "edges": 71,
-    "bridge": 20,
-    "member": 20,
+    "clusters": 4,
+    "edges": 65,
+    "bridge": 17,
+    "member": 17,
     "rebuts": 8,
     "contains": 23
   },
@@ -420,29 +420,20 @@ export const CONTROVERSY_MAP: ControversyMapData = {
       "url": "https://www.zhihu.com/question/1992302419741266883/answer/2015119838058684502?utm_medium=openapi_platform&utm_source=cf621feb3f2d"
     },
     {
-      "id": "cl-ai-shrinks-programmer-demand",
-      "kind": "cluster",
-      "label": "AI致程序员需求萎缩",
-      "summary": "AI导致程序员岗位需求减少",
-      "side": "positive",
-      "weight": 2,
-      "topicCount": 3
-    },
-    {
       "id": "cl-ai-cannot-replace-human-core",
       "kind": "cluster",
       "label": "AI不可替代人类核心",
-      "summary": "AI无法取代人类核心能力",
-      "side": "negative",
+      "summary": "AI无法替代人类核心能力",
+      "side": "positive",
       "weight": 9,
       "topicCount": 4
     },
     {
-      "id": "cl-programmer-value-shifts-to-advanced",
+      "id": "cl-programmer-value-to-high-level",
       "kind": "cluster",
-      "label": "程序员转向高阶能力",
+      "label": "程序员价值转向高阶",
       "summary": "程序员价值转向高阶能力",
-      "side": "neutral",
+      "side": "positive",
       "weight": 3,
       "topicCount": 4
     },
@@ -450,17 +441,17 @@ export const CONTROVERSY_MAP: ControversyMapData = {
       "id": "cl-ai-only-replaces-execution",
       "kind": "cluster",
       "label": "AI只替代执行环节",
-      "summary": "AI仅替代执行性工作环节",
-      "side": "positive",
+      "summary": "AI仅替代执行环节",
+      "side": "neutral",
       "weight": 6,
       "topicCount": 6
     },
     {
       "id": "cl-value-shifts-to-responsibility",
       "kind": "cluster",
-      "label": "核心价值在担责",
-      "summary": "人类核心价值转向承担责任",
-      "side": "neutral",
+      "label": "价值转向担责",
+      "summary": "核心价值转向担责",
+      "side": "positive",
       "weight": 3,
       "topicCount": 3
     }
@@ -582,36 +573,6 @@ export const CONTROVERSY_MAP: ControversyMapData = {
       "relation": "contains"
     },
     {
-      "source": "a--7087091483973468197",
-      "target": "cl-ai-shrinks-programmer-demand",
-      "relation": "member"
-    },
-    {
-      "source": "a-3132737687244157601",
-      "target": "cl-ai-shrinks-programmer-demand",
-      "relation": "member"
-    },
-    {
-      "source": "cl-ai-shrinks-programmer-demand",
-      "target": "zh-2078502972665884970",
-      "relation": "bridge"
-    },
-    {
-      "source": "cl-ai-shrinks-programmer-demand",
-      "target": "zh-465369002",
-      "relation": "bridge"
-    },
-    {
-      "source": "a-6926770995914242054",
-      "target": "cl-ai-shrinks-programmer-demand",
-      "relation": "member"
-    },
-    {
-      "source": "cl-ai-shrinks-programmer-demand",
-      "target": "zh-2052608342816715544",
-      "relation": "bridge"
-    },
-    {
       "source": "a-7415577803219682552",
       "target": "cl-ai-cannot-replace-human-core",
       "relation": "member"
@@ -658,21 +619,21 @@ export const CONTROVERSY_MAP: ControversyMapData = {
     },
     {
       "source": "a--6123579788034080189",
-      "target": "cl-programmer-value-shifts-to-advanced",
+      "target": "cl-programmer-value-to-high-level",
       "relation": "member"
     },
     {
       "source": "a-4560790726606256329",
-      "target": "cl-programmer-value-shifts-to-advanced",
+      "target": "cl-programmer-value-to-high-level",
       "relation": "member"
     },
     {
-      "source": "cl-programmer-value-shifts-to-advanced",
+      "source": "cl-programmer-value-to-high-level",
       "target": "zh-660021689",
       "relation": "bridge"
     },
     {
-      "source": "cl-programmer-value-shifts-to-advanced",
+      "source": "cl-programmer-value-to-high-level",
       "target": "zh-2066911604235571824",
       "relation": "bridge"
     },
@@ -703,11 +664,11 @@ export const CONTROVERSY_MAP: ControversyMapData = {
     },
     {
       "source": "a--2483126025033303325",
-      "target": "cl-programmer-value-shifts-to-advanced",
+      "target": "cl-programmer-value-to-high-level",
       "relation": "member"
     },
     {
-      "source": "cl-programmer-value-shifts-to-advanced",
+      "source": "cl-programmer-value-to-high-level",
       "target": "zh-2077824745589028563",
       "relation": "bridge"
     },
@@ -723,11 +684,11 @@ export const CONTROVERSY_MAP: ControversyMapData = {
     },
     {
       "source": "a-8130782778536502254",
-      "target": "cl-programmer-value-shifts-to-advanced",
+      "target": "cl-programmer-value-to-high-level",
       "relation": "member"
     },
     {
-      "source": "cl-programmer-value-shifts-to-advanced",
+      "source": "cl-programmer-value-to-high-level",
       "target": "zh-14461028376",
       "relation": "bridge"
     },

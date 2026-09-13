@@ -16,6 +16,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { selectClusterLinks } from "./build-map-core.mjs";
 
 /** 路径一律相对脚本自身推导 */
 const DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -23,12 +24,13 @@ const KEY = process.env.DEEPSEEK_API_KEY;
 
 const claimsData = JSON.parse(fs.readFileSync(`${DIR}/claims.json`, "utf8"));
 const cross = JSON.parse(fs.readFileSync(`${DIR}/cross-links.json`, "utf8"));
+const clusterLinks = selectClusterLinks(cross.links);
 
 const claims = claimsData.claims;
 const claimById = new Map(claims.map((c) => [c.id, c]));
 
 /* ── 1. 收集所有非空 label，让 LLM 做同义归一 ── */
-const rawLabels = [...new Set(cross.links.map((l) => l.label).filter(Boolean))];
+const rawLabels = [...new Set(clusterLinks.map((l) => l.label).filter(Boolean))];
 
 const SYSTEM = `你是知识图谱构建者。给你一组中文主张标签（来自知乎不同议题下的论点挖掘），请把它们归并为若干个「主张簇」。
 
@@ -107,7 +109,7 @@ for (const c of claims) {
 const clusterMemberCount = {};
 for (const c of clusters) clusterMemberCount[c.id] = 0;
 
-for (const l of cross.links) {
+for (const l of clusterLinks) {
   const cid = labelToCluster.get(l.label);
   if (!cid) continue;
   clusterMemberCount[cid] = (clusterMemberCount[cid] || 0) + 1;
@@ -131,7 +133,7 @@ for (const c of clusters) {
 const clusterIds = new Set(nodes.filter((n) => n.kind === "cluster").map((n) => n.id));
 const bridgedPairs = new Set();
 
-for (const l of cross.links) {
+for (const l of clusterLinks) {
   const cid = labelToCluster.get(l.label);
   if (!cid) continue;
   const clusterId = `cl-${cid}`;

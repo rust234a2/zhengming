@@ -280,6 +280,12 @@ export function ControversyMap() {
           .forceX<MapSimNode>((n) => (n.side === "positive" ? -420 : n.side === "negative" ? 420 : 0))
           .strength((n) => (n.kind === "cluster" ? 0.1 : 0.035)),
       )
+      .force(
+        "skeleton",
+        d3
+          .forceRadial<MapSimNode>((n) => (n.kind === "cluster" ? 520 : 0), 0, 0)
+          .strength((n) => (n.kind === "cluster" ? 0.08 : 0)),
+      )
       .alphaDecay(0.022)
       .velocityDecay(0.42)
       .on("tick", () => syncDomPositions());

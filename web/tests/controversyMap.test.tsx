@@ -109,9 +109,17 @@ describe("争议地图数据层", () => {
 
 /* ────────── 2. 布局层（真实跑 d3 模拟） ────────── */
 
-/** 用与组件一致的力配置跑一遍模拟，验证布局质量。 */
-function runSimulation(seed?: () => number) {
-  const rng = seed ?? Math.random;
+function seededRandom(initial: number) {
+  let state = initial >>> 0;
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 0x100000000;
+  };
+}
+
+/** 用与组件一致的力配置跑一遍模拟，固定种子保证质量门槛不漂移。 */
+function runSimulation(seed: () => number = seededRandom(42)) {
+  const rng = seed;
   const nodes: MapSimNode[] = CONTROVERSY_MAP.nodes.map((n, i) => {
     const angle = i * 2.39996;
     const r = 120 + Math.sqrt(i) * 46;
@@ -156,6 +164,7 @@ function runSimulation(seed?: () => number) {
     .force("center", d3.forceCenter(0, 0))
     .force("collide", d3.forceCollide<MapSimNode>().radius((n) => n.radius + (n.kind === "cluster" ? 34 : n.kind === "topic" ? 22 : 13)).strength(0.95))
     .force("polarity", d3.forceX<MapSimNode>((n) => (n.side === "positive" ? -420 : n.side === "negative" ? 420 : 0)).strength((n) => (n.kind === "cluster" ? 0.1 : 0.035)))
+    .force("skeleton", d3.forceRadial<MapSimNode>((n) => (n.kind === "cluster" ? 520 : 0), 0, 0).strength((n) => (n.kind === "cluster" ? 0.08 : 0)))
     .alphaDecay(0.022)
     .velocityDecay(0.42)
     .stop();
@@ -220,8 +229,8 @@ describe("争议地图布局质量（真实 d3 模拟）", () => {
   });
 
   it("布局不是硬编码结果：两次独立运行坐标不同", () => {
-    const a = runSimulation();
-    const b = runSimulation();
+    const a = runSimulation(seededRandom(42));
+    const b = runSimulation(seededRandom(43));
     let diff = 0;
     for (let i = 0; i < a.nodes.length; i += 1) {
       diff += Math.abs(a.nodes[i].x - b.nodes[i].x) + Math.abs(a.nodes[i].y - b.nodes[i].y);
