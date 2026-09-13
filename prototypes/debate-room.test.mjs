@@ -47,7 +47,7 @@ const V = new Function('document','window','console','setTimeout','clearTimeout'
   return { CLAIM_PAIR, BOT_SIDES, CANDIDATE_POOL, QTYPES, FREE_TYPES, TIERS, AI_DIMS, STAGE_NAMES,
     startMatch, pickSide, enterRoom, rankCandidates, renderBrief, submitBrief, submitOpening, submitAnswer,
     submitCrossQuestion, submitFree, submitClosing, showEnd, resetRoom, botBriefItems,
-    evaluate, showEndcard, closeEndcard,
+    evaluate, showEndcard, closeEndcard, createHostCoordinator,
     state:()=>state, mp:()=>mp, records:()=>records, evasions:()=>evasions,
     mpLog:()=>mpLog, revised:()=>revised, admitted:()=>admitted, transcript:()=>transcript,
     mySide:()=>mySide, oppSide:()=>oppSide };
@@ -220,6 +220,31 @@ ok(!/id="e-go"/.test(html), '已移除「进入辩论树 →」出口');
 ok(!/addToBoard/.test(script) && /addRecord/.test(script), '登记动作统一走 addRecord（无上板语义）');
 ok(html.includes('bf-def') && /关键定义/.test(html), '立论结构含可选「关键定义」字段');
 ok(V.botBriefItems && true, 'botBriefItems 仍暴露给集成层');
+
+/* ---------- 场景11: HostClient seam 与失败重试 ---------- */
+console.log('场景11 HostClient seam 与失败重试');
+const calls=[];
+let failFirst=true;
+const coordinator=V.createHostCoordinator({
+  structureHint:async payload=>{
+    calls.push(payload);
+    if(failFirst){failFirst=false;throw new Error('temporary');}
+    return {hint:'补充判断标准'};
+  },
+});
+const requestContext={roomId:'r1',turnId:'t1'};
+const failed=await coordinator.invoke('structureHint',requestContext,'尚未提交的立论草稿');
+ok(failed.status==='error'&&failed.draft==='尚未提交的立论草稿','失败后保留草稿');
+const retried=await coordinator.retry('structureHint',requestContext);
+ok(retried.status==='success'&&retried.attempts===2,'失败请求可重试');
+ok(calls.length===2&&calls[0].requestId===calls[1].requestId,'重试复用同一 requestId');
+ok(calls.every(x=>x.roomId==='r1'&&x.turnId==='t1'),'请求携带 roomId + turnId');
+ok(calls.every(x=>x.draft==='尚未提交的立论草稿'),'重试使用原始草稿');
+const cached=await coordinator.invoke('structureHint',requestContext,'不应覆盖的草稿');
+ok(cached===retried&&calls.length===2,'成功响应幂等复用，不重复调用 Host');
+let missingContext=false;
+try{await coordinator.invoke('structureHint',{roomId:'r1'},'x');}catch(err){missingContext=/turnId/.test(err.message);}
+ok(missingContext,'缺少 turnId 时拒绝发起请求');
 
 console.log(`\n结果: ${pass} 通过, ${fail} 失败`);
 process.exit(fail ? 1 : 0);
