@@ -13,5 +13,9 @@ dist/
 .worktrees/
 
 # LLM 管线断点续跑缓存（可重新生成，不必入库）
+research/controversy-map/.*-cache.json
 docs/research/controversy-map/.claim-cache.json
 docs/research/controversy-map/.cross-cache.json
+
+# WorkBuddy 会话数据与记忆（本地工作数据，不入库）
+.workbuddy/

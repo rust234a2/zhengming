@@ -1,0 +1,275 @@
+{
+ "generatedAt": "2026-09-13T13:36:47.090Z",
+ "results": [
+  {
+   "id": "zh-2035134530596683934",
+   "title": "2026 计算机科学专业还值得报考吗?",
+   "gtOpp": false,
+   "gtDist": "+0/-2/~2",
+   "llmOpp": false,
+   "note": "四条均持谨慎或条件性支持，无真正对立。",
+   "ansAgree": "0/4",
+   "heurAgree": "2/4"
+  },
+  {
+   "id": "zh-1972252087044796716",
+   "title": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?",
+   "gtOpp": true,
+   "gtDist": "+1/-2/~0",
+   "llmOpp": false,
+   "note": "均认为AI未完全取代程序员，无对立。",
+   "ansAgree": "1/3",
+   "heurAgree": "1/3"
+  },
+  {
+   "id": "zh-1977074341968574068",
+   "title": "和 AI 相比,我们作为人类的核心竞争力是什么?",
+   "gtOpp": false,
+   "gtDist": "+0/-3/~0",
+   "llmOpp": false,
+   "note": "三条均倾向人类有独特优势，无实质对立。",
+   "ansAgree": "0/3",
+   "heurAgree": "0/3"
+  },
+  {
+   "id": "zh-2077824745589028563",
+   "title": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+   "gtOpp": true,
+   "gtDist": "+1/-1/~0",
+   "llmOpp": false,
+   "note": "两条均认为程序员仍需要，仅强调角色转变，无对立。",
+   "ansAgree": "1/2",
+   "heurAgree": "0/2"
+  },
+  {
+   "id": "zh-14461028376",
+   "title": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+   "gtOpp": false,
+   "gtDist": "+2/-0/~0",
+   "llmOpp": false,
+   "note": "两答均认为程序员不会消失，无真实对立。",
+   "ansAgree": "0/2",
+   "heurAgree": "0/2"
+  },
+  {
+   "id": "zh-2066911604235571824",
+   "title": "2026年了,大学生还有必要学编程吗,AI会不会让程序员失业?",
+   "gtOpp": false,
+   "gtDist": "+1/-0/~1",
+   "llmOpp": false,
+   "note": "两条均支持学编程，仅强调方向转变，无对立。",
+   "ansAgree": "1/2",
+   "heurAgree": "1/2"
+  },
+  {
+   "id": "zh-2038411932424725710",
+   "title": "ai大概还要多久就可以取代程序员了?",
+   "gtOpp": false,
+   "gtDist": "+1/-0/~0",
+   "llmOpp": false,
+   "note": "仅一条回答，支持AI将取代程序员",
+   "ansAgree": "1/1",
+   "heurAgree": "0/1"
+  },
+  {
+   "id": "zh-2078502972665884970",
+   "title": "马斯克预计到明年底人类将无法与 AI 竞争软件开发,AI 将胜任所有数字工作,对程序员群体影响有多大?",
+   "gtOpp": false,
+   "gtDist": "+1/-0/~0",
+   "llmOpp": false,
+   "note": "仅一条回答，支持担忧，无对立观点。",
+   "ansAgree": "1/1",
+   "heurAgree": "1/1"
+  },
+  {
+   "id": "zh-2052608342816715544",
+   "title": "为什么总有人嘴硬说程序员不会被 AI 替代?",
+   "gtOpp": false,
+   "gtDist": "+0/-1/~0",
+   "llmOpp": false,
+   "note": "仅一条回答，无对立观点。",
+   "ansAgree": "0/1",
+   "heurAgree": "0/1"
+  },
+  {
+   "id": "zh-2081685100555677809",
+   "title": "AI时代下,学习一门编程语言是否还有意义?",
+   "gtOpp": false,
+   "gtDist": "+0/-1/~0",
+   "llmOpp": false,
+   "note": "仅一条回答，支持学习编程，无对立观点",
+   "ansAgree": "0/1",
+   "heurAgree": "0/1"
+  },
+  {
+   "id": "zh-660021689",
+   "title": "计算机专业还值得学吗?",
+   "gtOpp": false,
+   "gtDist": "+0/-0/~1",
+   "llmOpp": false,
+   "note": "仅一条回答，无对立观点。",
+   "ansAgree": "0/1",
+   "heurAgree": "1/1"
+  },
+  {
+   "id": "zh-604703607",
+   "title": "AI 入侵设计领域,会完全替代设计师吗?",
+   "gtOpp": false,
+   "gtDist": "+0/-1/~0",
+   "llmOpp": false,
+   "note": "仅一条中立回答，无对立",
+   "ansAgree": "0/1",
+   "heurAgree": "0/1"
+  },
+  {
+   "id": "zh-1902746889251721780",
+   "title": "AI绘画,AI设计,AI真的能代替各行各业的设计师吗?",
+   "gtOpp": false,
+   "gtDist": "+1/-0/~0",
+   "llmOpp": false,
+   "note": "仅一条回答，无对立观点",
+   "ansAgree": "0/1",
+   "heurAgree": "0/1"
+  },
+  {
+   "id": "zh-2058927476735321115",
+   "title": "AI到底是在提高效率,还是在抢普通人的饭碗?",
+   "gtOpp": false,
+   "gtDist": "+0/-0/~1",
+   "llmOpp": false,
+   "note": "仅一条回答，无对立观点",
+   "ansAgree": "1/1",
+   "heurAgree": "1/1"
+  },
+  {
+   "id": "zh-12872950823",
+   "title": "AI真的可以代替作家、艺术家的创作吗?还是只能代替80%平庸的创作者,将最优秀的艺术家,留给人类?",
+   "gtOpp": false,
+   "gtDist": "+0/-1/~0",
+   "llmOpp": false,
+   "note": "仅一条回答，无对立观点",
+   "ansAgree": "0/1",
+   "heurAgree": "0/1"
+  },
+  {
+   "id": "zh-583691915",
+   "title": "未来几年 AI 会取代艺术设计类的工作吗?",
+   "gtOpp": false,
+   "gtDist": "+0/-1/~0",
+   "llmOpp": false,
+   "note": "仅一条回答，反对AI取代担忧，无对立。",
+   "ansAgree": "1/1",
+   "heurAgree": "0/1"
+  },
+  {
+   "id": "zh-593208377",
+   "title": "艺术工作者会被AI取代吗?",
+   "gtOpp": false,
+   "gtDist": "+0/-1/~0",
+   "llmOpp": false,
+   "note": "仅一条回答，支持担忧方向，无对立。",
+   "ansAgree": "0/1",
+   "heurAgree": "0/1"
+  },
+  {
+   "id": "zh-465369002",
+   "title": "为什么别选计算机专业?",
+   "gtOpp": false,
+   "gtDist": "+0/-1/~0",
+   "llmOpp": false,
+   "note": "仅一条中立回答，无对立观点。",
+   "ansAgree": "0/1",
+   "heurAgree": "0/1"
+  },
+  {
+   "id": "zh-2053994309955872738",
+   "title": "2026年在保证本科中下985的条件下,计算机科学与技术是否仍然是值得报考有前途的专业呢?",
+   "gtOpp": false,
+   "gtDist": "+1/-0/~0",
+   "llmOpp": false,
+   "note": "仅一条回答，支持报考计算机专业。",
+   "ansAgree": "1/1",
+   "heurAgree": "1/1"
+  },
+  {
+   "id": "zh-1892518226979709619",
+   "title": "5年后计算机专业出来还有前途吗?",
+   "gtOpp": false,
+   "gtDist": "+1/-0/~0",
+   "llmOpp": false,
+   "note": "仅一条回答，表达对计算机专业前景的悲观担忧，无对立观点。",
+   "ansAgree": "1/1",
+   "heurAgree": "0/1"
+  },
+  {
+   "id": "zh-662412262",
+   "title": "二本院校学生计算机科学与技术专业往后的出路是什么?",
+   "gtOpp": false,
+   "gtDist": "+0/-0/~1",
+   "llmOpp": false,
+   "note": "仅一条回答，支持担忧，无对立。",
+   "ansAgree": "0/1",
+   "heurAgree": "1/1"
+  },
+  {
+   "id": "zh-49097006",
+   "title": "计算机专业真的如此完美吗?",
+   "gtOpp": false,
+   "gtDist": "+1/-0/~0",
+   "llmOpp": false,
+   "note": "仅一条回答，无对立观点",
+   "ansAgree": "0/1",
+   "heurAgree": "0/1"
+  },
+  {
+   "id": "zh-2054231707188991838",
+   "title": "计算机专业现在的就业前景怎么样?",
+   "gtOpp": false,
+   "gtDist": "+0/-1/~0",
+   "llmOpp": false,
+   "note": "仅一条回答，明确支持计算机专业，无对立观点。",
+   "ansAgree": "1/1",
+   "heurAgree": "0/1"
+  },
+  {
+   "id": "zh-2025152386188985204",
+   "title": "AI越来越强,人类真正不可替代的到底是什么?",
+   "gtOpp": false,
+   "gtDist": "+0/-1/~0",
+   "llmOpp": false,
+   "note": "仅一条回答，支持人类独特价值，无对立观点。",
+   "ansAgree": "0/1",
+   "heurAgree": "0/1"
+  },
+  {
+   "id": "zh-1992302419741266883",
+   "title": "在AI能秒答一切的时代,人的核心竞争力到底是什么?",
+   "gtOpp": false,
+   "gtDist": "+0/-1/~0",
+   "llmOpp": false,
+   "note": "仅一条回答，支持人类核心竞争力存在",
+   "ansAgree": "0/1",
+   "heurAgree": "0/1"
+  },
+  {
+   "id": "zh-2056406404399722866",
+   "title": "AI 最终会扩大「人与人的差距」还是「缩小人与人的差距」?",
+   "gtOpp": false,
+   "gtDist": "+1/-0/~0",
+   "llmOpp": false,
+   "note": "单条回答未明确站队，无对立",
+   "ansAgree": "0/1",
+   "heurAgree": "0/1"
+  },
+  {
+   "id": "zh-660051452",
+   "title": "AI时代的教育以培养什么能力为主?",
+   "gtOpp": false,
+   "gtDist": "+0/-0/~1",
+   "llmOpp": false,
+   "note": "单条回答，无对立观点",
+   "ansAgree": "1/1",
+   "heurAgree": "1/1"
+  }
+ ]
+}

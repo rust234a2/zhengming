@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>争议地图 · Demo（真实数据）</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<style>
+  :root{
+    --bg:#fbfcfe; --panel:#ffffff; --line:#dfe6ee; --ink:#1f2937; --muted:#64748b;
+    --accent:#0f6fe5; --accent-soft:#f4f8ff;
+    --gold:#e8a33d; --gold-d:#a9691a; --gold-ink:#7a4b00;
+    --red-d:#b8402f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;background:var(--bg);color:var(--ink);overflow:hidden}
+  header{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;gap:12px;
+    padding:10px 16px;background:rgba(255,255,255,.92);border-bottom:1px solid var(--line);backdrop-filter:blur(4px)}
+  header h1{font-size:15px;font-weight:700}
+  header .sub{font-size:11px;color:var(--muted);font-weight:400;margin-left:6px}
+  .spacer{flex:1}
+  .mode-btn{font-size:12px;padding:6px 12px;border-radius:8px;border:1px solid var(--line);
+    background:#fff;color:var(--muted);cursor:pointer}
+  .mode-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  #map{position:absolute;inset:0;width:100%;height:100%;cursor:grab;background:var(--bg)}
+  #map:active{cursor:grabbing}
+  /* 边的颜色/宽度/虚线由 JS 按 relation 设置，与 web/src/ui/ControversyMap.tsx 一致 */
+  .cm-link{fill:none}
+  .cm-dim{opacity:.14}
+  .cm-lit{opacity:1}
+  .node-label{paint-order:stroke;stroke:#fbfcfe;stroke-width:3.4px;stroke-linejoin:round;pointer-events:none}
+  .cluster-label{font-size:11.5px;font-weight:600;fill:#7a4b00;stroke:#ffffff;stroke-width:4px}
+  .topic-label{font-size:10.5px;font-weight:400;fill:#334155}
+  .claim-label{font-size:10px;font-weight:400;fill:#334155}
+  #panel{position:fixed;top:60px;right:12px;width:330px;max-height:calc(100vh - 130px);overflow:auto;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;display:none;z-index:15;
+    box-shadow:0 6px 24px rgba(0,0,0,.07)}
+  #panel h2{font-size:14px;margin-bottom:8px;line-height:1.45}
+  #panel .meta{font-size:11.5px;color:var(--muted);line-height:1.7}
+  #panel .chips{margin:8px 0}
+  .chip{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:99px;margin:2px 4px 2px 0;border:1px solid var(--line);background:#f3f4f6;color:#4b5563}
+  .chip.pos,.chip.campA{background:#e8f1fe;border-color:#bcd7f7;color:#0b3f80}
+  .chip.neg,.chip.campB{background:#fdeceb;border-color:#f6c8c3;color:#b8402f}
+  .chip.warn{background:#fef7e7;border-color:#f3ddb0;color:#a9691a}
+  .chip.ok{background:#dcfce7;border-color:#bbf7d0;color:#15803d}
+  #panel a{font-size:11px;color:var(--accent);text-decoration:none}
+  #panel ul{margin:6px 0 0;padding-left:16px;font-size:11.5px;color:#374151;line-height:1.8}
+  #panel li{cursor:pointer}
+  #panel li:hover{color:var(--accent);text-decoration:underline}
+  #legend{position:fixed;left:12px;bottom:64px;z-index:15;background:rgba(255,255,255,.94);
+    border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:11px;color:#4b5563;line-height:1.9}
+  #legend .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+  #legend .ln{display:inline-block;width:18px;height:0;border-top:2px solid #dbe3ec;margin-right:5px;vertical-align:3px}
+  #legend .ln.g{border-top:2px dashed #e8a33d;border-color:#e8a33d}
+  #legend .ln.r{border-top:2px dashed #d9574d;border-color:#d9574d}
+  #funnel{position:fixed;left:12px;bottom:12px;right:360px;z-index:15}
+  #funnel-toggle{font-size:11.5px;padding:7px 12px;border-radius:9px;border:1px solid var(--line);
+    background:rgba(255,255,255,.94);color:#374151;cursor:pointer}
+  #funnel-list{display:none;margin-top:6px;background:rgba(255,255,255,.97);border:1px solid var(--line);
+    border-radius:10px;padding:8px;max-height:38vh;overflow:auto}
+  #funnel-list.open{display:block}
+  .frow{display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:6px;font-size:11.5px}
+  .frow:hover{background:var(--accent-soft)}
+  .frow .t{flex:1;color:#374151}
+  .vb{font-size:10px;padding:1px 7px;border-radius:99px;flex-shrink:0}
+  .vb.pass{background:#e8f1fe;color:#0b3f80}
+  .vb.rej{background:#fdeceb;color:#b8402f}
+  .vb.band{background:#f1f5f9;color:#64748b}
+  .vb.gray{background:#fef7e7;color:#a9691a}
+  .vb.inmap{background:#fef7e7;color:#7a4b00}
+  #caption{position:fixed;top:60px;left:16px;z-index:14;font-size:11.5px;color:var(--muted);
+    background:rgba(255,255,255,.88);border:1px solid var(--line);border-radius:8px;padding:6px 10px;max-width:420px}
+</style>
+</head>
+<body>
+<header>
+  <h1>争议地图 · Demo<span class="sub">真实数据 · 5 次知乎检索 → 27 题 / 37 论点 / 5 主张簇 / 87 边</span></h1>
+  <div class="spacer"></div>
+  <button id="mode-v1" class="mode-btn active">着色：v1 立场（蓝=正 / 红=反）</button>
+  <button id="mode-derived" class="mode-btn">着色：图派生阵营（A / B / 中性）</button>
+</header>
+<div id="caption">悬停或点击节点查看详情；拖动节点可固定到新位置，双击取消固定。rebuts（红长线）= 跨议题矛盾，是全图信息密度最高的边。</div>
+<svg id="map"></svg>
+<aside id="panel"></aside>
+<section id="legend"></section>
+<section id="funnel">
+  <button id="funnel-toggle">▸ 发现管线试跑：22 query → 103 回答 → 81 题 → 门禁（规则带 + 7 次 LLM 灰带）→ 78 放行 / 3 拒绝</button>
+  <div id="funnel-list"></div>
+</section>
+<script>var DATA = {"generatedAt":"2026-09-12T06:38:11.325Z","stats":{"topics":27,"claims":37,"clusters":5,"edges":87,"bridgeEdges":20,"memberEdges":21,"rebutsEdges":9},"nodes":[{"id":"zh-2035134530596683934","kind":"topic","label":"2026 计算机科学专业还值得报考吗?","fullLabel":"2026 计算机科学专业还值得报考吗?","url":"https://www.zhihu.com/question/2035134530596683934","weight":4},{"id":"zh-1972252087044796716","kind":"topic","label":"AI写程序的能力毋庸置疑很强大,为何没有取代程序员…","fullLabel":"AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?","url":"https://www.zhihu.com/question/1972252087044796716","weight":3},{"id":"zh-1977074341968574068","kind":"topic","label":"和 AI 相比,我们作为人类的核心竞争力是什么?","fullLabel":"和 AI 相比,我们作为人类的核心竞争力是什么?","url":"https://www.zhihu.com/question/1977074341968574068","weight":3},{"id":"zh-2077824745589028563","kind":"topic","label":"如果人人都可以通过 AI 写代码,程序员还需要存在…","fullLabel":"如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?","url":"https://www.zhihu.com/question/2077824745589028563","weight":2},{"id":"zh-14461028376","kind":"topic","label":"ai 已经能编出很完美的程序,程序员这个行业以后是…","fullLabel":"ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?","url":"https://www.zhihu.com/question/14461028376","weight":2},{"id":"zh-2066911604235571824","kind":"topic","label":"2026年了,大学生还有必要学编程吗,AI会不会让…","fullLabel":"2026年了,大学生还有必要学编程吗,AI会不会让程序员失业?","url":"https://www.zhihu.com/question/2066911604235571824","weight":2},{"id":"zh-2038411932424725710","kind":"topic","label":"ai大概还要多久就可以取代程序员了?","fullLabel":"ai大概还要多久就可以取代程序员了?","url":"https://www.zhihu.com/question/2038411932424725710","weight":1},{"id":"zh-2078502972665884970","kind":"topic","label":"马斯克预计到明年底人类将无法与 AI 竞争软件开发…","fullLabel":"马斯克预计到明年底人类将无法与 AI 竞争软件开发,AI 将胜任所有数字工作,对程序员群体影响有多大?","url":"https://www.zhihu.com/question/2078502972665884970","weight":1},{"id":"zh-2052608342816715544","kind":"topic","label":"为什么总有人嘴硬说程序员不会被 AI 替代?","fullLabel":"为什么总有人嘴硬说程序员不会被 AI 替代?","url":"https://www.zhihu.com/question/2052608342816715544","weight":1},{"id":"zh-2081685100555677809","kind":"topic","label":"AI时代下,学习一门编程语言是否还有意义?","fullLabel":"AI时代下,学习一门编程语言是否还有意义?","url":"https://www.zhihu.com/question/2081685100555677809","weight":1},{"id":"zh-660021689","kind":"topic","label":"计算机专业还值得学吗?","fullLabel":"计算机专业还值得学吗?","url":"https://www.zhihu.com/question/660021689","weight":1},{"id":"zh-604703607","kind":"topic","label":"AI 入侵设计领域,会完全替代设计师吗?","fullLabel":"AI 入侵设计领域,会完全替代设计师吗?","url":"https://www.zhihu.com/question/604703607","weight":1},{"id":"zh-1902746889251721780","kind":"topic","label":"AI绘画,AI设计,AI真的能代替各行各业的设计师…","fullLabel":"AI绘画,AI设计,AI真的能代替各行各业的设计师吗?","url":"https://www.zhihu.com/question/1902746889251721780","weight":1},{"id":"zh-2058927476735321115","kind":"topic","label":"AI到底是在提高效率,还是在抢普通人的饭碗?","fullLabel":"AI到底是在提高效率,还是在抢普通人的饭碗?","url":"https://www.zhihu.com/question/2058927476735321115","weight":1},{"id":"zh-12872950823","kind":"topic","label":"AI真的可以代替作家、艺术家的创作吗?还是只能代替…","fullLabel":"AI真的可以代替作家、艺术家的创作吗?还是只能代替80%平庸的创作者,将最优秀的艺术家,留给人类?","url":"https://www.zhihu.com/question/12872950823","weight":1},{"id":"zh-583691915","kind":"topic","label":"未来几年 AI 会取代艺术设计类的工作吗?","fullLabel":"未来几年 AI 会取代艺术设计类的工作吗?","url":"https://www.zhihu.com/question/583691915","weight":1},{"id":"zh-593208377","kind":"topic","label":"艺术工作者会被AI取代吗?","fullLabel":"艺术工作者会被AI取代吗?","url":"https://www.zhihu.com/question/593208377","weight":1},{"id":"zh-465369002","kind":"topic","label":"为什么别选计算机专业?","fullLabel":"为什么别选计算机专业?","url":"https://www.zhihu.com/question/465369002","weight":1},{"id":"zh-2053994309955872738","kind":"topic","label":"2026年在保证本科中下985的条件下,计算机科学…","fullLabel":"2026年在保证本科中下985的条件下,计算机科学与技术是否仍然是值得报考有前途的专业呢?","url":"https://www.zhihu.com/question/2053994309955872738","weight":1},{"id":"zh-1892518226979709619","kind":"topic","label":"5年后计算机专业出来还有前途吗?","fullLabel":"5年后计算机专业出来还有前途吗?","url":"https://www.zhihu.com/question/1892518226979709619","weight":1},{"id":"zh-662412262","kind":"topic","label":"二本院校学生计算机科学与技术专业往后的出路是什么?","fullLabel":"二本院校学生计算机科学与技术专业往后的出路是什么?","url":"https://www.zhihu.com/question/662412262","weight":1},{"id":"zh-49097006","kind":"topic","label":"计算机专业真的如此完美吗?","fullLabel":"计算机专业真的如此完美吗?","url":"https://www.zhihu.com/question/49097006","weight":1},{"id":"zh-2054231707188991838","kind":"topic","label":"计算机专业现在的就业前景怎么样?","fullLabel":"计算机专业现在的就业前景怎么样?","url":"https://www.zhihu.com/question/2054231707188991838","weight":1},{"id":"zh-2025152386188985204","kind":"topic","label":"AI越来越强,人类真正不可替代的到底是什么?","fullLabel":"AI越来越强,人类真正不可替代的到底是什么?","url":"https://www.zhihu.com/question/2025152386188985204","weight":1},{"id":"zh-1992302419741266883","kind":"topic","label":"在AI能秒答一切的时代,人的核心竞争力到底是什么?","fullLabel":"在AI能秒答一切的时代,人的核心竞争力到底是什么?","url":"https://www.zhihu.com/question/1992302419741266883","weight":1},{"id":"zh-2056406404399722866","kind":"topic","label":"AI 最终会扩大「人与人的差距」还是「缩小人与人的…","fullLabel":"AI 最终会扩大「人与人的差距」还是「缩小人与人的差距」?","url":"https://www.zhihu.com/question/2056406404399722866","weight":1},{"id":"zh-660051452","kind":"topic","label":"AI时代的教育以培养什么能力为主?","fullLabel":"AI时代的教育以培养什么能力为主?","url":"https://www.zhihu.com/question/660051452","weight":1},{"id":"a--7087091483973468197","kind":"claim","label":"AI已对程序员职业造成毁灭性打击，新人进不来、薪资溢价下降…","fullLabel":"AI已对程序员职业造成毁灭性打击，新人进不来、薪资溢价下降、晋升通道断裂。","side":"positive","reasonType":"行业周期","quality":0.85,"votes":204,"topicId":"zh-2078502972665884970","url":"https://www.zhihu.com/question/2078502972665884970/answer/2078529379026715388?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"冰码达"},{"id":"a-148125889147348205","kind":"claim","label":"AI助手已能替代大学教师完成计算机课程的答疑解惑，课堂授课…","fullLabel":"AI助手已能替代大学教师完成计算机课程的答疑解惑，课堂授课价值被大幅削弱。","side":"positive","reasonType":"教育培养","quality":0.7,"votes":203,"topicId":"zh-49097006","url":"https://www.zhihu.com/question/49097006/answer/2070823452051879520?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"让往事都随风随风"},{"id":"a-3945245772520750417","kind":"claim","label":"AI无法取代程序员，因为软件架构中耦合与复用的度只能靠资深…","fullLabel":"AI无法取代程序员，因为软件架构中耦合与复用的度只能靠资深工程师的隐性经验判断。","side":"negative","reasonType":"人类特质","quality":0.85,"votes":176,"topicId":"zh-1972252087044796716","url":"https://www.zhihu.com/question/1972252087044796716/answer/2078914989927166773?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"DBinary"},{"id":"a--6123579788034080189","kind":"claim","label":"AI只能消灭初级码农岗位，而能指挥AI构建复杂工程的计算机…","fullLabel":"AI只能消灭初级码农岗位，而能指挥AI构建复杂工程的计算机人才价值将暴涨。","side":"neutral","reasonType":"技术壁垒","quality":0.8,"votes":140,"topicId":"zh-660021689","url":"https://www.zhihu.com/question/660021689/answer/2011469279116161065?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"BugBuster喵"},{"id":"a--8393684584489265199","kind":"claim","label":"软件开发本质是工业化流程，AI比人更适合遵守工业化策略，将…","fullLabel":"软件开发本质是工业化流程，AI比人更适合遵守工业化策略，将永久取代大部分程序员。","side":"positive","reasonType":"需求本质","quality":0.8,"votes":136,"topicId":"zh-2038411932424725710","url":"https://www.zhihu.com/question/2038411932424725710/answer/2074611461687619824?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"独元殇"},{"id":"a--8414699585281428141","kind":"claim","label":"计算机专业仍值得报考，但只有强校强城市的计算机才值得优先考…","fullLabel":"计算机专业仍值得报考，但只有强校强城市的计算机才值得优先考虑，普通学校需慎重。","side":"neutral","reasonType":"教育培养","quality":0.75,"votes":85,"topicId":"zh-2035134530596683934","url":"https://www.zhihu.com/question/2035134530596683934/answer/2048744406606521482?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"佳人李大花"},{"id":"a-7506223916112815660","kind":"claim","label":"AI越强，程序员的核心价值越转向承担责任而非编写代码。","fullLabel":"AI越强，程序员的核心价值越转向承担责任而非编写代码。","side":"positive","reasonType":"责任归属","quality":0.85,"votes":63,"topicId":"zh-14461028376","url":"https://www.zhihu.com/question/14461028376/answer/2077721823211476810?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"张文保"},{"id":"a--3059213074980422546","kind":"claim","label":"AI降低了初级编程岗位价值，但计算机科学专业仍值得报考。","fullLabel":"AI降低了初级编程岗位价值，但计算机科学专业仍值得报考。","side":"neutral","reasonType":"教育培养","quality":0.8,"votes":56,"topicId":"zh-2035134530596683934","url":"https://www.zhihu.com/question/2035134530596683934/answer/2049032354732176922?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"Cat Chen"},{"id":"a--3596866254648524842","kind":"claim","label":"AI将取代只翻译需求成代码的程序员，但放大定义问题与担责者。","fullLabel":"AI将取代只翻译需求成代码的程序员，但放大定义问题与担责者。","side":"positive","reasonType":"责任归属","quality":0.85,"votes":43,"topicId":"zh-2077824745589028563","url":"https://www.zhihu.com/question/2077824745589028563/answer/2078577672926634612?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"kimmking"},{"id":"a--8636163842687801585","kind":"claim","label":"AI能写前后端代码，但写不了驱动和调电路板，嵌入式方向不易…","fullLabel":"AI能写前后端代码，但写不了驱动和调电路板，嵌入式方向不易被替代。","side":"negative","reasonType":"技术壁垒","quality":0.75,"votes":38,"topicId":"zh-2035134530596683934","url":"https://www.zhihu.com/question/2035134530596683934/answer/2049076385973637252?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"聊软件的行者"},{"id":"a--8636163842687801585","kind":"claim","label":"AI能写前后端代码，但写不了驱动和调电路板，嵌入式方向不易…","fullLabel":"AI能写前后端代码，但写不了驱动和调电路板，嵌入式方向不易被替代。","side":"negative","reasonType":"技术壁垒","quality":0.75,"votes":38,"topicId":"zh-2035134530596683934","url":"https://www.zhihu.com/question/2035134530596683934/answer/2049076385973637252?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"聊软件的行者"},{"id":"a--5870612721970439520","kind":"claim","label":"AI将快速替代纯内容输出，但替代不了审美与创造力本身。","fullLabel":"AI将快速替代纯内容输出，但替代不了审美与创造力本身。","side":"negative","reasonType":"人类特质","quality":0.8,"votes":30,"topicId":"zh-12872950823","url":"https://www.zhihu.com/question/12872950823/answer/1904858646455775343?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"猪头猫"},{"id":"a-6926770995914242054","kind":"claim","label":"AI不会消灭程序员，只会像Java一样重新定义程序员的工作…","fullLabel":"AI不会消灭程序员，只会像Java一样重新定义程序员的工作内容","side":"negative","reasonType":"行业周期","quality":0.85,"votes":26,"topicId":"zh-2052608342816715544","url":"https://www.zhihu.com/question/2052608342816715544/answer/2073399408377468668?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"SamDeepThinking"},{"id":"a-7001840320934439329","kind":"claim","label":"AI在原理上无法制造艺术，只能生成内容，但会摧毁艺术赖以生…","fullLabel":"AI在原理上无法制造艺术，只能生成内容，但会摧毁艺术赖以生存的市场条件","side":"negative","reasonType":"人类特质","quality":0.9,"votes":21,"topicId":"zh-593208377","url":"https://www.zhihu.com/question/593208377/answer/2057978577845588610?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"卓聿CountGiger"},{"id":"a--2483126025033303325","kind":"claim","label":"未来程序员将从写代码转为审查AI代码，但审查能力仍需完整编…","fullLabel":"未来程序员将从写代码转为审查AI代码，但审查能力仍需完整编程知识","side":"negative","reasonType":"技术壁垒","quality":0.8,"votes":18,"topicId":"zh-2077824745589028563","url":"https://www.zhihu.com/question/2077824745589028563/answer/2079669249254150636?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"Rainchester"},{"id":"a--3116936308957756347","kind":"claim","label":"AI无法取代程序员，因为它在长任务中会偏离路线且固执不改","fullLabel":"AI无法取代程序员，因为它在长任务中会偏离路线且固执不改","side":"negative","reasonType":"技术壁垒","quality":0.75,"votes":17,"topicId":"zh-1972252087044796716","url":"https://www.zhihu.com/question/1972252087044796716/answer/2078925731367858489?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"恋猫"},{"id":"a-8883296274167542039","kind":"claim","label":"2026年大学生仍应学编程，但必须转向AI Agent方向…","fullLabel":"2026年大学生仍应学编程，但必须转向AI Agent方向而非传统手搓代码","side":"neutral","reasonType":"教育培养","quality":0.6,"votes":16,"topicId":"zh-2066911604235571824","url":"https://www.zhihu.com/question/2066911604235571824/answer/2072824653446394907?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"啦啦啦啦"},{"id":"a-5887195202431428022","kind":"claim","label":"AI已替代相当一部分程序员，但软件开发真正的难点需求分析并…","fullLabel":"AI已替代相当一部分程序员，但软件开发真正的难点需求分析并未改变","side":"positive","reasonType":"需求本质","quality":0.8,"votes":15,"topicId":"zh-1972252087044796716","url":"https://www.zhihu.com/question/1972252087044796716/answer/2079213215842563423?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"文礼"},{"id":"a-3132737687244157601","kind":"claim","label":"AI发展导致计算机专业毕业生需求持续下降，红利期已过，不应…","fullLabel":"AI发展导致计算机专业毕业生需求持续下降，红利期已过，不应再劝人报考。","side":"negative","reasonType":"行业周期","quality":0.75,"votes":14,"topicId":"zh-465369002","url":"https://www.zhihu.com/question/465369002/answer/2078028688021514184?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"三两"},{"id":"a--6593649656487523089","kind":"claim","label":"AI本质上是强者的加速器，会扩大而非缩小人与人之间的差距。","fullLabel":"AI本质上是强者的加速器，会扩大而非缩小人与人之间的差距。","side":"positive","reasonType":"人类特质","quality":0.85,"votes":9,"topicId":"zh-2056406404399722866","url":"https://www.zhihu.com/question/2056406404399722866/answer/2072958219698311223?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"宫非"},{"id":"a-7415577803219682552","kind":"claim","label":"AI缺乏无中生有的创造力和情感共情，无法替代人类在规则以外…","fullLabel":"AI缺乏无中生有的创造力和情感共情，无法替代人类在规则以外领域的核心竞争力。","side":"negative","reasonType":"人类特质","quality":0.6,"votes":4,"topicId":"zh-1977074341968574068","url":"https://www.zhihu.com/question/1977074341968574068/answer/2075584109284430210?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"财会文稿小栈"},{"id":"a--6512767791850319549","kind":"claim","label":"AI只是工具，只要具备审美判断与思辨能力，设计师就不会被取…","fullLabel":"AI只是工具，只要具备审美判断与思辨能力，设计师就不会被取代。","side":"negative","reasonType":"人类特质","quality":0.7,"votes":3,"topicId":"zh-583691915","url":"https://www.zhihu.com/question/583691915/answer/2071984546187368250?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"贺嘉"},{"id":"a--8022784150870965630","kind":"claim","label":"AI时代教育应培养持续学习与开拓创新能力，而非单纯会用AI…","fullLabel":"AI时代教育应培养持续学习与开拓创新能力，而非单纯会用AI或记忆知识。","side":"neutral","reasonType":"教育培养","quality":0.65,"votes":2,"topicId":"zh-660051452","url":"https://www.zhihu.com/question/660051452/answer/2080192453458540349?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"wuck"},{"id":"a--3606585513578338451","kind":"claim","label":"人类不可替代的核心竞争力是为结果承担责任，而非创造力或共情…","fullLabel":"人类不可替代的核心竞争力是为结果承担责任，而非创造力或共情力。","side":"negative","reasonType":"责任归属","quality":0.85,"votes":2,"topicId":"zh-1977074341968574068","url":"https://www.zhihu.com/question/1977074341968574068/answer/2077759023877730622?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"曾经是小赵"},{"id":"a-8130782778536502254","kind":"claim","label":"AI 会写代码后，程序员行业不会消失，但纯编码劳动的价值将…","fullLabel":"AI 会写代码后，程序员行业不会消失，但纯编码劳动的价值将持续贬值。","side":"positive","reasonType":"技术壁垒","quality":0.85,"votes":1,"topicId":"zh-14461028376","url":"https://www.zhihu.com/question/14461028376/answer/2081519104511455372?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"AI小D"},{"id":"a-4560790726606256329","kind":"claim","label":"AI 拆除了写代码的门槛，程序员的核心价值已转向业务理解与…","fullLabel":"AI 拆除了写代码的门槛，程序员的核心价值已转向业务理解与系统设计。","side":"positive","reasonType":"技术壁垒","quality":0.8,"votes":1,"topicId":"zh-2066911604235571824","url":"https://www.zhihu.com/question/2066911604235571824/answer/2080358985711073237?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"老梁码上AI"},{"id":"a-8201144425862317631","kind":"claim","label":"AI 替代的是重复性任务而非完整岗位，真正被淘汰的是不会驾…","fullLabel":"AI 替代的是重复性任务而非完整岗位，真正被淘汰的是不会驾驭 AI 的人。","side":"neutral","reasonType":"人类特质","quality":0.75,"votes":1,"topicId":"zh-2058927476735321115","url":"https://www.zhihu.com/question/2058927476735321115/answer/2075590453743849834?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"花肚token小龙人"},{"id":"a-7578589222068007825","kind":"claim","label":"人类的核心竞争力在于承担后果、提出问题和试错，这些是 AI…","fullLabel":"人类的核心竞争力在于承担后果、提出问题和试错，这些是 AI 无法替代的。","side":"negative","reasonType":"人类特质","quality":0.8,"votes":1,"topicId":"zh-1977074341968574068","url":"https://www.zhihu.com/question/1977074341968574068/answer/2076334893332698805?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"低代码Helms"},{"id":"a-7694646029523666707","kind":"claim","label":"AI 时代学习编程语言仍有必要，但只需掌握基础而非死磕技术…","fullLabel":"AI 时代学习编程语言仍有必要，但只需掌握基础而非死磕技术细节。","side":"negative","reasonType":"教育培养","quality":0.6,"votes":0,"topicId":"zh-2081685100555677809","url":"https://www.zhihu.com/question/2081685100555677809/answer/2081688569555464603?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"Laffinty"},{"id":"a--6230768604688732246","kind":"claim","label":"AI 不会完全替代设计师，设计师应把重复设计沉淀为可售卖的…","fullLabel":"AI 不会完全替代设计师，设计师应把重复设计沉淀为可售卖的数字资产。","side":"negative","reasonType":"成本经济","quality":0.7,"votes":0,"topicId":"zh-604703607","url":"https://www.zhihu.com/question/604703607/answer/2081779356519641141?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"壹号单元"},{"id":"a--7940648025065138231","kind":"claim","label":"AI取代的不是设计师，而是设计流程中的执行与试错环节。","fullLabel":"AI取代的不是设计师，而是设计流程中的执行与试错环节。","side":"positive","reasonType":"技术壁垒","quality":0.85,"votes":0,"topicId":"zh-1902746889251721780","url":"https://www.zhihu.com/question/1902746889251721780/answer/2076334040039408413?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"时间斗士"},{"id":"a--6819956167400761675","kind":"claim","label":"对普通人而言，计算机仍是少有的努力卷就能获得高回报的专业。","fullLabel":"对普通人而言，计算机仍是少有的努力卷就能获得高回报的专业。","side":"positive","reasonType":"成本经济","quality":0.7,"votes":0,"topicId":"zh-2053994309955872738","url":"https://www.zhihu.com/question/2053994309955872738/answer/2055794754642776895?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"涤生大数据"},{"id":"a--6636081953562257961","kind":"claim","label":"AI接管基础工作后，普通本科计算机毕业生岗位空间持续收缩。","fullLabel":"AI接管基础工作后，普通本科计算机毕业生岗位空间持续收缩。","side":"positive","reasonType":"技术壁垒","quality":0.8,"votes":0,"topicId":"zh-1892518226979709619","url":"https://www.zhihu.com/question/1892518226979709619/answer/2081759005005838128?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"与云与诗"},{"id":"a--2080743341833820012","kind":"claim","label":"二本计算机学生应优先选实践型细分方向而非计科理论专业。","fullLabel":"二本计算机学生应优先选实践型细分方向而非计科理论专业。","side":"neutral","reasonType":"教育培养","quality":0.65,"votes":0,"topicId":"zh-662412262","url":"https://www.zhihu.com/question/662412262/answer/2072994509353493625?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"世纪前程"},{"id":"a-3016148963550676388","kind":"claim","label":"计算机仍是就业口径最宽、最值得推荐的专业之一。","fullLabel":"计算机仍是就业口径最宽、最值得推荐的专业之一。","side":"negative","reasonType":"需求本质","quality":0.75,"votes":0,"topicId":"zh-2054231707188991838","url":"https://www.zhihu.com/question/2054231707188991838/answer/2076758194739734459?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"二流三四"},{"id":"a--27641170957010190","kind":"claim","label":"人类不可替代的核心是AI永远无法模拟的有机智能。","fullLabel":"人类不可替代的核心是AI永远无法模拟的有机智能。","side":"negative","reasonType":"人类特质","quality":0.7,"votes":0,"topicId":"zh-2025152386188985204","url":"https://www.zhihu.com/question/2025152386188985204/answer/2081747870907103015?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"启融科技 曹新宇"},{"id":"a-2068354476218263395","kind":"claim","label":"AI越强，人的核心竞争力越在于定义问题、判断价值与承担风险…","fullLabel":"AI越强，人的核心竞争力越在于定义问题、判断价值与承担风险，而非知道答案。","side":"negative","reasonType":"人类特质","quality":0.85,"votes":0,"topicId":"zh-1992302419741266883","url":"https://www.zhihu.com/question/1992302419741266883/answer/2015119838058684502?utm_medium=openapi_platform&utm_source=cf621feb3f2d","author":"法徒铭纹"},{"id":"cl-ai-shrinks-programmer-demand","kind":"cluster","label":"AI致程序员需求萎缩","summary":"AI导致程序员岗位需求减少","side":"positive","weight":2},{"id":"cl-ai-cannot-replace-human-core","kind":"cluster","label":"AI不可替代人类核心","summary":"AI无法取代人类核心能力","side":"negative","weight":9},{"id":"cl-programmer-value-shifts-to-advanced","kind":"cluster","label":"程序员转向高阶能力","summary":"程序员价值转向高阶能力","side":"neutral","weight":3},{"id":"cl-ai-only-replaces-execution","kind":"cluster","label":"AI只替代执行环节","summary":"AI仅替代执行性工作环节","side":"positive","weight":6},{"id":"cl-value-shifts-to-responsibility","kind":"cluster","label":"核心价值在担责","summary":"人类核心价值转向承担责任","side":"neutral","weight":3}],"edges":[{"source":"zh-2078502972665884970","target":"a--7087091483973468197","relation":"contains"},{"source":"zh-49097006","target":"a-148125889147348205","relation":"contains"},{"source":"zh-1972252087044796716","target":"a-3945245772520750417","relation":"contains"},{"source":"zh-660021689","target":"a--6123579788034080189","relation":"contains"},{"source":"zh-2038411932424725710","target":"a--8393684584489265199","relation":"contains"},{"source":"zh-2035134530596683934","target":"a--8414699585281428141","relation":"contains"},{"source":"zh-14461028376","target":"a-7506223916112815660","relation":"contains"},{"source":"zh-2035134530596683934","target":"a--3059213074980422546","relation":"contains"},{"source":"zh-2077824745589028563","target":"a--3596866254648524842","relation":"contains"},{"source":"zh-2035134530596683934","target":"a--8636163842687801585","relation":"contains"},{"source":"zh-2035134530596683934","target":"a--8636163842687801585","relation":"contains"},{"source":"zh-12872950823","target":"a--5870612721970439520","relation":"contains"},{"source":"zh-2052608342816715544","target":"a-6926770995914242054","relation":"contains"},{"source":"zh-593208377","target":"a-7001840320934439329","relation":"contains"},{"source":"zh-2077824745589028563","target":"a--2483126025033303325","relation":"contains"},{"source":"zh-1972252087044796716","target":"a--3116936308957756347","relation":"contains"},{"source":"zh-2066911604235571824","target":"a-8883296274167542039","relation":"contains"},{"source":"zh-1972252087044796716","target":"a-5887195202431428022","relation":"contains"},{"source":"zh-465369002","target":"a-3132737687244157601","relation":"contains"},{"source":"zh-2056406404399722866","target":"a--6593649656487523089","relation":"contains"},{"source":"zh-1977074341968574068","target":"a-7415577803219682552","relation":"contains"},{"source":"zh-583691915","target":"a--6512767791850319549","relation":"contains"},{"source":"zh-660051452","target":"a--8022784150870965630","relation":"contains"},{"source":"zh-1977074341968574068","target":"a--3606585513578338451","relation":"contains"},{"source":"zh-14461028376","target":"a-8130782778536502254","relation":"contains"},{"source":"zh-2066911604235571824","target":"a-4560790726606256329","relation":"contains"},{"source":"zh-2058927476735321115","target":"a-8201144425862317631","relation":"contains"},{"source":"zh-1977074341968574068","target":"a-7578589222068007825","relation":"contains"},{"source":"zh-2081685100555677809","target":"a-7694646029523666707","relation":"contains"},{"source":"zh-604703607","target":"a--6230768604688732246","relation":"contains"},{"source":"zh-1902746889251721780","target":"a--7940648025065138231","relation":"contains"},{"source":"zh-2053994309955872738","target":"a--6819956167400761675","relation":"contains"},{"source":"zh-1892518226979709619","target":"a--6636081953562257961","relation":"contains"},{"source":"zh-662412262","target":"a--2080743341833820012","relation":"contains"},{"source":"zh-2054231707188991838","target":"a-3016148963550676388","relation":"contains"},{"source":"zh-2025152386188985204","target":"a--27641170957010190","relation":"contains"},{"source":"zh-1992302419741266883","target":"a-2068354476218263395","relation":"contains"},{"source":"a--7087091483973468197","target":"cl-ai-shrinks-programmer-demand","relation":"member"},{"source":"a-3132737687244157601","target":"cl-ai-shrinks-programmer-demand","relation":"member"},{"source":"cl-ai-shrinks-programmer-demand","target":"zh-2078502972665884970","relation":"bridge"},{"source":"cl-ai-shrinks-programmer-demand","target":"zh-465369002","relation":"bridge"},{"source":"a-6926770995914242054","target":"cl-ai-shrinks-programmer-demand","relation":"member"},{"source":"cl-ai-shrinks-programmer-demand","target":"zh-2052608342816715544","relation":"bridge"},{"source":"a-7415577803219682552","target":"cl-ai-cannot-replace-human-core","relation":"member"},{"source":"a--6512767791850319549","target":"cl-ai-cannot-replace-human-core","relation":"member"},{"source":"cl-ai-cannot-replace-human-core","target":"zh-1977074341968574068","relation":"bridge"},{"source":"cl-ai-cannot-replace-human-core","target":"zh-583691915","relation":"bridge"},{"source":"a--27641170957010190","target":"cl-ai-cannot-replace-human-core","relation":"member"},{"source":"cl-ai-cannot-replace-human-core","target":"zh-2025152386188985204","relation":"bridge"},{"source":"a-2068354476218263395","target":"cl-ai-cannot-replace-human-core","relation":"member"},{"source":"cl-ai-cannot-replace-human-core","target":"zh-1992302419741266883","relation":"bridge"},{"source":"a-7578589222068007825","target":"cl-ai-cannot-replace-human-core","relation":"member"},{"source":"a--6123579788034080189","target":"cl-programmer-value-shifts-to-advanced","relation":"member"},{"source":"a-4560790726606256329","target":"cl-programmer-value-shifts-to-advanced","relation":"member"},{"source":"cl-programmer-value-shifts-to-advanced","target":"zh-660021689","relation":"bridge"},{"source":"cl-programmer-value-shifts-to-advanced","target":"zh-2066911604235571824","relation":"bridge"},{"source":"a--6123579788034080189","target":"cl-ai-only-replaces-execution","relation":"member"},{"source":"a--7940648025065138231","target":"cl-ai-only-replaces-execution","relation":"member"},{"source":"cl-ai-only-replaces-execution","target":"zh-660021689","relation":"bridge"},{"source":"cl-ai-only-replaces-execution","target":"zh-1902746889251721780","relation":"bridge"},{"source":"a--8636163842687801585","target":"cl-ai-only-replaces-execution","relation":"member"},{"source":"cl-ai-only-replaces-execution","target":"zh-2035134530596683934","relation":"bridge"},{"source":"a--2483126025033303325","target":"cl-programmer-value-shifts-to-advanced","relation":"member"},{"source":"cl-programmer-value-shifts-to-advanced","target":"zh-2077824745589028563","relation":"bridge"},{"source":"a--2483126025033303325","target":"cl-ai-only-replaces-execution","relation":"member"},{"source":"cl-ai-only-replaces-execution","target":"zh-2077824745589028563","relation":"bridge"},{"source":"a-8130782778536502254","target":"cl-programmer-value-shifts-to-advanced","relation":"member"},{"source":"cl-programmer-value-shifts-to-advanced","target":"zh-14461028376","relation":"bridge"},{"source":"a-8130782778536502254","target":"cl-ai-only-replaces-execution","relation":"member"},{"source":"cl-ai-only-replaces-execution","target":"zh-14461028376","relation":"bridge"},{"source":"a-4560790726606256329","target":"cl-ai-only-replaces-execution","relation":"member"},{"source":"cl-ai-only-replaces-execution","target":"zh-2066911604235571824","relation":"bridge"},{"source":"a-7506223916112815660","target":"cl-value-shifts-to-responsibility","relation":"member"},{"source":"a--3596866254648524842","target":"cl-value-shifts-to-responsibility","relation":"member"},{"source":"cl-value-shifts-to-responsibility","target":"zh-14461028376","relation":"bridge"},{"source":"cl-value-shifts-to-responsibility","target":"zh-2077824745589028563","relation":"bridge"},{"source":"a--3606585513578338451","target":"cl-value-shifts-to-responsibility","relation":"member"},{"source":"cl-value-shifts-to-responsibility","target":"zh-1977074341968574068","relation":"bridge"},{"source":"a--7087091483973468197","target":"a-6926770995914242054","relation":"rebuts"},{"source":"a-6926770995914242054","target":"a-3132737687244157601","relation":"rebuts"},{"source":"a--6123579788034080189","target":"a--6636081953562257961","relation":"rebuts"},{"source":"a--8636163842687801585","target":"a--6636081953562257961","relation":"rebuts"},{"source":"a--2483126025033303325","target":"a--6636081953562257961","relation":"rebuts"},{"source":"a--3116936308957756347","target":"a--6636081953562257961","relation":"rebuts"},{"source":"a-8130782778536502254","target":"a--6636081953562257961","relation":"rebuts"},{"source":"a-4560790726606256329","target":"a--6636081953562257961","relation":"rebuts"},{"source":"a--7940648025065138231","target":"a--6636081953562257961","relation":"rebuts"}],"polarity":{"a--7087091483973468197":"A","a-3132737687244157601":"A","a-6926770995914242054":"B","a-8883296274167542039":"neutral","a-7694646029523666707":"neutral","a-7415577803219682552":"neutral","a-2068354476218263395":"neutral","a-7578589222068007825":"neutral","a--27641170957010190":"neutral","a--6512767791850319549":"neutral","a--6123579788034080189":"A","a--6636081953562257961":"B","a-8130782778536502254":"A","a--3116936308957756347":"A","a--8636163842687801585":"A","a--7940648025065138231":"A","a-4560790726606256329":"A","a--2483126025033303325":"A","a-7506223916112815660":"neutral","a--3606585513578338451":"neutral","a--3596866254648524842":"neutral","a-148125889147348205":"neutral","a-3945245772520750417":"neutral","a--8393684584489265199":"neutral","a--8414699585281428141":"neutral","a--3059213074980422546":"neutral","a--5870612721970439520":"neutral","a-7001840320934439329":"neutral","a-5887195202431428022":"neutral","a--6593649656487523089":"neutral","a--8022784150870965630":"neutral","a-8201144425862317631":"neutral","a--6230768604688732246":"neutral","a--6819956167400761675":"neutral","a--2080743341833820012":"neutral","a-3016148963550676388":"neutral"},"claimComp":{"a--7087091483973468197":1,"a-3132737687244157601":1,"a-6926770995914242054":1,"a--6123579788034080189":4,"a--6636081953562257961":4,"a-8130782778536502254":4,"a--3116936308957756347":4,"a--8636163842687801585":4,"a--7940648025065138231":4,"a-4560790726606256329":4,"a--2483126025033303325":4},"compMeta":[{"component":1,"size":3,"edges":3,"rebuts":2,"eigenvalue":1.801,"balance":1,"v1SideAgreement":0.6666666666666666},{"component":4,"size":8,"edges":16,"rebuts":7,"eigenvalue":4.191,"balance":1,"v1SideAgreement":0.5714285714285714}],"gatedRows":[{"title":"计算机专业真的如此完美吗?","verdict":"放行","band":"gray","note":"正方:计算机专业就业前景好、薪资高，是普通家庭实现阶层跃升的最佳路径之一。｜反方:行业竞争激烈、技术迭代快、加班严重，且面临AI替代风险，并非完美。"},{"title":"人工智能还有多久能全面替代翻译?","verdict":"放行","band":"gray","note":"正方:AI翻译在速度、成本上优势明显，技术迭代迅速，全面替代是必然趋势。｜反方:文学、法律等专业翻译需文化背景与创造力，AI难以企及，全面替代遥遥无期。"},{"title":"人工智能翻译机会取代传统的人工翻译吗?","verdict":"放行","band":"gray","note":"正方:AI翻译已能处理日常文本，效率远超人工，市场正逐步被AI占领。｜反方:高端翻译需要情感、语境和创造性，AI无法替代，人工翻译仍不可缺。"},{"title":"为什么说只会码代码的码农没有前途?","verdict":"放行","band":"gray","note":"正方:技术更新快，仅会编码易被淘汰，需软技能和业务理解才能晋升。｜反方:编码是核心能力，技术专家同样有前途，管理并非唯一出路。"},{"title":"为什么别选计算机专业?","verdict":"放行","band":"gray","note":"正方:行业饱和、内卷严重、学习成本高，且AI可能取代初级岗位。｜反方:计算机仍是高薪行业，需求持续增长，个人能力决定前景。"},{"title":"谁能给我一个ai现在无法替代画师的理由?","verdict":"放行","band":"gray","note":"正方:AI缺乏真实情感与生活体验，无法创作出有灵魂、引发共鸣的作品。｜反方:AI已能模仿风格并生成高质量画作，商业插画等领域正被替代。"},{"title":"到现在为止,AI绘画让多少画师失业了?未来又会让多少画师失业?","verdict":"放行","band":"gray","note":"正方:已有画师因AI失业，未来低端绘画岗位将大幅减少。｜反方:AI仅辅助创作，画师需求转向创意指导，失业数据被夸大。"},{"title":"网传 OpenAI 招外包训练 ChatGPT 取代码农,会成功吗?","verdict":"放行","band":"gray","note":"正方:AI编程助手已能完成基础编码，取代码农是技术趋势。｜反方:复杂系统需人类架构师，AI仅辅助，取代码农不现实。"},{"title":"未来几年 AI 会取代艺术设计类的工作吗?","verdict":"放行","band":"gray","note":"正方:AI能快速生成设计稿，降低人力成本，基础设计岗位将消失。｜反方:艺术设计需创意与客户沟通，AI无法独立完成全流程。"},{"title":"艺术工作者会被AI取代吗?","verdict":"放行","band":"gray","note":"正方:AI可模仿风格并批量生产，商业艺术工作者面临失业风险。｜反方:艺术的核心是情感与思想，AI无法取代人类艺术家的独特表达。"},{"title":"程序员未来是不是会大量失业?","verdict":"放行","band":"gray","note":"正方:AI自动化编码工具已能完成基础开发任务，企业为降本增效将减少初级程序员岗位。｜反方:AI仅辅助编程，复杂系统设计、调试和创新仍需人类，程序员需求转向高技能岗位。"},{"title":"大家觉得ai绘画会替代画师吗?","verdict":"放行","band":"gray","note":"正方:AI绘画效率高、成本低，已能生成商用级作品，挤压中低端画师市场。｜反方:艺术创作依赖情感、原创性和客户沟通，AI无法替代高端画师和定制化需求。"},{"title":"现在人工智能做插画越来越厉害了,插画会被取代吗?","verdict":"放行","band":"gray","note":"正方:AI插画在速度、风格多样性和成本上优势明显，商业插画需求正转向AI。｜反方:插画需版权、独特创意和人文内涵，AI生成内容法律伦理问题多，难以完全取代。"},{"title":"AI 入侵设计领域,会完全替代设计师吗?","verdict":"放行","band":"gray","note":"正方:AI能自动生成UI、海报等设计，效率远超人类，标准化设计岗位将消失。｜反方:设计需理解用户、品牌和场景，AI缺乏同理心和战略思维，无法完全替代。"},{"title":"人工智能大爆发,AI编程工具对程序员到底是颠覆还是辅助?","verdict":"放行","band":"gray","note":"正方:AI编程工具能自动生成代码、修复bug，颠覆传统编程模式，减少人力需求。｜反方:AI工具提升效率但需程序员监督、架构和调试，本质是辅助而非颠覆。"},{"title":"二本院校学生计算机科学与技术专业往后的出路是什么?","verdict":"放行","band":"rule","note":"可辩性高、天然收敛"},{"title":"设计师存在的意义到底是什么?","verdict":"放行","band":"rule","note":"可辩性高、天然收敛"},{"title":"AI 在未来是否会代替编程工作,AI 与编程的关系将会走向何方?","verdict":"放行","band":"gray","note":"正方:AI可自主编写、优化代码，未来将承担大部分编程任务，人类转向需求定义。｜反方:编程是问题求解和系统设计，AI无法理解复杂业务，关系将是人机协作。"},{"title":"AI 对程序员的工作有什么影响?","verdict":"拒绝","band":"rule","note":"答案是清单，不存在对立立场"},{"title":"如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?","verdict":"放行","band":"rule","note":"可辩性高、天然收敛"},{"title":"AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?","verdict":"放行","band":"gray","note":"正方:AI缺乏对模糊需求的理解、系统架构和跨团队协作能力，故未取代。｜反方:AI已在部分环节取代程序员，如代码生成，取代是渐进过程，环节在于信任和集成。"},{"title":"ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?","verdict":"放行","band":"gray","note":"正方:AI能独立完成编码，未来程序员岗位将大幅减少甚至消失。｜反方:程序员职责扩展至维护、创新和AI管理，行业不会消失而是转型。"},{"title":"ai大概还要多久就可以取代程序员了?","verdict":"放行","band":"gray","note":"正方:AI发展迅速，预计5-10年内可取代大部分程序员工作。｜反方:编程需创造力和复杂决策，AI永远无法完全取代，时间无法预测。"},{"title":"马斯克预计到明年底人类将无法与 AI 竞争软件开发,AI 将胜任所有数字工作,对程序员群体影响有多大?","verdict":"放行","band":"gray","note":"正方:马斯克预测若成真，程序员将面临大规模失业，影响深远。｜反方:预测过于乐观，AI受限于数据、伦理和实际部署，影响有限且渐进。"},{"title":"为什么总有人嘴硬说程序员不会被 AI 替代?","verdict":"放行","band":"gray","note":"正方:AI已能自动生成、调试代码，效率超人类，替代趋势明显。｜反方:编程需复杂问题解决、系统设计和业务理解，AI难以完全替代。"},{"title":"为什么画师、配音演员都在抵制 AI,程序员却普遍在拥抱 AI?","verdict":"放行","band":"gray","note":"正方:程序员拥抱AI因能提升效率，而画师配音抵制因AI直接模仿其风格。｜反方:程序员也担忧AI替代，拥抱是无奈或表面现象，抵制同样存在。"},{"title":"你认为AI编程未来真的会取代程序员吗?","verdict":"放行","band":"gray","note":"正方:AI发展迅速，未来可能取代大部分编程任务，程序员角色转变。｜反方:编程核心是创造与决策，AI是工具，无法取代人类程序员。"},{"title":"AI 写的代码还需要 Review 吗?只看 Spec + Harness 验收是否足够?","verdict":"放行","band":"gray","note":"正方:AI代码可能含隐蔽错误，必须人工Review，仅靠验收不足。｜反方:若Spec和Harness完备，可自动化验收，无需传统Review。"},{"title":"AI会完全取代码农的工作么?","verdict":"放行","band":"gray","note":"正方:AI将自动化所有编码任务，最终完全取代码农。｜反方:码农工作包含需求分析、架构设计等，AI无法完全取代。"},{"title":"😰 Redis 之父 Antirez 说「自己写代码已经没必要」,普通程序员该如何应对这场行业巨变?","verdict":"拒绝","band":"rule","note":"求的是步骤，不是观点"},{"title":"编程大神 DHH 谈 AI 写代码称「掌握编程的,永远是动手写的人」,AI 取代人类编程的边界在哪里?","verdict":"放行","band":"gray","note":"正方:AI将取代重复性编码，人类保留创造性编程，边界在创新。｜反方:AI可能超越人类创造力，边界模糊，最终取代所有编程。"},{"title":"在AI时代,计算机类专业学生的学习应如何调整?","verdict":"放行","band":"gray","note":"正方:学生应转向AI工具使用、高维设计，减少传统编码训练。｜反方:基础原理和算法仍核心，AI只是工具，不应削弱基础。"},{"title":"为什么现在画师几乎要被ai替代,而程序员行业不仅没被替代,反而看起来更繁荣了?","verdict":"放行","band":"rule","note":"问社会成因，可辩"},{"title":"Block 因AI裁员近50%,码农裁70%,股价飙涨24%,AI真会取代大部分人的工作吗?","verdict":"放行","band":"gray","note":"正方:案例显示AI直接导致裁员，证明AI将取代大部分工作。｜反方:裁员可能源于经济因素，AI是借口，不能证明普遍取代。"},{"title":"AI 是抢走了我们的工作,还是给了我们新的可能?","verdict":"放行","band":"gray","note":"正方:AI自动化取代岗位，导致失业，抢走工作。｜反方:AI创造新职业、提升效率，带来新机遇。"},{"title":"AI绘画,AI设计,AI真的能代替各行各业的设计师吗?","verdict":"放行","band":"rule","note":"可证伪"},{"title":"为什么作为一个设计师,我觉得ai不能代替设计?","verdict":"放行","band":"gray","note":"正方:设计需人类情感、创意和语境理解，AI无法替代。｜反方:AI已能生成优秀设计，未来可能替代大部分设计工作。"},{"title":"有了 AI 技术,以后画画还值得专业学习吗?AI 是否能取代画家?","verdict":"放行","band":"gray","note":"正方:AI能高效生成高质量图像，替代重复性绘画工作，专业绘画的经济价值下降。｜反方:绘画承载人类情感、创造力和文化价值，AI无法复制原创艺术灵魂，专业学习仍重要。"},{"title":"AI 会取代哪些职业?如何适应?(认同回答数最多的回答,必感谢)?","verdict":"放行","band":"gray","note":"正方:AI将取代重复性、规则性强的职业，如数据录入、客服，需学习新技能适应。｜反方:AI创造新职业并增强人类能力，许多职业需人类判断和情感，不会完全取代。"},{"title":"普通人选什么专业最不容易被 AI 替代?","verdict":"放行","band":"gray","note":"正方:选择需要创造力、情感交流和复杂决策的专业，如艺术、心理咨询，不易被AI替代。｜反方:AI进步迅速，任何专业都可能受影响，没有绝对安全区，需终身学习。"},{"title":"为什么我觉得AI绘画完全代替不了画师?","verdict":"放行","band":"gray","note":"正方:AI绘画缺乏人类的情感表达、原创性和意图，无法替代画师的艺术创作。｜反方:AI绘画在效率、成本和风格模仿上超越人类，能替代大量商业绘画工作。"},{"title":"AI 绘画会让童书插画师失业吗?","verdict":"放行","band":"gray","note":"正方:AI能快速生成多样插画，降低成本和周期，可能导致童书插画师失业。｜反方:童书插画需独特风格、情感共鸣和儿童心理理解，AI难以替代人类插画师。"},{"title":"2024 插画行业有没有受到 AI 冲击?AI 未来真的有可能代替插画师吗?","verdict":"放行","band":"rule","note":"可证伪"},{"title":"ai发展会取代板绘吗,为什么?","verdict":"放行","band":"gray","note":"正方:AI绘画工具能模拟板绘风格并快速生成作品，可能取代部分板绘需求。｜反方:板绘是创作过程，涉及手感、即时反馈和艺术表达，AI无法完全取代。"},{"title":"为什么才短短两三年,AI就已经泛滥成灾,到了人人喊打、人嫌狗厌的境地?","verdict":"放行","band":"gray","note":"正方:AI滥用导致隐私、失业和伦理问题，引发公众反感和抵制。｜反方:AI带来便利和创新，公众反感源于误解和媒体炒作，并非普遍现象。"},{"title":"Ai已横空出世,你有过一丝丝的担忧吗?","verdict":"放行","band":"gray","note":"正方:AI可能导致失业、隐私泄露和伦理危机，引发合理担忧。｜反方:AI推动社会进步，担忧被夸大，应积极拥抱而非恐惧。"},{"title":"设计师/程序员/文案等职业会被AI取代吗?现阶段如何用AI工具让自己「不可替代」?","verdict":"放行","band":"gray","note":"正方:AI能自动化部分设计、编程和文案工作，这些职业面临取代风险。｜反方:AI是辅助工具，人类创造力、策略和情感交流使其不可替代。"},{"title":"AI 写游戏剧情已经与真人分不出差别,那么未来游戏文案策划的核心竞争力是什么?","verdict":"放行","band":"rule","note":"可辩性高、天然收敛"},{"title":"AI 是不是毁掉了「不是……而是」这个句式?","verdict":"放行","band":"gray","note":"正方:AI频繁使用该句式，使其变得机械和泛滥，失去修辞效果。｜反方:句式本身无过，AI使用不影响其价值，人类仍可创造性运用。"},{"title":"在大模型和 AI 工具普及的当下,文案策划与内容运营者应该具备哪些不可替代的核心能力?","verdict":"放行","band":"gray","note":"正方:AI 缺乏真实体验与情感共鸣，人的洞察、策略与品牌叙事能力不可替代。｜反方:AI 已能生成策略与创意，人的核心能力可被提示工程与数据反馈替代。"},{"title":"有了ai还需要人做文案吗?","verdict":"放行","band":"gray","note":"正方:需要，AI 无法理解复杂语境、情感与品牌调性，人负责把关与创意。｜反方:不需要，AI 已能高效产出合格文案，多数场景下人工成本高且非必需。"},{"title":"为什么很多网文作者都非常自信,认为AI在创作领域无法取代自己?","verdict":"放行","band":"rule","note":"问社会成因，可辩"},{"title":"AI 这么强,翻译和英专生还有用吗?","verdict":"放行","band":"gray","note":"正方:有用，AI 难处理文化隐喻、专业领域与实时交互，高端翻译仍需人。｜反方:无用，AI 翻译质量已超多数人工，英专生就业市场被大幅挤压。"},{"title":"中国传媒大学砍掉翻译、摄影等 16 个本科专业,怎样看待这一变化?这些专业真的能被 AI 替代吗?","verdict":"放行","band":"rule","note":"评价人物或长期现象"},{"title":"随着AI的出现,翻译这个行业是不是凉的透透的了?","verdict":"放行","band":"gray","note":"正方:没凉透，AI 替代低端笔译，但会议口译、文学翻译等仍需人类。｜反方:凉透了，AI 翻译准确率与速度碾压人工，行业需求断崖式下跌。"},{"title":"为什么现在翻译工具明明已经很发达了,还需要翻译员呢?","verdict":"放行","band":"rule","note":"问社会成因，可辩"},{"title":"做技术的人,护城河到底在哪里?","verdict":"放行","band":"gray","note":"正方:护城河在系统设计、架构决策与解决复杂问题的能力，AI 难以替代。｜反方:护城河消失，AI 已能写代码、调优，技术人需转型否则被淘汰。"},{"title":"AI 对工业设计行业影响有多大?","verdict":"放行","band":"gray","note":"正方:影响巨大，AI 生成方案、优化结构，大幅提升效率并降低门槛。｜反方:影响有限，工业设计需考虑制造、安全与用户体验，AI 仅辅助。"},{"title":"GPT-Image-2发布,设计师和普通人之间的门槛消失了吗?","verdict":"放行","band":"gray","note":"正方:消失了，AI 让普通人也能生成专业级图像，设计门槛大幅降低。｜反方:未消失，审美、创意与项目落地能力仍需专业训练，AI 只是工具。"},{"title":"AI 现在写代码这么猛,咱程序员的核心竞争力还剩什么?","verdict":"放行","band":"gray","note":"正方:核心竞争力在业务理解、架构设计与调试优化，AI 无法独立完成。｜反方:核心竞争力所剩无几，AI 已能全栈开发，程序员需转向管理或失业。"},{"title":"翻译行业被唱衰为「夕阳产业」,热爱翻译还值得坚持吗?","verdict":"放行","band":"gray","note":"正方:值得，高端翻译与本地化需求仍在，热爱可转化为专业优势。｜反方:不值得，行业萎缩、收入下降，坚持热爱难抵现实压力。"},{"title":"高校翻译专业纷纷关停,翻译行业收紧,面对「断崖式」冲击,翻译专业的学生该如何在AI时代寻找出路?","verdict":"拒绝","band":"rule","note":"求的是步骤，不是观点"},{"title":"德芙、罗技、滴露广告文案翻车,都称由「第三方创作」,这是甩锅还是行业常规操作?第三方的责任有多大?","verdict":"放行","band":"gray","note":"正方:是甩锅，品牌方应负审核责任，第三方只是执行，品牌难辞其咎。｜反方:是行业常规，第三方创作普遍，责任应按合同划分，品牌方也是受害者。"},{"title":"多个知名品牌因 AI 广告违规「翻车」,其背后原因是什么?","verdict":"放行","band":"rule","note":"可辩性高、天然收敛"},{"title":"2026年在保证本科中下985的条件下,计算机科学与技术是否仍然是值得报考有前途的专业呢?","verdict":"放行","band":"gray","note":"正方:中下985计算机仍能进大厂或国企，起薪高于多数专业，且考公岗位多。｜反方:互联网红利消退，2026年岗位缩减，985计算机也可能面临就业难和薪资下滑。"},{"title":"2026 计算机科学专业还值得报考吗?","verdict":"放行","band":"gray","note":"正方:数字化和AI发展持续需要计算机人才，高端岗位薪资依然领先。｜反方:初级程序员供过于求，AI替代部分编码工作，报考性价比下降。"},{"title":"5年后计算机专业出来还有前途吗?","verdict":"放行","band":"gray","note":"正方:五年后AI、云计算、网络安全等领域人才缺口仍大，计算机专业有前途。｜反方:技术迭代快，五年后基础编程可能被AI取代，计算机专业优势不再。"},{"title":"计算机还推荐学吗?","verdict":"放行","band":"gray","note":"正方:计算机是通用技能，各行各业都需要，推荐学以保持竞争力。｜反方:行业卷、加班多、裁员频繁，除非顶尖热爱，否则不推荐。"},{"title":"现在ai这么发达,有必要花很多时间去学习编程语言,像Python、Java吗?","verdict":"放行","band":"gray","note":"正方:AI只是辅助，理解编程逻辑才能有效调试和优化，学编程有必要。｜反方:AI能自动生成代码，花大量时间学语法性价比低，不如学AI工具使用。"},{"title":"AI都能生成代码了?编程还有用吗?","verdict":"放行","band":"gray","note":"正方:AI生成代码需人类审核和设计，编程能力仍是核心。｜反方:AI已能完成多数编码任务，传统编程技能价值大幅降低。"},{"title":"现在AI编程这么厉害,还有必要深入学习编程吗?","verdict":"放行","band":"gray","note":"正方:深入学习编程能掌握系统设计，AI无法替代架构和创新能力。｜反方:AI编程工具已能完成复杂任务，深入学习编程投入产出比低。"},{"title":"2026年了,大学生还有必要学编程吗,AI会不会让程序员失业?","verdict":"放行","band":"rule","note":"可证伪"},{"title":"未来还有必要学习编程吗?","verdict":"放行","band":"gray","note":"正方:编程是理解数字世界的基础，未来人机协作需要编程思维。｜反方:自然语言交互将取代编程，未来多数人无需学编程。"},{"title":"在这个 ai 时代学习编程的意义还大吗?","verdict":"放行","band":"gray","note":"正方:编程培养逻辑和问题解决能力，AI时代意义更大。｜反方:AI降低编程门槛，编程作为专业技能的意义减小。"},{"title":"AI时代还有必要学编程吗?","verdict":"放行","band":"gray","note":"正方:编程是控制AI的基础，学编程才能更好利用AI。｜反方:AI将越来越易用，非专业人士无需学编程也能用AI。"},{"title":"AI时代下,学习一门编程语言是否还有意义?","verdict":"放行","band":"gray","note":"正方:编程培养计算思维与问题分解能力，是理解和控制AI的基础，且AI辅助提升学习效率。｜反方:AI能自动生成代码，自然语言成为新编程接口，传统编程语法学习投入产出比下降。"},{"title":"如果 AI 以后能自己学习、自己写代码、自己优化模型,普通人还有必要学编程吗?","verdict":"放行","band":"gray","note":"正方:编程教育培养逻辑思维和创造力，是人机协作与监督AI的必要素养。｜反方:AI全自动编程后，普通人只需表达需求，编程技能不再是职业门槛。"},{"title":"知识工作者会被AI替代么?","verdict":"放行","band":"gray","note":"正方:AI已能处理数据分析、文案生成等知识任务，替代部分重复性工作。｜反方:知识工作依赖复杂判断、情感交流和伦理决策，AI难以完全替代。"},{"title":"AI对画师的斩杀线大概在哪个位置?","verdict":"放行","band":"gray","note":"正方:AI在风格模仿和批量生成上已超越多数画师，低端商业插画市场受冲击。｜反方:高端原创、情感表达和版权保护领域，AI仍无法替代人类画师。"},{"title":"为什么绘圈对AI绘画痛恶欲绝,但其他圈子对AI创作的态度就比较温和?","verdict":"放行","band":"gray","note":"正方:绘圈核心价值是手工技艺与原创性，AI直接冲击其生存根基，故反应激烈。｜反方:其他圈子同样受AI冲击，但绘圈更封闭、版权意识更强，导致态度差异。"},{"title":"ai辅助编程,能替代程序员吗?","verdict":"放行","band":"rule","note":"可证伪"}],"pilot":{"queries":22,"answersHit":103,"topics":81,"pass":78,"reject":3,"grayLLMCalls":7}};</script>
+<script>
+(function(){
+  "use strict";
+  var mode = "v1";
+  // 配色完全对齐 web/src/ui/ControversyMap.tsx 的 fillForNode / strokeForNode / strokeForLink
+  var V1C = {positive:"#0f6fe5", negative:"#d9574d", neutral:"#64748b"};  // cluster 填充
+  var V1L = {positive:"#7fb0f2", negative:"#eda49c", neutral:"#a8b6c8"};  // claim 填充
+  var DER = {A:"#0f6fe5", B:"#d9574d", neutral:"#a8b6c8"};
+  var LINK_C = {bridge:"#e8a33d", rebuts:"#d9574d", member:"#b9c6d4", contains:"#dbe3ec"};
+  var LINK_W = {bridge:2, rebuts:1.6, member:1.1, contains:0.8};
+  var DIST = {member:{d:78,s:0.9}, contains:{d:118,s:0.32}, bridge:{d:165,s:0.55}, rebuts:{d:250,s:0.08}};
+  var CHARGE = {cluster:-1150, topic:-560, claim:-170};
+  var PAD = {cluster:34, topic:22, claim:13};
+
+  var nodes = DATA.nodes.map(function(n){ var o={}; for(var k in n) o[k]=n[k]; return o; });
+  var links = DATA.edges.map(function(e,i){ var o={}; for(var k in e) o[k]=e[k]; o.id=i; return o; });
+  var nodeById = {}; nodes.forEach(function(n){ nodeById[n.id]=n; });
+
+  var W = window.innerWidth, H = window.innerHeight;
+  var svg = d3.select("#map");
+  var g = svg.append("g");
+  var gLinks = g.append("g").attr("class","cm-links");
+  var gEmph = g.append("g").attr("class","cm-links-emphasis");
+  var gRings = g.append("g").attr("pointer-events","none");  // 邻域高亮环（原型同款）
+  var gNodes = g.append("g");
+  var gLabels = g.append("g").attr("pointer-events","none");
+
+  function baseR(n){
+    if(n.kind==="cluster") return 13 + Math.min(16, (n.weight||0)*2.0);
+    if(n.kind==="topic") return 10;
+    return 5.5;
+  }
+  function trunc(s,n){ s=s||""; return s.length>n ? s.slice(0,n)+"…" : s; }
+  function campOf(n){
+    if(n.kind!=="claim") return null;
+    return DATA.polarity[n.id] || "neutral";
+  }
+  function colorOf(n){
+    if(n.kind==="topic") return "#111827";
+    if(n.kind==="cluster") return mode==="v1" ? (V1C[n.side]||V1C.neutral) : V1C.neutral;
+    if(mode==="v1") return V1L[n.side]||V1L.neutral;
+    return DER[campOf(n)]||DER.neutral;
+  }
+  function strokeOf(n){
+    if(n.kind==="cluster") return "#0b3f80";
+    if(n.kind==="topic") return "#111827";
+    return "#ffffff";
+  }
+
+  nodes.forEach(function(n,i){
+    var a = i*2.39996, r = 120 + Math.sqrt(i)*46;
+    n.x = W/2 + Math.cos(a)*r; n.y = H/2 + Math.sin(a)*r;
+  });
+
+  var sim = d3.forceSimulation(nodes)
+    .force("link", d3.forceLink(links).id(function(d){return d.id;})
+      .distance(function(l){ return (DIST[l.relation]||DIST.contains).d; })
+      .strength(function(l){ return (DIST[l.relation]||DIST.contains).s; }))
+    .force("charge", d3.forceManyBody().strength(function(d){ return CHARGE[d.kind]; }))
+    .force("collide", d3.forceCollide().radius(function(d){ return baseR(d)+PAD[d.kind]; }).strength(0.95))
+    .force("x", d3.forceX(function(d){ return fxTarget(d); }).strength(0.12))
+    .alphaDecay(0.022);
+
+  function fxTarget(d){
+    if(mode!=="v1") return 0;
+    if(d.kind==="claim"||d.kind==="cluster"){
+      if(d.side==="positive") return -420;
+      if(d.side==="negative") return 420;
+    }
+    return 0;
+  }
+
+  // ---- draw ----
+  var selLink = gLinks.selectAll("line").data(links).join("line")
+    .attr("class", function(l){ return "cm-link"; })
+    .attr("stroke", function(l){ return LINK_C[l.relation]||LINK_C.contains; })
+    .attr("stroke-width", function(l){ return LINK_W[l.relation]||LINK_W.contains; })
+    .attr("stroke-dasharray", function(l){
+      if(l.relation==="bridge") return "7,5";
+      if(l.relation==="rebuts") return "5,4";
+      return null;
+    });
+  var emphMoved = selLink.filter(function(l){ return l.relation==="rebuts"; }).remove();
+  emphMoved.each(function(){ gEmph.node().appendChild(this); });
+  selLink = gLinks.selectAll("line").merge(emphMoved);
+  selLink.append("title").text(function(l){
+    if(l.relation!=="rebuts") return l.relation;
+    var s=nodeById[l.source.id||l.source], t=nodeById[l.target.id||l.target];
+    return "rebuts：跨议题矛盾\n"+(s?s.fullLabel:"")+"\n↔\n"+(t?t.fullLabel:"");
+  });
+
+  var selRing = gRings.selectAll("circle").data([0]).join("circle")
+    .attr("fill","none").attr("stroke-width",1.6).style("display","none");
+  var activeNode = null;
+
+  var selNode = gNodes.selectAll("circle").data(nodes).join("circle")
+    .attr("r", baseR).attr("fill", colorOf)
+    .attr("stroke", strokeOf)
+    .attr("stroke-width", function(d){ return d.kind==="cluster" ? 2 : d.kind==="topic" ? 1.6 : 0; })
+    .style("cursor","pointer").call(drag(sim));
+
+  var selLabel = gLabels.selectAll("text").data(nodes).join("text")
+    .attr("text-anchor","middle")
+    .attr("class", function(d){
+      return d.kind==="cluster" ? "node-label cluster-label" : (d.kind==="topic" ? "node-label topic-label" : "node-label claim-label");
+    })
+    .text(function(d){ return d.kind==="claim" ? "" : trunc(d.label, 20); })
+    .attr("dy", function(d){ return baseR(d)+13; });
+
+  function drag(simulation){
+    return d3.drag()
+      .on("start", function(e,d){ if(!e.active) simulation.alphaTarget(0.45).restart(); d.fx=d.x; d.fy=d.y; })
+      .on("drag", function(e,d){ d.fx=e.x; d.fy=e.y; })
+      .on("end", function(e,d){ if(!e.active) simulation.alphaTarget(0); /* 松手保持钉住：拖到哪固定到哪 */ });
+  }
+
+  sim.on("tick", function(){
+    selLink
+      .attr("x1",function(l){return l.source.x;}).attr("y1",function(l){return l.source.y;})
+      .attr("x2",function(l){return l.target.x;}).attr("y2",function(l){return l.target.y;});
+    selNode.attr("cx",function(d){return d.x;}).attr("cy",function(d){return d.y;});
+    selLabel.attr("x",function(d){return d.x;}).attr("y",function(d){return d.y;});
+    if(activeNode){
+      selRing.attr("cx",activeNode.x).attr("cy",activeNode.y).attr("r",baseR(activeNode)+6);
+    }
+  });
+
+  svg.call(d3.zoom().scaleExtent([0.25,3]).on("zoom", function(e){ g.attr("transform", e.transform); }));
+
+  // ---- highlight & panel ----
+  var pinned = null;
+  function highlightSet(d){
+    var s = {}; s[d.id]=1;
+    links.forEach(function(l){
+      var a=l.source.id||l.source, b=l.target.id||l.target;
+      if(a===d.id) s[b]=1; if(b===d.id) s[a]=1;
+    });
+    return s;
+  }
+  function applyHighlight(d){
+    activeNode = d || null;
+    if(!d){
+      selRing.style("display","none");
+      selNode.attr("opacity",1);
+      selLabel.attr("opacity",function(n){return n.kind==="claim"?0:1;})
+        .text(function(n){ return n.kind==="claim" ? "" : trunc(n.label,20); });
+      selLink.classed("cm-dim",false).classed("cm-lit",false); return;
+    }
+    selRing.style("display",null)
+      .attr("cx",d.x).attr("cy",d.y).attr("r",baseR(d)+6)
+      .attr("stroke", d.kind==="cluster" ? "#e8a33d" : "#0f6fe5");
+    var s = highlightSet(d);
+    selNode.attr("opacity", function(n){ return s[n.id]?1:0.14; });
+    selLabel.attr("opacity", function(n){ return s[n.id]?1:0; })
+      .text(function(n){
+        if(n.kind==="claim") return s[n.id] ? trunc(n.fullLabel,22) : "";
+        return trunc(n.label,20);
+      });
+    selLink.classed("cm-dim", function(l){
+      var a=l.source.id||l.source, b=l.target.id||l.target;
+      return !(s[a]&&s[b]);
+    }).classed("cm-lit", function(l){
+      var a=l.source.id||l.source, b=l.target.id||l.target;
+      return s[a]&&s[b];
+    });
+  }
+  function chipsForClaim(n){
+    var h = "";
+    var cls = n.side==="positive"?"pos":(n.side==="negative"?"neg":"");
+    h += '<span class="chip '+cls+'">v1 立场：'+n.side+'</span>';
+    h += '<span class="chip">理由类型：'+(n.reasonType||"")+'</span>';
+    if(mode==="derived"){
+      var c = campOf(n);
+      var cc = c==="A"?"campA":(c==="B"?"campB":"");
+      h += '<span class="chip '+cc+'">派生阵营：'+c+'</span>';
+      if(DATA.claimComp[n.id]){
+        var meta = DATA.compMeta.filter(function(m){return m.component===DATA.claimComp[n.id];})[0];
+        if(meta) h += '<span class="chip">分量'+meta.component+' · balance='+meta.balance+' · v1一致率='+meta.v1SideAgreement.toFixed(2)+'</span>';
+      }
+    }
+    return h;
+  }
+  function showPanel(d){
+    var p = document.getElementById("panel");
+    var h = "";
+    if(d.kind==="claim"){
+      h += '<h2>'+d.fullLabel+'</h2>';
+      h += '<div class="chips">'+chipsForClaim(d)+'</div>';
+      h += '<div class="meta">作者：'+(d.author||"—")+' · 赞 '+(d.votes||0)+'<br>所属议题：'+trunc(nodeById[d.topicId]?nodeById[d.topicId].fullLabel:"",60)+'</div>';
+      h += '<p style="margin-top:8px"><a href="'+d.url+'" target="_blank">查看知乎原文 ↗</a></p>';
+    } else if(d.kind==="topic"){
+      h += '<h2>'+d.fullLabel+'</h2>';
+      var claims = nodes.filter(function(n){return n.kind==="claim"&&n.topicId===d.id;});
+      h += '<div class="meta">论点数：'+claims.length+'</div><ul>';
+      claims.forEach(function(c){ h += '<li data-id="'+c.id+'">'+trunc(c.fullLabel,44)+'</li>'; });
+      h += '</ul>';
+    } else {
+      h += '<h2>主张簇：'+d.label+'</h2>';
+      h += '<div class="chips"><span class="chip">'+ (d.summary||"") +'</span></div>';
+      var touched = {};
+      DATA.edges.forEach(function(e){ if(e.relation==="bridge"&&e.source===d.id) touched[e.target]=1; });
+      h += '<div class="meta">缝合 '+Object.keys(touched).length+' 个议题 · 成员边 '+d.weight+'</div><ul>';
+      nodes.filter(function(n){return n.kind==="claim";}).forEach(function(c){
+        var has = DATA.edges.some(function(e){return e.relation==="member"&&e.source===c.id&&e.target===d.id;});
+        if(has) h += '<li data-id="'+c.id+'">'+trunc(c.fullLabel,44)+'</li>';
+      });
+      h += '</ul>';
+    }
+    p.innerHTML = h; p.style.display = "block";
+    p.querySelectorAll("li[data-id]").forEach(function(li){
+      li.addEventListener("click", function(){
+        var n = nodeById[li.getAttribute("data-id")];
+        pinned = n; showPanel(n); applyHighlight(n);
+      });
+    });
+  }
+  selNode.on("pointerover", function(e,d){ applyHighlight(d); showPanel(d);
+    if(d.kind==="claim") selLabel.filter(function(n){return n.id===d.id;}).text(trunc(d.fullLabel,26)); });
+  selNode.on("pointerout", function(e,d){
+    selLabel.filter(function(n){return n.kind==="claim";}).text("");
+    if(pinned){ applyHighlight(pinned); showPanel(pinned); } else { applyHighlight(null); document.getElementById("panel").style.display="none"; }
+  });
+  selNode.on("click", function(e,d){ e.stopPropagation(); pinned = d; showPanel(d); });
+  selNode.on("dblclick", function(e,d){ e.stopPropagation(); d.fx=null; d.fy=null; sim.alpha(0.3).restart(); });
+  svg.on("click", function(){ pinned = null; applyHighlight(null); document.getElementById("panel").style.display="none"; });
+
+  // ---- mode switch ----
+  function setMode(m){
+    mode = m;
+    document.getElementById("mode-v1").classList.toggle("active", m==="v1");
+    document.getElementById("mode-derived").classList.toggle("active", m==="derived");
+    selNode.transition().duration(300).attr("fill", colorOf);
+    sim.force("x", d3.forceX(fxTarget).strength(m==="v1"?0.12:0));
+    sim.alpha(0.5).restart();
+    var cap = document.getElementById("caption");
+    if(m==="v1"){
+      cap.innerHTML = "v1 现状：颜色 = LLM 判的 side（相对各题隐含主流方向，有参照系歧义）；左右分翼由 forceX ±420 硬推。";
+    } else {
+      cap.innerHTML = "派生阵营（实验）：颜色 = 符号图二分（same-claim 相吸 / rebuts 相斥，纯图算法零 LLM）。无立场轴：位置完全由力学自然形成，不硬推左右。仅 2 个分量被极化，25/36 论点合理中性。";
+    }
+    renderLegend();
+    if(pinned) showPanel(pinned);
+  }
+  document.getElementById("mode-v1").addEventListener("click", function(){ setMode("v1"); });
+  document.getElementById("mode-derived").addEventListener("click", function(){ setMode("derived"); });
+
+  function renderLegend(){
+    var lg = document.getElementById("legend");
+    if(mode==="v1"){
+      lg.innerHTML = '<span class="dot" style="background:#0f6fe5"></span>正方主张簇 &nbsp;<span class="dot" style="background:#d9574d"></span>反方主张簇 &nbsp;<span class="dot" style="background:#64748b"></span>中性簇<br>'
+        + '<span class="dot" style="background:#111827"></span>议题 &nbsp;<span class="dot" style="background:#7fb0f2"></span>正方论点 &nbsp;<span class="dot" style="background:#eda49c"></span>反方论点 &nbsp;<span class="dot" style="background:#a8b6c8"></span>中性<br>'
+        + '<span class="ln g"></span>缝合线（跨议题共享主张） &nbsp;<span class="ln r"></span>rebuts 跨议题矛盾';
+    } else {
+      lg.innerHTML = '<span class="dot" style="background:#64748b"></span>主张簇（簇级派生未定） &nbsp;<span class="dot" style="background:#111827"></span>议题<br>'
+        + '<span class="dot" style="background:#0f6fe5"></span>派生阵营 A &nbsp;<span class="dot" style="background:#d9574d"></span>阵营 B &nbsp;<span class="dot" style="background:#a8b6c8"></span>中性（25/36）<br>'
+        + '<span class="ln g"></span>缝合线 &nbsp;<span class="ln r"></span>rebuts &nbsp;A/B 对称命名，不代表正反输赢';
+    }
+  }
+  renderLegend();
+
+  // ---- funnel list ----
+  var fl = document.getElementById("funnel-list");
+  var inMap = {}; nodes.forEach(function(n){ if(n.kind==="topic") inMap["zh-"+n.id.replace("zh-","")]=1; });
+  function isKnown(title){
+    return DATA.gatedRows && nodes.some(function(n){ return n.kind==="topic" && (n.fullLabel===title || n.fullLabel.indexOf(title.slice(0,12))>=0); });
+  }
+  var rows = DATA.gatedRows.slice().sort(function(a,b){ return (a.verdict==="放行"===b.verdict==="放行") ? 0 : (a.verdict==="放行"?-1:1); });
+  var html2 = "";
+  rows.forEach(function(r){
+    html2 += '<div class="frow"><span class="vb '+(r.verdict==="放行"?"pass":"rej")+'">'+r.verdict+'</span>'
+      + '<span class="vb '+(r.band==="gray"?"gray":"band")+'">'+(r.band==="gray"?"灰带·LLM":"规则带")+'</span>'
+      + (isKnown(r.title)?'<span class="vb inmap">已在图</span>':"")
+      + '<span class="t" title="'+(r.note||"").replace(/"/g,"")+'">'+r.title+'</span></div>';
+  });
+  fl.innerHTML = html2;
+  document.getElementById("funnel-toggle").addEventListener("click", function(){
+    fl.classList.toggle("open");
+    this.textContent = (fl.classList.contains("open")?"▾":"▸") + this.textContent.slice(1);
+  });
+})();
+</script>
+</body>
+</html>
