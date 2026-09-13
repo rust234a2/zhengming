@@ -27,27 +27,27 @@
 │  实时辩论间  │→│    辩论树      │← │  事件推演      │
 │  实时交锋    │  │  异步沉淀容器   │  │  事件类题材扩充 │
 └────────────┘  └──────────────┘  └──────────────┘
-        settlement / 分歧点 / 追问 全部回流树上
+       分歧点 / 追问 回流辩论树；辩论间对局报告自带完整记录
 ```
 
 | 模块 | 一句话 | PRD | 交互原型 |
 |---|---|---|---|
-| 辩论树 | 论点、证据、追问长成一棵人人可续写的树 | `debate-tree-PRD.md` | `debate-tree-prototype.html`（缩进版）/ `debate-tree-canvas.html`（画布版） |
+| 辩论树 | 论点、证据、追问长成一棵人人可续写的树 | `debate-tree-PRD.md` | `prototypes/debate-tree-prototype.html`（缩进版）/ `prototypes/debate-tree-canvas.html`（画布版） |
 | 议题图谱 | 聚类布局的真实议题关系网络，是树的索引页 | （辩论树 PRD F1 的一部分） | 同上（原型内「议题图谱」Tab） |
-| 实时辩论间 | 2-3 人凑局，两段式发言，散场沉淀上树 | `debate-room-PRD.md` | `debate-room-prototype.html` |
-| 事件推演 | 真实事件做成可重走的沙盘，模拟层与事实层分离 | `event-replay-PRD.md` | `event-replay-prototype.html` |
+| 实时辩论间 | 围绕知乎问题临时开间，六阶段轮次制对局，轮次结束产出对局报告（**v0.4 已去树化**） | `debate-room-PRD.md` | `prototypes/debate-room-prototype.html` |
+| 事件推演 | **沉浸式历史角色扮演**：你是事件里的一个角色，你的决定改变走向；原作只在终局可选揭示 | `event-replay-PRD.md`（v0.5） | `prototypes/event-replay-prototype.html`（旧形态存档，**不再用于演示**） |
 | 跨议题争议地图 | 同一主张跨议题的横向索引，发现「该吵哪一场」 | `controversy-map-PRD.md` | runi-desktop `?view=map`（已发布在线） |
 | 力导向辩论图 | 单议题内部的对垒结构空间感知层（**PRD 已移除**） | — | runi-desktop `?view=force`（已发布在线） |
 
 **桌面端两图的分工**：力导向图管**议题内部**（正反两军怎么布阵、证据多厚、反驳打在哪），争议地图管**议题之间**（哪些主张横跨多个议题、哪里在跨议题地冲突）。判别准则：**若两张图节点与边完全相同、只有排布算法不同，就是同一个可视化**——所以争议地图引入了树物理上无法承载的 `cluster` 多父节点与 `bridge`/`rebuts` 跨议题边。
 
-**集成单页应用**：`zhengming-app.html`（四 Tab，由 `build-app.mjs` 从三个源原型自动组装——改源文件后重跑构建即可）。
+**集成单页应用**：`prototypes/zhengming-app.html`（四 Tab，由 `prototypes/build-app.mjs` 从三个源原型自动组装——改源文件后重跑构建即可）。
 
 ## 3. 四条产品红线（贯穿所有模块）
 
-1. **先承认，再推进**——辩论间硬规则：复述对方观点且通过忠实校验，才获准发言。偷换被拦截，但拦截文案是描述式而非指控式。
+1. **先承认，再推进**——辩论间硬规则：复述对方观点且通过忠实校验，才获准发言。偷换被拦截，但拦截文案是描述式而非指控式。（辩论间 v0.4 流程里尚无独立关卡，是否落此闸门见 `IMPLEMENTATION-PATH.md` **D6**）
 2. **追问权替代验证权**——Agent 永远只追问、不裁判。禁用词族：「错误 / 谬误 / 输赢 / 对错」。体检输出的是追问点，不是判决书。
-3. **模拟与事实永远分离**——事件推演双层强隔离：剧透保护、改编声明、对照只在终局。
+3. **模拟与事实永远分离**——事件推演沉浸式隔离：原作（canon）**不注入模型、不展示界面**（调用隔离是天然属性），关键词黑名单兜底；玩家路径标「架空推演」、原作标「史实」，两者永不出现在同一张卡里；终局可选揭示。
 4. **不判输赢**——所有模块的产出是共识点、分歧点、追问清单，没有胜负。
 
 ## 4. 数据底座（已实证，见 `docs/research/zhihu-post-taxonomy.md`）
@@ -60,9 +60,9 @@
 ## 5. 演示路线（现场 5 分钟）
 
 1. **图谱**（30s）：展示 21 个真实议题、五个聚类的关系网络——「选题不是拍脑袋，是数据筛出来的」。
-2. **辩论间**（2min）：开一局，演示「先承认再推进」——故意选偷换复述被 Host 拦截，再正确推进，发言实时上树。
+2. **辩论间**（2min）：开一局，走完六阶段——概念对齐 → 立论 → 质询 → 自由对辩 → 结辩 → **对局报告**。**注意**：是否补演"偷换复述被 Host 拦截"取决于 `IMPLEMENTATION-PATH.md` **D6**（该闸门在 v0.4 流程里尚未定落点）。
 3. **辩论树**（1min）：回到树，展示刚才的发言已挂入对应立场桶，点开 Agent 追问建议。
-4. **事件推演**（1.5min）：同一议题的事件化沙盘，走一条偏离真实历史的路，看终局三列对照与 Host 追问。
+4. **事件推演**（1.5min）：**扮演历史事件中的一个角色**，外部事件按历史时间表到来，你逐幕做决定、看后果与代价账本（无成败），终局出结局叙述与可选的「历史上实际发生了什么」。
 5. 收尾：所有分歧点都回流辩论树——「社区里最吵的地方，变成了最有营养的地方」。
 
 ## 6. 工程状态与落地路径
@@ -72,19 +72,21 @@
 - 四份 PRD + 四个原型 + 1 个集成应用，全部知乎风（蓝 #056DE8 / 白 / 黑）。
 - 运行时测试五套 195 项全绿（`debate-graph 52 / debate-room 41 / debate-tree-v2 40 / event-replay 26 / app 36`，Node DOM 桩真实执行页内脚本）。
 
+> **事件推演已升级到 v0.5（沉浸式历史角色扮演）**：本模块经历两次形态变更——v0.4 由「静态分岔图」改为「LLM 生成式沙盘」（玩家仍在局外）；v0.5 进一步把玩家**放进局内**：你是历史事件中的一个角色位，外部事件按历史时间表锁定到来，你逐幕做决定、看后果与代价账本（**无分数、无成败**）。原作轨迹（canon）推演期间**不展示也不注入模型**，仅在终局以可选方式揭示（标「史实」，玩家路径标「架空推演」）。可重复游玩性来自角色位（信息/资源/关系各不相同）。`prototypes/event-replay-prototype.html` 与其 26 项测试**转为历史存档，不再用于演示**；本版走 `web/` + `HostClient`（能力 7/8/9）。实施计划见 `event-replay-PLAN.md`。
+
 **下一步（接入层）**
 
 | 事项 | 说明 | 状态 |
 |---|---|---|
 | LLM 选型 | 候选 DeepSeek / GLM / Moonshot，辩论场景要求指令遵循强 | ⏳ 未决（当前 Host 用选项匹配模拟） |
 | Host 真模型接入 | 承认忠实度判定、追问生成、终局归纳三个 prompt | 待做 |
-| 知乎数据接入 | 树冷启动走 `question recommend + answers`（PRD P1 流程） | 脚本已备（`docs/research/zhihu-corpus/`） |
+| 知乎数据接入 | 树冷启动走 `question recommend + answers`（PRD P1 流程） | 脚本已备（`research/zhihu-corpus/`） |
 | runi-core 集成 | 实时通信复用 runi 实例通信能力；树存储用本地协议层 | 待做 |
 | dissensus 迁移 | 旧工作区三文件并入 | 待做 |
 
-> **实施顺序与执行手册**：见 **`IMPLEMENTATION-PATH.md`** —— 按「赛道命题 × 真实度落差 × 数据依赖」排序（**不按 PRD 编号**），含 20 张任务卡、每张卡的验收命令，以及三个待拍板的决策点（D1 Host 通道走原型后端还是 core 会话 / D2 匹配的 style 信号是否取知乎数据 / D3 力导向图去留）。**给 AI 派活时以该文档为准。**
+> **实施顺序与执行手册**：见 **`IMPLEMENTATION-PATH.md`** —— 按「赛道命题 × 真实度落差 × 数据依赖」排序（**不按 PRD 编号**），含 **20 张任务卡**（原 21，"辩论间终局上树"一张已随 v0.4 去树化作废）、每张卡的验收命令，以及**七个待拍板的决策点**（D1 Host 通道 / D2 匹配的 style 信号是否取知乎数据 / D3 力导向图去留 / D4 生成式推演的调用频率与降级策略 / **D5 辩论间对局报告落点** / **D6 红线1 是否在辩论间落复述闸门** / **D7 质询锚点强度**）。**给 AI 派活时以该文档为准。**
 >
-> **并行开发**：辩论树 / 辩论间 / 事件推演三个板块已各建一个 git worktree（`runi-worktrees/` 下，分支 `feat/debate-tree`、`feat/debate-room`、`feat/event-simulation`）。归属划分、共享文件禁区、合流顺序见该文档 **§13**。
+> **并行开发**：辩论树 / 辩论间 / 事件推演三个板块已各建一个 git worktree（`.worktrees/` 下，分支 `feat/debate-tree`、`feat/debate-room`、`feat/event-simulation`）。归属划分、共享文件禁区、合流顺序见该文档 **§13**。
 
 ## 7. 目录索引
 
@@ -92,19 +94,20 @@
 docs/design/
 ├── README.md                        ← 本文件（总纲）
 ├── IMPLEMENTATION-PATH.md           ← ★ AI 执行手册（实施顺序 + 20 张任务卡 + 验收命令）
-├── debate-tree-PRD.md               ← v0.1 辩论树（含图谱）
-├── debate-room-PRD.md               ← v0.2 实时辩论间
-├── event-replay-PRD.md              ← v0.3 事件推演
-├── controversy-map-PRD.md           ← 跨议题争议地图（runi-desktop ?view=map）
-├── zhengming-app.html               ← ★ 集成单页应用（演示用这个）
-├── build-app.mjs                    ← 集成构建脚本
-├── debate-tree-prototype.html       ← 辩论树+图谱 源原型
-├── debate-tree-canvas.html          ← 辩论树无限画布版
-├── debate-room-prototype.html       ← 辩论间 源原型
-├── event-replay-prototype.html      ← 事件推演 源原型
-└── *.test.mjs                       ← 四套运行时守护测试
+├── debate-tree-PRD.md               ← v0.1 辩论树（含图谱）＋ debate-tree-PLAN.md
+├── debate-room-PRD.md               ← v0.4 实时辩论间（轮次制 · 去树化）＋ debate-room-PLAN.md
+├── event-replay-PRD.md              ← v0.5 事件推演（沉浸式角色扮演）＋ event-replay-PLAN.md
+└── controversy-map-PRD.md           ← 跨议题争议地图（web ?view=map）
 docs/research/
 ├── zhihu-post-taxonomy.md           ← 知乎语料分类与可辩性调研
+└── ai-social-products.md            ← AI 社交产品调研
+prototypes/
+├── zhengming-app.html               ← ★ 集成单页应用（演示用这个）
+├── build-app.mjs                    ← 集成构建脚本
+├── *-prototype.html                 ← 各模块源原型
+├── debate-tree-canvas.html          ← 辩论树无限画布版
+└── *.test.mjs                       ← 五套运行时守护测试
+research/
 ├── controversy-map/                 ← 争议地图六步数据管线（collect→build-ts）
-└── zhihu-corpus/                    ← 采集/分类/立场均衡脚本
+└── zhihu-corpus/                    ← 采集/分类/立场均衡脚本与语料
 ```

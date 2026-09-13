@@ -10,12 +10,12 @@
 
 2026-09-13 从 `runi` monorepo 独立成仓，分两步：
 
-1. 迁出 `docs/`（文档 + 原型 + 运行时测试 + 数据管线）
+1. 迁出产品文档、交互原型、运行时测试与数据管线
 2. 把 Runi 桌面端里的**三个争鸣视图**抽出为 `web/` 独立前端工程
 
 | | 内容 |
 |---|---|
-| **本仓库 `zhengming/`** | 争鸣的**全部**产品代码与文档：`docs/` + `web/` |
+| **本仓库 `zhengming/`** | 争鸣的**全部**产品代码与文档：`docs/` + `prototypes/` + `research/` + `web/` |
 | **`../runi/`（Runi monorepo）** | Runi 桌面端应用本身。**已不再包含任何争鸣代码** |
 
 抽出的三个视图原先挂在 Runi 的 `App.tsx` 路由上，现在各自是 `web/` 里的独立入口：
@@ -34,22 +34,24 @@
 
 ```
 zhengming/
-├── docs/design/                    产品设计与实现（零依赖）
+├── docs/design/                    产品文档（仅 Markdown）
 │   ├── README.md                   ★ 总纲（产品全景、核心洞察、四条红线、演示路线）
-│   ├── IMPLEMENTATION-PATH.md      ★ AI 执行手册（20 张任务卡 + 验收命令 + 3 个决策点）
+│   ├── IMPLEMENTATION-PATH.md      ★ AI 执行手册（20 张任务卡 + 验收命令 + 7 个决策点）
 │   ├── debate-tree-PRD.md          辩论树
-│   ├── debate-room-PRD.md          实时辩论间（含撮合流程）
+│   ├── debate-room-PRD.md          v0.4 实时辩论间（轮次制 · 去树化）＋ debate-room-PLAN.md
 │   ├── event-replay-PRD.md         事件推演
-│   ├── controversy-map-PRD.md      跨议题争议地图
-│   ├── *-prototype.html            四个交互原型（可直接打开）
-│   ├── *.test.mjs                  五套运行时测试（node 直跑）
-│   ├── build-app.mjs               把三个原型组装成 zhengming-app.html
-│   └── zhengming-app.html          生成物，禁止手改
+│   └── controversy-map-PRD.md      跨议题争议地图
 ├── docs/research/                  调研与数据层
 │   ├── zhihu-post-taxonomy.md      知乎语料分类与可辩性调研
-│   ├── ai-social-products.md       AI 社交产品调研
-│   ├── controversy-map/            争议地图六步数据管线（真实知乎检索 + LLM）
-│   └── zhihu-corpus/               知乎语料采集/分类/立场均衡脚本
+│   └── ai-social-products.md       AI 社交产品调研
+├── prototypes/                     HTML 原型、截图、Node 测试与集成构建器
+│   ├── *-prototype.html            可直接打开的交互原型
+│   ├── *.test.mjs                  五套运行时测试
+│   ├── build-app.mjs               集成构建脚本
+│   └── zhengming-app.html          生成物，禁止手改
+├── research/                       可执行研究资产与数据
+│   ├── controversy-map/            争议地图六步数据管线
+│   └── zhihu-corpus/               知乎语料、采集与分类脚本
 └── web/                            ★ 桌面三视图（Vite + React 18 + TS + d3）
     ├── src/ui/                     三张图：ControversyMap / DebateForceTree / DebateTreePrototype
     ├── src/data/                   数据（controversyMap 由管线生成）
@@ -67,10 +69,10 @@ zhengming/
 NODE="C:/Users/Lenovo/.workbuddy/binaries/node/versions/22.22.2-3/node.exe"
 ```
 
-**五套运行时测试**（在 `docs/design/` 下）—— 基线 **195 项全绿**
+**五套运行时测试**（在 `prototypes/` 下）—— 基线 **195 项全绿**
 
 ```bash
-cd docs/design
+cd prototypes
 for t in debate-graph debate-room debate-tree-v2 event-replay app; do "$NODE" $t.test.mjs; done
 # 期望：52 / 41 / 40 / 26 / 36 全通过
 ```
@@ -78,13 +80,13 @@ for t in debate-graph debate-room debate-tree-v2 event-replay app; do "$NODE" $t
 **重建集成单页应用**（改过任何原型后必做）
 
 ```bash
-cd docs/design && "$NODE" build-app.mjs
+cd prototypes && "$NODE" build-app.mjs
 ```
 
 **跨议题争议地图数据管线**（需 `DEEPSEEK_API_KEY`；每步产物落盘，可断点续跑）
 
 ```bash
-cd docs/research/controversy-map
+cd research/controversy-map
 for s in parse extract-claims mine-cross build-map build-ts; do "$NODE" $s.mjs; done
 ```
 

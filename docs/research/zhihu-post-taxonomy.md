@@ -303,7 +303,7 @@ question answers --question-url <URL>        →  20 条回答摘要/次，可�
         立场卡（主张 + 理由 + 认知类型 + 少数派标记）
 ```
 
-脚本：`collect_answers.py`（recommend / answers / pipeline 三模式）、`stance_balance.py`（立场均衡度验证，注意其中单步直判法的碎片化问题）、`refill.py`（关键词补采）。
+脚本和数据均位于 `research/zhihu-corpus/`：`collect_answers.py`（recommend / answers / pipeline 三模式）、`stance_balance.py`（立场均衡度验证，注意其中单步直判法的碎片化问题）、`refill.py`（关键词补采）。
 
 ---
 

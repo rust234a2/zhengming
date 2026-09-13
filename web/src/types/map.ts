@@ -5,7 +5,7 @@
  * 地图是网状结构 —— 同一主张可以横跨多个议题，这正是力导向存在的理由。
  * 因此不能复用 DebateNode，需要独立的图模型。
  *
- * 数据来源：zhengming 仓库 docs/research/controversy-map/map.json
+ * 数据来源：zhengming 仓库 research/controversy-map/map.json
  * （由 zhihu-cli search zhihu 真实检索 + LLM 语义挖掘生成）
  */
 

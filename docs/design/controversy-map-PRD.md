@@ -43,8 +43,8 @@
 
 | 形态 | 载体 | 认知任务 | 一句话 |
 |---|---|---|---|
-| 缩进树 | debate-tree-prototype.html | 顺序阅读、快速定位 | 当文档读 |
-| 无限画布 | debate-tree-canvas.html | 自由布局、白板讨论 | 当白板用 |
+| 缩进树 | `prototypes/debate-tree-prototype.html` | 顺序阅读、快速定位 | 当文档读 |
+| 无限画布 | `prototypes/debate-tree-canvas.html` | 自由布局、白板讨论 | 当白板用 |
 | 力导向图 | runi-desktop `?view=force` | **单议题内部**对垒结构感知 | 当沙盘看 |
 | **争议地图（本 PRD）** | runi-desktop `?view=map` | **议题之间**的横向索引 | 当地图查 |
 
@@ -247,7 +247,7 @@
 
 ### 6.3 数据管线（六步，全部可复现）
 
-管线在 `docs/research/controversy-map/`，中间产物全部落盘可复现：
+管线在 `research/controversy-map/`，中间产物全部落盘可复现：
 
 | # | 脚本 | 职责 |
 |---|---|---|

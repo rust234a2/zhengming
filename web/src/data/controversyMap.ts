@@ -1,6 +1,6 @@
 /**
  * 跨议题争议地图数据 —— 自动生成，请勿手工编辑。
- * 生成脚本：zhengming 仓库 docs/research/controversy-map/build-ts.mjs
+ * 生成脚本：zhengming 仓库 research/controversy-map/build-ts.mjs
  *
  * 数据来源：zhihu-cli search zhihu 真实检索（5 次调用，覆盖 5 个检索簇）
  *          → LLM 提炼论点与立场 → LLM 跨议题语义挖掘 → 主张簇归一

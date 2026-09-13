@@ -12,7 +12,7 @@ const SRC = path.join(DIR, "map.json");
  * 2026-09-13 之前这里指向 runi 仓库，桌面视图迁入本仓后已改为仓内路径，
  * 因此本管线不再有任何跨仓写入。可用 ZHENGMING_WEB_DATA 覆盖。 */
 const OUT = process.env.ZHENGMING_WEB_DATA
-  ?? path.resolve(DIR, "../../../web/src/data/controversyMap.ts");
+  ?? path.resolve(DIR, "../../web/src/data/controversyMap.ts");
 
 const raw = JSON.parse(fs.readFileSync(SRC, "utf8"));
 
@@ -96,7 +96,7 @@ const stats = {
 
 const body = `/**
  * 跨议题争议地图数据 —— 自动生成，请勿手工编辑。
- * 生成脚本：zhengming 仓库 docs/research/controversy-map/build-ts.mjs
+ * 生成脚本：zhengming 仓库 research/controversy-map/build-ts.mjs
  *
  * 数据来源：zhihu-cli search zhihu 真实检索（5 次调用，覆盖 5 个检索簇）
  *          → LLM 提炼论点与立场 → LLM 跨议题语义挖掘 → 主张簇归一

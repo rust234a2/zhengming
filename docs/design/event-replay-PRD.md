@@ -1,6 +1,6 @@
 # 事件推演 PRD（v0.3 · 沙盘推演）
 
-版本 v0.3（沙盘推演） · 2026-09-10 · 隶属「争鸣」参赛作品 · 交互原型见同目录 `event-replay-prototype.html` · 上游：`debate-tree-PRD.md` / `debate-room-PRD.md`
+版本 v0.3（沙盘推演） · 2026-09-10 · 隶属「争鸣」参赛作品 · 交互原型见 `prototypes/event-replay-prototype.html` · 上游：`debate-tree-PRD.md` / `debate-room-PRD.md`
 
 ---
 
@@ -147,7 +147,7 @@ Event（一个改编自真实事件的沙盘）
 
 ## 8. 原型说明
 
-`event-replay-prototype.html`：知乎风（蓝白黑），事件素材为「老陈事件」（改编自主线议题对应的真实教师流动讨论，人物机构已模糊化），4 层分岔链 + 3 种结局 + 真实历史层（模拟知乎溯源）。占比为静态演示数据。
+`prototypes/event-replay-prototype.html`：知乎风（蓝白黑），事件素材为「老陈事件」（改编自主线议题对应的真实教师流动讨论，人物机构已模糊化），4 层分岔链 + 3 种结局 + 真实历史层（模拟知乎溯源）。占比为静态演示数据。
 
 ## 9. 与底座的关系
 

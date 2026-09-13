@@ -71,11 +71,11 @@
 
 **证据（每条都可直接查证，不要凭印象）**
 
-- `debate-room-prototype.html:405` — `startMatch()` 是 `await sleep(1000)` 然后显示预置对手，**没有任何匹配逻辑**
-- `debate-room-prototype.html:326-334` — `BOT_TREE / BOT_OPENING / BOT_QUESTION / BOT_ANSWERS` 全是硬编码常量
-- `debate-room-prototype.html:316-325` — `CONCEPTS` 用 `ok:true / false` 字段模拟 Host 判定
+- `prototypes/debate-room-prototype.html:405` — `startMatch()` 是 `await sleep(1000)` 然后显示预置对手，**没有任何匹配逻辑**
+- `prototypes/debate-room-prototype.html:326-334` — `BOT_TREE / BOT_OPENING / BOT_QUESTION / BOT_ANSWERS` 全是硬编码常量
+- `prototypes/debate-room-prototype.html:316-325` — `CONCEPTS` 用 `ok:true / false` 字段模拟 Host 判定
 - `runi-desktop/src/data/debateGraph.ts` — 力导向图的 21 节点 mock
-- `docs/research/controversy-map/extract-claims.mjs` — **「争鸣」原型线里唯一真的在调 LLM 的代码**（runi-core 侧另有一整套 provider 实现，见 §2.3），是本手册反复引用的参考实现
+- `research/controversy-map/extract-claims.mjs` — **「争鸣」原型线里唯一真的在调 LLM 的代码**（runi-core 侧另有一整套 provider 实现，见 §2.3），是本手册反复引用的参考实现
 
 ---
 
@@ -122,7 +122,7 @@ desktop ──POST /v1/sessions/{session_id}/turns──▶ core（持有 key，
 
 | | 路线 A · 演示优先（建议先做） | 路线 B · 产品优先 |
 |---|---|---|
-| 形态 | `docs/design/*.html` + Node 后端 | 功能移入 `runi-desktop/src/ui/` |
+| 形态 | `prototypes/*.html` + Node 后端 | 功能移入 `runi-desktop/src/ui/` |
 | Host 通道 | 自建 `/api/host/*`，key 在服务端环境变量 | 走 core 会话通道（上图的 turns/SSE） |
 | 优点 | 原型不动、能直接发布成单端口应用、**能分享链接** | 架构正确、key 天然安全、与产品方向一致 |
 | 缺点 | 与 runi-core 形成双轨 | 工作量大；Tauri 桌面端不便分享链接 |
@@ -142,12 +142,12 @@ desktop ──POST /v1/sessions/{session_id}/turns──▶ core（持有 key，
 
 ### 2.5 测试纪律
 
-**原型测试（`docs/design/*.test.mjs`，五套）**
+**原型测试（`prototypes/*.test.mjs`，五套）**
 
 - Node DOM 桩 + **手动时钟**：`setTimeout` 先收集，再由 `flushAsync` 推进
 - **`await` 异步函数前必须先 flush，否则死锁**
 - 改任何原型后，必须重跑**全部五套**（见 §10）
-- **测试桩有盲区**：查不到"事件绑错容器"这类 bug（`querySelectorAll` 返回 `[]` 时静默通过）。改交互后用真浏览器 E2E 补位：`demo-harness*.html` + Edge headless `--dump-dom`
+- **测试桩有盲区**：查不到"事件绑错容器"这类 bug（`querySelectorAll` 返回 `[]` 时静默通过）。改交互后用真浏览器 E2E 补位：`prototypes/demo-harness*.html` + Edge headless `--dump-dom`
 
 **桌面测试（vitest + jsdom）**
 
@@ -245,9 +245,9 @@ desktop ──POST /v1/sessions/{session_id}/turns──▶ core（持有 key，
    - `server.mjs`：静态托管 + `/api/host/:capability` 路由
    - **key 从 `process.env.DEEPSEEK_API_KEY` 读，不落盘、不进代码、不进日志**
    - 请求体上限 256KB；30s 超时；失败返回结构化错误（不是裸 500）
-   > ⚠️ 这会新增一个顶层目录，而 `AGENTS.md` 声明本仓库由三个子项目组成。**需要用户确认**；若不希望新增顶层目录，退路是放 `docs/design/server.mjs`。
+   > 这会新增一个顶层目录；若只服务原型，退路是放 `prototypes/server.mjs`，但不得把可执行代码放回 `docs/`。
 2. **只实现一个能力**打通链路：先做 `checkRestatement`（它最短、判据最清晰）
-3. **复用已验证的调用参数**（直接抄 `docs/research/controversy-map/extract-claims.mjs`）：
+3. **复用已验证的调用参数**（直接抄 `research/controversy-map/extract-claims.mjs`）：
    - endpoint `https://api.deepseek.com/chat/completions`
    - `model: "deepseek-chat"`
    - `response_format: { type: "json_object" }`
@@ -265,7 +265,7 @@ desktop ──POST /v1/sessions/{session_id}/turns──▶ core（持有 key，
 
 ### 卡 1-1 · 对手改由模型生成（先把最假的部分换掉）
 
-- **现状**：`debate-room-prototype.html:326-334` 四个硬编码常量
+- **现状**：`prototypes/debate-room-prototype.html:326-334` 四个硬编码常量
 - **目标**：`BOT_*` 常量替换为 `/api/host/opponent/*` 三个调用
   - `opening(stance, tree)` → 立论陈述
   - `answer(question, myTree, style)` → 正面回答，或（**受控地**）回避
@@ -306,7 +306,7 @@ desktop ──POST /v1/sessions/{session_id}/turns──▶ core（持有 key，
 
 ### 卡 1-5 · 匹配算法落地（阶段 1 的灵魂）
 
-- **目标**：把 `startMatch()`（`debate-room-prototype.html:405`）的假实现换成真算法
+- **目标**：把 `startMatch()`（`prototypes/debate-room-prototype.html:405`）的假实现换成真算法
 - **公式**：`score = base × 0.35 + debate × 0.45 + style × 0.20`
 
 | 因子 | 含义 | 数据来源 |
@@ -413,10 +413,10 @@ desktop ──POST /v1/sessions/{session_id}/turns──▶ core（持有 key，
 
 ### 卡 5-1 · 重建集成应用
 
-- 改过任何原型后**必须**重跑：`node build-app.mjs`（在 `docs/design/` 下）
+- 改过任何原型后**必须**重跑：`node build-app.mjs`（在 `prototypes/` 下）
 - **CRLF 陷阱**：`build-app.mjs` 与源原型都是纯 CRLF，跨行正则必须写 `\r?\n`
 - **自查**：构建脚本打印的 KB 是 `app.length/1024`（**UTF-16 字符数，不是字节数**）。中文文件两者差很多，**不要拿它对比体积**，要比就比 `Buffer.byteLength`
-- **验收**：五套测试全绿；产物里**没有**对独立原型的残留链接（如 `event-replay-prototype.html`）
+- **验收**：五套测试全绿；产物里**没有**对独立原型的残留链接（如 `prototypes/event-replay-prototype.html`）
 - **完成标志**：集成应用可演示
 
 ### 卡 5-2 · 部署
@@ -448,10 +448,10 @@ desktop ──POST /v1/sessions/{session_id}/turns──▶ core（持有 key，
 NODE="C:/Users/Lenovo/.workbuddy/binaries/node/versions/22.22.2-3/node.exe"
 ```
 
-**原型五套测试**（在 `docs/design/` 下）— 基线 **195 项全绿**
+**原型五套测试**（在 `prototypes/` 下）— 基线 **195 项全绿**
 
 ```bash
-cd docs/design
+cd prototypes
 for t in debate-graph debate-room debate-tree-v2 event-replay app; do
   "$NODE" $t.test.mjs || echo "FAIL $t"
 done
@@ -470,7 +470,7 @@ cd runi-desktop
 **集成应用重建**
 
 ```bash
-cd docs/design && "$NODE" build-app.mjs
+cd prototypes && "$NODE" build-app.mjs
 ```
 
 **真浏览器 E2E**（jsdom 盲区补位）
@@ -515,9 +515,9 @@ msedge --headless=new --disable-gpu --virtual-time-budget=35000 \
 
 | 板块 | worktree 路径 | 分支 | 独占的模块文件 |
 |---|---|---|---|
-| 辩论树 | `zhengming/.worktrees/debate-tree` | `feat/debate-tree` | `debate-tree-prototype.html`、`debate-tree-canvas.html`、`debate-tree-v2.html` |
-| 辩论间 | `zhengming/.worktrees/debate-room` | `feat/debate-room` | `debate-room-prototype.html` |
-| 事件推演 | `zhengming/.worktrees/event-simulation` | `feat/event-simulation` | `event-replay-prototype.html` |
+| 辩论树 | `zhengming/.worktrees/debate-tree` | `feat/debate-tree` | `prototypes/debate-tree-prototype.html`、`prototypes/debate-tree-canvas.html`、`prototypes/debate-tree-v2.html` |
+| 辩论间 | `zhengming/.worktrees/debate-room` | `feat/debate-room` | `prototypes/debate-room-prototype.html` |
+| 事件推演 | `zhengming/.worktrees/event-simulation` | `feat/event-simulation` | `prototypes/event-replay-prototype.html` |
 
 > 路径相对 `E:/vibe_coding_prj/`。worktree 放在仓库内的 `.worktrees/` 下并已 gitignore——三条分支同源于本仓库，源码不跨仓，所以不需要放到外面。
 >
@@ -529,11 +529,11 @@ msedge --headless=new --disable-gpu --virtual-time-budget=35000 \
 
 | 归属 | 文件 |
 |---|---|
-| 辩论树 独占 | `debate-tree-*.html`、`debate-tree-v2.test.mjs`、`debate-graph.test.mjs`、`debate-tree-PRD.md` |
-| 辩论间 独占 | `debate-room-prototype.html`、`debate-room.test.mjs`、`debate-room-PRD.md` |
-| 事件推演 独占 | `event-replay-prototype.html`、`event-replay.test.mjs`、`event-replay-PRD.md` |
-| **共享 → 禁止在任何 worktree 分支上改** | `build-app.mjs`、`app.test.mjs`、`README.md`、`IMPLEMENTATION-PATH.md`、`host-contract.md`、`zhengming-server/`（原型后端），以及 `web/` 的工程配置（`package.json`、`vite.config.ts`、`tsconfig*.json`、`src/App.tsx`、`src/styles.css`、`tests/setup.ts`） |
-| **生成物 → 任何人都禁止手改** | `zhengming-app.html`（由 `build-app.mjs` 产出）、`web/src/data/controversyMap.ts`（由 `build-ts.mjs` 产出） |
+| 辩论树 独占 | `prototypes/debate-tree-*.html`、`prototypes/debate-tree-v2.test.mjs`、`prototypes/debate-graph.test.mjs`、`docs/design/debate-tree-PRD.md` |
+| 辩论间 独占 | `prototypes/debate-room-prototype.html`、`prototypes/debate-room.test.mjs`、`docs/design/debate-room-PRD.md` |
+| 事件推演 独占 | `prototypes/event-replay-prototype.html`、`prototypes/event-replay.test.mjs`、`docs/design/event-replay-PRD.md` |
+| **共享 → 禁止在任何 worktree 分支上改** | `prototypes/build-app.mjs`、`prototypes/app.test.mjs`、`README.md`、`docs/design/IMPLEMENTATION-PATH.md`、`docs/design/host-contract.md`、`zhengming-server/`（原型后端），以及 `web/` 的工程配置（`package.json`、`vite.config.ts`、`tsconfig*.json`、`src/App.tsx`、`src/styles.css`、`tests/setup.ts`） |
+| **生成物 → 任何人都禁止手改** | `prototypes/zhengming-app.html`（由 `prototypes/build-app.mjs` 产出）、`web/src/data/controversyMap.ts`（由 `research/controversy-map/build-ts.mjs` 产出） |
 | **桌面视图归属** | `web/src/ui/DebateTreePrototype.tsx`（`?view=debate`）归**辩论树** worktree；`ControversyMap.tsx`（`?view=map`）与 `DebateForceTree.tsx`（`?view=force`）不属于这三个模块中的任何一个——它们没有对应 worktree，改动直接走 `main`。 |
 
 **规则**：某个 worktree 需要动共享文件时，**回到 `main` 改**，然后其余 worktree `git merge main` 跟进。
@@ -555,14 +555,14 @@ msedge --headless=new --disable-gpu --virtual-time-budget=35000 \
 1. **分支内自测**：跑该模块的测试，全绿再合
 2. **逐个合回 `main`**（建议顺序：辩论树 → 辩论间 → 事件推演；三者独占文件不同，理论上无冲突）
 3. **每合一个，立刻在 `main` 上重跑全部五套测试**（195 项）——防止"单独绿、合起来红"
-4. 全部合完 → **在 `main` 上重跑 `build-app.mjs`** 重新生成 `zhengming-app.html`
+4. 全部合完 → **在 `main` 上重跑 `prototypes/build-app.mjs`** 重新生成 `prototypes/zhengming-app.html`
 5. 清理：`git worktree remove <path>`；分支可留作记录
 
 ### 13.4 两个环境注意
 
 **（1）依赖分布。** `node_modules` 是 gitignore 的，不会进 worktree；本机 `npm` 又不可用。
 
-- `docs/design/**` 的测试**零依赖**，`node xxx.test.mjs` 直接能跑——三个模块的主战场在这里，**worktree 不需要任何依赖**。
+- `prototypes/**` 的测试**零依赖**，`node xxx.test.mjs` 直接能跑——三个模块的主战场在这里，**worktree 不需要任何依赖**。
 - `web/` 是 Vite 工程，**需要 `node_modules`**（主工作区已从 runi 复制了一份，约 116 MB）。三个 worktree 建立时 `web/` 还不存在，所以它们没有这份依赖。
   某分支要在 worktree 里跑 `web/` 测试时，`git merge main` 后在 worktree 的 `web/` 下再复制/联接一份依赖即可；或者干脆回主工作区跑（`web/` 的改动按 §13.1 本就不该在模块分支上做）。
 
