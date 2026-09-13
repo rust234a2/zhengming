@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-The deployable Vite + React + TypeScript application lives in `web/`. Put visualizations in `web/src/ui/`, graph models in `web/src/types/`, datasets in `web/src/data/`, and component tests in `web/tests/`. `web/src/App.tsx` selects the `map`, `force`, and `debate` views through `?view=`.
+The deployable Vite + React + TypeScript application lives in `web/`. Put visualizations in `web/src/ui/`, graph models in `web/src/types/`, datasets in `web/src/data/`, and component tests in `web/tests/`. `web/src/App.tsx` selects the `map` and `debate` views through `?view=` (the `force` view was removed on 2026-09-13 per design decision D3).
 
 `docs/` contains Markdown documentation only. Interactive HTML, screenshots, runtime tests, and the integration builder live in `prototypes/`; treat `prototypes/zhengming-app.html` as generated output. Research scripts, corpora, and data pipelines live in `research/`. Change generated `web/src/data/controversyMap.ts` through `research/controversy-map/`. Ignore `.worktrees/`; it is not canonical source.
 

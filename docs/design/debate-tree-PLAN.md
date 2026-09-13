@@ -6,14 +6,14 @@
 
 目标是把 `?view=debate` 从内存演示升级为可长期保存、可继续参与的辩论树：支持渐进展开、三派论点、追问与回应、单用户投票、立场统计、真实 Host 追问建议，并为辩论间终局和知乎冷启动提供稳定导入接口。Agent 只指出可追问之处，不判断论点对错。
 
-本计划不实现辩论间的匹配/实时对局、事件推演规则、用户认证或服务端密钥管理，也不重写 `?view=force` 的 d3 布局。无限画布版留作后续视图；本期先完成移动端和桌面端均可用的缩进树。`prototypes/zhengming-app.html` 和其他生成文件不手改。
+本计划不实现辩论间的匹配/实时对局、事件推演规则、用户认证或服务端密钥管理，也不涉及原 `?view=force` 力导向视图的 d3 布局（**该视图已于 2026-09-13 随 D3 拍板下线、代码移除**）。无限画布版留作后续视图；本期先完成移动端和桌面端均可用的缩进树。`prototypes/zhengming-app.html` 和其他生成文件不手改。
 
 ## 现状盘点
 
 - `web/src/App.tsx` 已将 `?view=debate` 路由到 `DebateTreePrototype.tsx`，相关样式集中在 `web/src/styles.css`。
 - React 组件内嵌 `INITIAL_TREE`，刷新即丢失；模型只有 `root/support/oppose`、单一赞同数，没有 `neutral`、`question`、来源、时间、双向投票和约束校验。AI 观察与在线人数均为固定文案，缩放按钮没有行为，且没有对应组件测试。
 - `prototypes/debate-tree-v2.html` 已验证添加论点/追问、回应继承立场、深度 4、子节点 8、追问 3、投票、三派统计和失衡判定；`node prototypes/debate-tree-v2.test.mjs` 当前为 **40/40 通过**。它是规则迁移基线，不是生产数据源。
-- `web/src/data/debateGraph.ts` 使用另一套 `topic/side/argument/evidence/...` 图模型，仅服务 `?view=force`，不能直接作为辩论树 schema。
+- `web/src/data/debateGraph.ts` 使用另一套 `topic/side/argument/evidence/...` 图模型，原仅服务 `?view=force`（**该视图已于 2026-09-13 随 D3 拍板下线，文件已移除**），且本就不能直接作为辩论树 schema。
 - `docs/design/host-contract.md` 与 `zhengming-server/` 尚不存在，真实 Host 接入受阶段 0（Host 契约与最小通道）阻塞。
 
 ## 数据与状态模型

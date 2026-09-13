@@ -53,7 +53,8 @@ const roomHtmlFrag = (roomMain + roomMatch + roomMask + roomToast)
   .replaceAll("onclick=\"location.href='debate-tree-prototype.html'\"", 'onclick="App.go(\'tree\')"');
 const roomCss = roomCssLines
   .replaceAll('.mask{', '.room-mask{').replaceAll('.mask.show', '.room-mask.show')
-  .replaceAll('.legend{', '.r-legend{');
+  .replaceAll('.legend{', '.r-legend{')
+  .replaceAll('.legend i{', '.r-legend i{');
 roomJs = roomJs
   .replaceAll("getElementById('mask')", "getElementById('room-mask')")
   .replaceAll("getElementById('toast')", "getElementById('room-toast')")
@@ -95,11 +96,12 @@ window.Room = {
     startMatch();
   },
   reset(){ resetRoom(); },
-  _debug:{ enterRoom, pickConcept, submitPreTree, submitOpening, submitAnswer,
-    submitCrossQuestion, submitFree, submitClosing, acknowledge, showEnd, resetRoom,
-    evaluate, CONCEPTS, BOT_TREE, TIERS,
-    state:()=>state, mp:()=>mp, newNodes:()=>newNodes, evasions:()=>evasions,
-    transcript:()=>transcript }
+  _debug:{ enterRoom, submitBrief, submitOpening, submitAnswer,
+    submitCrossQuestion, submitFree, submitClosing, showEnd, resetRoom,
+    evaluate, BOT_SIDES, CLAIM_PAIR, TIERS, botBriefItems,
+    pickSide, rankCandidates, mySide:()=>mySide, oppSide:()=>oppSide,
+    state:()=>state, mp:()=>mp, records:()=>records, evasions:()=>evasions,
+    admitted:()=>admitted, transcript:()=>transcript }
 };
 })();`;
 

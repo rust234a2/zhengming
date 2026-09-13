@@ -23,10 +23,11 @@
 | 视图 | 入口 | 文件 |
 |---|---|---|
 | 跨议题争议地图 | `?view=map` | `web/src/ui/ControversyMap.tsx` |
-| 力导向辩论图 | `?view=force` | `web/src/ui/DebateForceTree.tsx` |
 | 辩论树（桌面版） | `?view=debate` | `web/src/ui/DebateTreePrototype.tsx` |
 
-搬迁时确认了一件好事：这三个视图**原本就与 Runi 完全解耦**——只依赖 `react` 与 `d3`，不碰 runi-protocol / Tauri / 后端状态。真正共享的只有 `App.tsx` 的路由分支与 `styles.css` 里的样式块，都已按区块切开搬走（样式块是自包含的：CSS 变量就定义在各组件自己的根类里）。
+> 力导向辩论图（`?view=force`）已于 2026-09-13 拍板下线（设计文档 D3），相关代码已移除。
+
+搬迁时确认了一件好事：这些视图**原本就与 Runi 完全解耦**——只依赖 `react` 与 `d3`，不碰 runi-protocol / Tauri / 后端状态。真正共享的只有 `App.tsx` 的路由分支与 `styles.css` 里的样式块，都已按区块切开搬走（样式块是自包含的：CSS 变量就定义在各组件自己的根类里）。
 
 **现在本仓库对 runi 没有任何依赖，包括数据管线**——`build-ts.mjs` 的输出已改指 `web/src/data/controversyMap.ts`（同仓库内），不再跨仓写入。
 
@@ -35,10 +36,10 @@
 ```
 zhengming/
 ├── docs/design/                    产品文档（仅 Markdown）
-│   ├── README.md                   ★ 总纲（产品全景、核心洞察、四条红线、演示路线）
-│   ├── IMPLEMENTATION-PATH.md      ★ AI 执行手册（20 张任务卡 + 验收命令 + 7 个决策点）
+│   ├── README.md                   ★ 总纲（产品全景、核心洞察、三条红线、演示路线）
+│   ├── IMPLEMENTATION-PATH.md      ★ AI 执行手册（16 张任务卡 + 验收命令 + 7 个决策点，全部已拍板）
 │   ├── debate-tree-PRD.md          辩论树
-│   ├── debate-room-PRD.md          v0.4 实时辩论间（轮次制 · 去树化）＋ debate-room-PLAN.md
+│   ├── debate-room-PRD.md          v0.6 实时辩论间（选边制撮合 · 轮次制 · 去树化）＋ debate-room-PLAN.md
 │   ├── event-replay-PRD.md         事件推演
 │   └── controversy-map-PRD.md      跨议题争议地图
 ├── docs/research/                  调研与数据层
@@ -53,7 +54,7 @@ zhengming/
 │   ├── controversy-map/            争议地图六步数据管线
 │   └── zhihu-corpus/               知乎语料、采集与分类脚本
 └── web/                            ★ 桌面三视图（Vite + React 18 + TS + d3）
-    ├── src/ui/                     三张图：ControversyMap / DebateForceTree / DebateTreePrototype
+    ├── src/ui/                     两张图：ControversyMap / DebateTreePrototype（DebateForceTree 已于 2026-09-13 下线）
     ├── src/data/                   数据（controversyMap 由管线生成）
     ├── src/types/                  图模型类型
     ├── src/App.tsx                 ?view= 路由壳 + 落地页
@@ -105,7 +106,7 @@ cd web
 > `node_modules` 已随迁入一并复制（约 116 MB / 8200 文件），**不需要 `npm install`**。
 > 它是 gitignore 的，所以新克隆的仓库需要自己装依赖——但那台机器上 npm 可用时再装即可。
 >
-> 打开方式：开发服务器或 `dist/` 均可，用 `?view=map` / `?view=force` / `?view=debate` 切换，不带参数是落地索引页。
+> 打开方式：开发服务器或 `dist/` 均可，用 `?view=map` / `?view=debate` 切换，不带参数是落地索引页。
 
 ## 环境注意（踩过的坑）
 

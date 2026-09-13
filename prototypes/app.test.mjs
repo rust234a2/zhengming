@@ -44,6 +44,8 @@ const windowStub = { addEventListener(){}, open(){} };
 let pending = [];
 const setTimeoutStub = fn => { pending.push(fn); return pending.length; };
 const flushAsync = async () => { while (pending.length) { pending.shift()(); await Promise.resolve(); } };
+/* 辩论间一条 await 链可能压着多个 setTimeout（对方立论 → 立论结构 → 质询…），多冲几轮排干 */
+const settle = async (n = 10) => { for (let i = 0; i < n; i++) await flushAsync(); };
 let intervals = [];
 const setIntervalStub = fn => { intervals.push(fn); return intervals.length; };
 const clearIntervalStub = id => { intervals[id-1] = null; };
@@ -74,48 +76,55 @@ W.App.go('graph');
 ok(makeEl('graph-panel').style.display === 'block' && makeEl('tree-panel').style.display === 'none', '切到图谱');
 ok(makeEl('vb-replay').classList.contains('on') === false, 'Tab 高亮正确');
 
-/* ---------- 场景3: 辩论间全流程（v0.3 结构化对局） ---------- */
+/* ---------- 场景3: 辩论间全流程（v0.6 选边制撮合 · 轮次制对局） ---------- */
 console.log('场景3 辩论间');
 W.App.go('room');
 ok(makeEl('room-panel').style.display === 'flex', '房间面板显示');
 ok(makeEl('match').classList.contains('hide') === false, '匹配遮罩出现');
 ok(makeEl('detail').style.display === 'none', '节点详情框在辩论间隐藏');
-await flushAsync();
-ok(makeEl('m-btn').disabled === false, '匹配完成');
+makeEl('m-btn').disabled = true;   /* 模拟 HTML 初始 disabled 属性（DOM 桩不解析标记） */
+ok(makeEl('m-claims').innerHTML.includes('正方') && makeEl('m-claims').innerHTML.includes('反方'), '预设论点对渲染（正反两边可选）');
+ok(makeEl('m-btn').disabled === true, '未选边前不能进入对局');
+const pp = W.Room._debug.pickSide('pro'); await flushAsync(); await pp;
+ok(makeEl('m-btn').disabled === false, '选边后撮合完成（池空 → Bot 兜底）');
+ok(makeEl('m-found').innerHTML.includes('Bot'), '撮合理由展示 Bot 兜底路径');
 makeEl('m-btn').onclick();
-ok(W.Room._debug.state() === 'concept', '进入概念对齐');
-W.Room._debug.pickConcept(0, 0);
-ok(W.Room._debug.state() === 'pretree', '定义对齐 → 论证树预提交');
-W.Room._debug.submitPreTree('该辞职去', '窗口期有政策依据', '', '教育局公开文件');
-await flushAsync(); await flushAsync();
-ok(W.Room._debug.state() === 'opening', '预提交 → 对方立论 → 我方立论');
-ok(W.Room._debug.newNodes() >= 6, '两棵论证树上板');
+await settle();
+ok(W.Room._debug.state() === 'brief', '进入房间直接到立论（无概念对齐阶段）');
+ok(W.Room._debug.mySide() === 'pro' && W.Room._debug.oppSide() === 'con', '选边结果进入房间状态');
+W.Room._debug.submitBrief('「窗口期」＝调动政策仍开放的时期', '该辞职去', '窗口期有政策依据', '', '教育局公开文件');
+ok(W.Room._debug.state() === 'opening', '立论结构 → 开篇陈述');
+ok(W.Room._debug.records() >= 9, '双方立论结构（含定义）已登记（未建树）');
 W.Room._debug.submitOpening('我的开篇陈述', '公开数据');
-await flushAsync(); await flushAsync();
+await settle();
 ok(W.Room._debug.state() === 'cross-answer', '立论 → 对方质询');
 W.Room._debug.submitAnswer('因为调动政策放宽了年龄限制，有公开文件');
 ok(W.Room._debug.state() === 'cross-ask', '回答 → 轮到我质询');
-W.Room._debug.submitCrossQuestion(0, 0, '你的证据是什么？');
-await flushAsync(); await flushAsync();
-ok(W.Room._debug.state() === 'cross-react', '对方回答 → 三选一');
+ok(W.Room._debug.botBriefItems().length === 5, '质询靶点 = 定义 / 结论 / 理由1 / 理由2 / 依据');
+W.Room._debug.submitCrossQuestion(0, 0, '你的「高风险动作」定义排除了什么？');
+await settle();
+ok(W.Room._debug.state() === 'cross-react', '质询对方定义条目 → 三选一');
 makeEl('rc-acc').onclick();
 ok(W.Room._debug.state() === 'free', '接受 → 自由对辩');
-W.Room._debug.submitFree('反驳', '我方反驳发言');
-await flushAsync(); await flushAsync();
+W.Room._debug.submitFree('承认', '我方承认对方的中考风险判断');
+await settle();
 ok(W.Room._debug.state() === 'closing', '自由对辩 → 结辩');
-W.Room._debug.submitClosing(0, '回应对方最强点', false, '');
-await flushAsync(); await flushAsync();
+W.Room._debug.submitClosing('分歧在权重；按不可逆优先，结论仍是该去', false, '');
+await settle();
 ok(W.Room._debug.state() === 'end', '结辩 → 终局');
-ok(makeEl('room-mask').classList.contains('show'), '争议档案弹出');
+ok(makeEl('room-mask').classList.contains('show'), '对局报告弹出');
 ok(makeEl('radar-box').innerHTML.includes('<svg'), '结构画像雷达图渲染');
-makeEl('btn-settle').onclick && makeEl('btn-settle').onclick();
-ok(makeEl('room-toast').textContent.includes('settlement'), '沉淀提示');
+ok(makeEl('mp-list').innerHTML.includes('完成完整对局'), '段位结算含 MP 明细');
+ok(!html.includes('btn-settle'), '辩论间已移除辩论树集成出口');
+ok(!/winner/.test(html) && !/rank(?!Candidates)/.test(html), '集成产物无 winner / rank 字段（rankCandidates 为撮合排序函数名）');
+ok(!html.includes('pickConcept') && !html.includes('CONCEPTS'), '集成产物无概念对齐残留符号');
 
 /* ---------- 场景4: 重置辩论间 ---------- */
 console.log('场景4 重置');
 W.App.resetRoom();
 ok(makeEl('match').classList.contains('hide') === false, '重置后回到匹配');
-ok(W.Room._debug.state() === 'idle' && W.Room._debug.newNodes() === 0, '对局状态清零');
+ok(W.Room._debug.state() === 'idle' && W.Room._debug.records() === 0, '对局状态清零');
+ok(W.Room._debug.admitted().length === 0, '承认记录清零');
 
 /* ---------- 场景5: 事件推演 ---------- */
 console.log('场景5 事件推演');

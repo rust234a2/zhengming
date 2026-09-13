@@ -7,18 +7,15 @@
  *
  * 入口：
  *   ?view=map     跨议题争议地图（d3 力导向）
- *   ?view=force   力导向辩论图（d3 力导向）
  *   ?view=debate  辩论树（缩进版）
- *   无参数        三张图的落地索引
+ *   无参数        视图落地索引
  */
 
 import { ControversyMap } from "./ui/ControversyMap";
-import { DebateForceTree } from "./ui/DebateForceTree";
 import { DebateTreePrototype } from "./ui/DebateTreePrototype";
 
 const VIEWS = [
   { id: "map", label: "跨议题争议地图", desc: "同一主张跨议题的横向索引 · 发现该吵哪一场" },
-  { id: "force", label: "力导向辩论图", desc: "单个议题内部的对垒结构 · 阵营与攻防" },
   { id: "debate", label: "辩论树", desc: "论点、证据、追问长成一棵可续写的树" },
 ] as const;
 
@@ -41,7 +38,7 @@ function Landing() {
     <main className="debate-app" style={{ padding: "56px 40px", overflowY: "auto" }}>
       <h1 style={{ fontSize: 26, fontWeight: 600, margin: "0 0 8px" }}>争鸣 · 桌面视图</h1>
       <p style={{ color: "var(--debate-muted)", fontSize: 14, margin: "0 0 30px" }}>
-        三张图各自独立，用 <code>?view=</code> 切换。
+        两张图各自独立，用 <code>?view=</code> 切换。
       </p>
       <ul
         style={{
@@ -80,13 +77,6 @@ function Landing() {
 export function App() {
   const view = readView();
   if (view === "debate") return <DebateTreePrototype />;
-  if (view === "force") {
-    return (
-      <FullScreen>
-        <DebateForceTree />
-      </FullScreen>
-    );
-  }
   if (view === "map") {
     return (
       <FullScreen>

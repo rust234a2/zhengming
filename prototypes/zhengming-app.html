@@ -199,11 +199,6 @@ textarea:focus{border-color:var(--blue)}
 #stage{flex:1;overflow-y:auto;padding:16px 20px}
 .sys{font-size:11.5px;color:var(--sub);background:#f7f8fa;border-radius:20px;padding:4px 14px;margin:8px 0;text-align:center}
 .sec-t{font-size:12px;font-weight:600;color:var(--blue);margin:14px 0 8px}
-.concept{margin-bottom:14px}
-.concept .c-k{font-size:13.5px;font-weight:600;margin-bottom:6px}
-.def-opt{padding:9px 12px;border-radius:8px;background:#f7f8fa;font-size:12.5px;line-height:1.55;cursor:pointer;margin-bottom:6px}
-.def-opt:hover{background:#eef1f6}
-.def-opt.sel{background:#e8f3ff;color:var(--blue);font-weight:500}
 .field{margin-bottom:10px}
 .field label{display:block;font-size:12px;color:var(--sub);margin-bottom:5px}
 textarea,.t-in{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:13px;font-family:inherit;resize:none;outline:none}
@@ -228,7 +223,6 @@ textarea:focus,.t-in:focus{border-color:var(--blue)}
 .bubble{border-radius:12px;padding:9px 13px;font-size:13px;line-height:1.65;max-width:100%;word-break:break-word}
 .msg.me .bubble{background:#e8f3ff;border-top-left-radius:4px}
 .msg.bot .bubble{background:#f7f8fa;border-top-right-radius:4px}
-.bubble .ack-part{font-size:11.5px;color:var(--sub);background:rgba(255,255,255,.75);border-radius:0 6px 6px 0;padding:5px 9px;margin-bottom:7px}
 .bubble .claim-part{font-size:13px;line-height:1.7}
 .bubble .evid-part{font-size:11.5px;color:var(--sub);margin-top:7px;padding-top:7px;border-top:1px dashed rgba(107,116,132,.25)}
 .bubble .evid-part b{font-weight:600}
@@ -257,7 +251,17 @@ textarea:focus,.t-in:focus{border-color:var(--blue)}
 .bk-h{font-size:11px;color:var(--sub);margin:6px 0 3px}
 .tn-new{background:#e8f3ff;border-radius:4px;padding:1px 5px;margin-left:-5px}
 .r-legend{display:flex;flex-direction:column;gap:7px;font-size:11.5px;color:var(--sub)}
-.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.r-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+/* 选边卡片（v0.6 选边制撮合） */
+.sp-item{position:relative;text-align:left;background:#f7f8fa;border:1.5px solid transparent;border-radius:10px;padding:12px 14px;cursor:pointer;margin-bottom:8px}
+.sp-item:hover{border-color:var(--blue)}
+.sp-item.sel{border-color:var(--blue);background:#e8f3ff}
+.sp-item.off{opacity:.5;pointer-events:none}
+.sp-head{font-size:11px;font-weight:700;margin-bottom:4px}
+.sp-head.pro{color:var(--blue)}
+.sp-head.con{color:var(--ink)}
+.sp-claim{font-size:13px;line-height:1.65;color:var(--ink)}
+.sp-hint{font-size:11px;color:var(--sub);margin:4px 0 12px;line-height:1.6}
 /* 匹配遮罩 */
 #match{position:fixed;inset:0;background:#fff;z-index:40;display:flex;align-items:center;justify-content:center}
 #match.hide{display:none}
@@ -480,15 +484,15 @@ textarea:focus,.t-in:focus{border-color:var(--blue)}
       <div class="seat">
         <div class="avatar" style="background:var(--blue)">我</div>
         <div class="seat-info">
-          <div class="seat-name">你 <span class="tag blue">支持</span></div>
+          <div class="seat-name">你 <span class="tag blue" id="my-tag">正方 · 支持</span></div>
           <div class="seat-stance" id="my-tier">段位 · 启鸣 (0 MP)</div>
         </div>
       </div>
       <div class="seat">
-        <div class="avatar" style="background:var(--ink)">妈</div>
+        <div class="avatar" style="background:var(--ink)" id="opp-ava">妈</div>
         <div class="seat-info">
-          <div class="seat-name">两个孩子的妈 <span class="tag ink">反对</span></div>
-          <div class="seat-stance">立场对撞 87% · 段位 争鸣</div>
+          <div class="seat-name" id="opp-name">两个孩子的妈 <span class="tag ink" id="opp-tag">反方 · 反对</span></div>
+          <div class="seat-stance" id="opp-stance">守反方预设论点 · 段位 争鸣</div>
         </div>
       </div>
       <div class="seat">
@@ -512,7 +516,7 @@ textarea:focus,.t-in:focus{border-color:var(--blue)}
     </div>
     <div class="mcard">
       <div class="panel-title">本局规则</div>
-      <div class="rule"><b>结构化对局：</b>先对齐概念，再各交一棵论证树，然后立论、质询、自由对辩、结辩。发言要标注类型，「修正」不丢人。不判输赢——谁有道理，由对手亲口承认。</div>
+      <div class="rule"><b>轮次制对局（五阶段）：</b>先填<b>立论结构</b>（含可选的关键定义）、开篇立论，然后质询、自由对辩、结辩。定义不用提前谈拢——<b>它就是被质询的东西</b>。发言要标注类型，「修正」不丢人。<b>不判输赢</b>——终局只出一份对局报告与结构画像；<b>规定轮次走完，对局即完成</b>，结果不由对方承认与否决定。</div>
     </div>
   </div>
 
@@ -524,8 +528,8 @@ textarea:focus,.t-in:focus{border-color:var(--blue)}
   <div class="col-r">
     <div class="mcard" style="flex:1">
       <div class="panel-title" style="display:flex;justify-content:space-between">
-        共享画板 · 论证树
-        <span style="font-weight:400;font-size:11px;color:var(--sub)" id="tree-count">0 个新节点</span>
+        本场记录
+        <span style="font-weight:400;font-size:11px;color:var(--sub)" id="rec-count">0 条已登记</span>
       </div>
       <div id="board">
         <div class="tn"><span class="dotc" style="background:var(--blue)"></span><div class="tn-root">该不该辞职去苏州？</div></div>
@@ -534,49 +538,41 @@ textarea:focus,.t-in:focus{border-color:var(--blue)}
     <div class="mcard">
       <div class="panel-title">图例</div>
       <div class="r-legend">
-        <span><i style="background:var(--blue)"></i>我方 · 支持</span>
-        <span><i style="background:var(--ink)"></i>对方 · 反对</span>
-        <span><i style="background:transparent;border:1px dashed #a9aebc"></i>质询</span>
-        <span><i style="background:var(--gold)"></i>被对手承认</span>
-        <span><i style="background:#e8f3ff;border:1px solid #c8defb"></i>本局新增</span>
+        <span><i style="background:var(--blue)"></i>我方立论结构</span>
+        <span><i style="background:var(--ink)"></i>对方立论结构</span>
+        <span><i style="background:transparent;border:1px dashed #a9aebc"></i>质询记录</span>
       </div>
     </div>
   </div>
 <div id="match">
-  <div class="m-box">
-    <div class="m-title">正在为这个议题凑局</div>
+  <div class="m-box" style="width:460px">
+    <div class="m-title">为这个议题凑局 · 先选边</div>
     <div class="m-topic">43 岁县中物理老师考上苏州头部公办校（正式编制），该不该辞职去？</div>
-    <div class="m-title" id="m-status" style="font-size:13px;font-weight:400;color:var(--sub)">按立场对撞原则匹配中…</div>
-    <div class="spin" id="m-spin"></div>
-    <div class="m-found" id="m-found">
-      <div class="seat" style="border:none;padding-top:0">
-        <div class="avatar" style="background:var(--ink)">妈</div>
-        <div class="seat-info">
-          <div class="seat-name">两个孩子的妈 <span class="tag ink">反对</span></div>
-          <div class="seat-stance">立场对撞 87% · 段位 争鸣 (92 MP)</div>
-        </div>
-      </div>
-    </div>
-    <button class="btn btn-primary" id="m-btn" style="width:100%" disabled>匹配中…</button>
+    <div class="m-status" id="m-status" style="font-size:12.5px;font-weight:400;color:var(--sub);margin-bottom:12px">论点对来自争议地图管线（知乎立场抽取）——选一边守；选自己不信的一边也完全允许（竞技辩论式训练）</div>
+    <div id="m-claims"></div>
+    <div class="spin" id="m-spin" style="display:none"></div>
+    <div class="m-found" id="m-found"></div>
+    <button class="btn btn-primary" id="m-btn" style="width:100%" disabled>选边后开始撮合</button>
     <button class="btn" id="m-demo" style="width:100%;margin-top:8px">▶ 自动演示完整流程（旁观模式）</button>
   </div>
 </div>
 
+
 <div class="room-mask" id="room-mask">
   <div class="endcard">
     <button class="btn end-close" id="e-close" title="关闭报告，回到辩论间">✕</button>
-    <h2>对局复盘 · 争议档案</h2>
-    <div class="e-sub">全流程完成 · AI 中立评估 · 不判胜负</div>
+    <h2>对局报告</h2>
+    <div class="e-sub">五阶段走满 · 轮次结束即完成 · AI 中立评估不构成胜负判定</div>
     <div class="e-grid">
       <div class="e-left">
         <div class="e-sec"><h3>✓ 已达成共识</h3><ul id="e-cons"></ul></div>
         <div class="e-sec"><h3>◆ 尚未解决的分歧</h3><ul id="e-divs"></ul></div>
         <div class="e-sec"><h3>◇ 质询记录</h3><ul id="e-cross"></ul></div>
+        <div class="e-sec"><h3>◇ 已被承认的论证</h3><ul id="e-ack"></ul></div>
         <div class="e-ai" id="e-ai"></div>
         <div class="e-actions">
-          <button class="btn" id="e-again">再来一局</button>
-          <button class="btn" id="btn-settle">沉淀到辩论树</button>
-          <button class="btn btn-primary" id="e-go">进入辩论树 →</button>
+          <button class="btn" id="e-close2">收起报告</button>
+          <button class="btn btn-primary" id="e-again">再来一局</button>
         </div>
       </div>
       <div class="e-right">
@@ -1370,26 +1366,56 @@ window.App = {
 ;(function(){
 
 /* ═══════════ 流程数据 ═══════════ */
-const STAGE_NAMES=['概念对齐','论证树预提交','立论','质询轮','自由对辩','结辩','终局'];
-const CONCEPTS=[
- {k:'「高风险动作」',opts:[
-   {t:'指中考这一年里，孩子教育路径发生重大变动的风险',ok:true},
-   {t:'指一切搬家、换城市带来的生活风险',ok:false},
-   {t:'指苏州学校教学质量不如县中的风险',ok:false}]},
- {k:'「窗口期」',opts:[
-   {t:'指体制内跨市调动政策对 40+ 教师仍开放的这段时期',ok:true},
-   {t:'指人生中最后一次改变命运的机会',ok:false},
-   {t:'指孩子中考前的这一学年',ok:false}]},
-];
-const BOT_TREE={
- concl:'孩子中考在即，这一年搬家是高风险动作，家庭稳定优先于个人发展',
- reasons:[{r:'中考是孩子教育的关键节点，状态波动不可逆',e:'青春期重大迁移与学业滑坡显著相关'},
-          {r:'头部校对外调教师的接纳度有限，职业收益不确定',e:'近年外调资深教师多先被安排非毕业班'}]};
-const BOT_OPENING='我方的判断标准是：孩子的教育连续性优先于职业机会收益。基于此，我方结论是今年不该走：孩子中考在即，这一年搬家是高风险动作；理由一是中考节点不可逆，理由二是外调收益不确定。依据是发展心理学关于青春期迁移的研究。';
-const BOT_QUESTION='你在预提交树里说「窗口期不等人」——这个窗口期是客观存在的调动机制，还是被焦虑放大的心理感受？请正面回答。';
-const BOT_ANSWERS={
- c0:{ans:'我说的「外调收益不确定」有依据：近年外调资深教师多先被安排非毕业班——这是可以查证的公开报道。',evasive:false},
- c1:{ans:'头部校的水平本来就是动态的嘛，谁说得准呢，反正去了就知道了。',evasive:true}};
+const STAGE_NAMES=['立论','质询轮','自由对辩','结辩','终局'];
+/* 六维结构画像维度：AI 中立评估与 v0.6 撮合排序共用 */
+const AI_DIMS=['立论','论据','逻辑','回应','表达','规范'];
+/* v0.6 选边制 · 预设论点对（来自争议地图管线：知乎立场抽取），每边 1 条核心论点 + 立场标签。
+   选边只是选择「守哪个论点」，不是选择「抄哪段话」：论点只预填立论草稿，可改可弃；选自己不信的一边完全允许 */
+const CLAIM_PAIR={
+ pro:{label:'正方',tag:'支持',claim:'该去——跨市调动窗口对 40+ 教师逐年收窄，不可逆的机会损失优先于可缓解的家庭波动'},
+ con:{label:'反方',tag:'反对',claim:'不该走——孩子中考在即，这一年搬家是高风险动作，家庭稳定优先于个人发展'}};
+/* 对手库：Bot 兜底时对手持「另一边」的预设论点开局（不伪造真人在线） */
+const BOT_SIDES={
+ con:{ava:'妈',name:'两个孩子的妈',
+  brief:{def:'「高风险动作」＝教育路径发生重大且难以逆转的变动',
+   concl:'孩子中考在即，这一年搬家是高风险动作，家庭稳定优先于个人发展',
+   reasons:[{r:'中考是孩子教育的关键节点，状态波动不可逆',e:'青春期重大迁移与学业滑坡显著相关'},
+            {r:'头部校对外调教师的接纳度有限，职业收益不确定',e:'近年外调资深教师多先被安排非毕业班'}],
+   e:'发展心理学关于青春期迁移的研究'},
+  opening:'我方的判断标准是：孩子的教育连续性优先于职业机会收益。基于此，我方结论是今年不该走：孩子中考在即，这一年搬家是高风险动作；理由一是中考节点不可逆，理由二是外调收益不确定。依据是发展心理学关于青春期迁移的研究。',
+  question:'你刚在开篇立论里说「窗口期不等人」——这个窗口期是客观存在的调动机制，还是被焦虑放大的心理感受？请正面回答。',
+  closing:'但风险大小和该不该走是两回事。按我的标准（孩子教育连续性优先），今年不该走。不过你今天有几个回答让我重新想了想「窗口期」的定义。',
+  answers:{
+   c0:{ans:'我方定义就写在立论结构里：「高风险动作」指教育路径的重大且难逆的变动——不接受把它偷换成「一切搬家风险」。',evasive:false},
+   c1:{ans:'我的结论落在「中考节点不可逆」上：青春期重大迁移与学业滑坡显著相关，这是可查的研究结论。',evasive:false},
+   c2:{ans:'中考这一年的状态波动，我引用的是发展心理学关于青春期迁移的研究，样本与结论都公开可查。',evasive:false},
+   c3:{ans:'我说「外调收益不确定」有依据：近年外调资深教师多先被安排非毕业班——这是可以查证的公开报道。',evasive:false},
+   c4:{ans:'头部校的水平本来就是动态的嘛，谁说得准呢，反正去了就知道了。',evasive:true}}},
+ pro:{ava:'王',name:'邻市调来的王老师',
+  brief:{def:'「窗口期」＝体制内跨市调动政策对 40+ 教师仍开放的时期',
+   concl:'43 岁该辞职去苏州——不可逆的机会损失优先于可缓解的家庭波动',
+   reasons:[{r:'跨市调动对 40+ 教师逐年收窄，今年是政策窗口内的最佳时点',e:'苏州近三年面向全国引进骨干教师，公告年龄上限放宽至 45 岁'},
+            {r:'迁移冲击是过程性的，可以靠提前安顿学区与生活来缓冲',e:'多地义务教育转学办理集中在学期初开放'}],
+   e:'近三年苏州跨市引进教师公告'},
+  opening:'我方的判断标准是：不可逆的机会损失，优先于可缓解的家庭波动。基于此，我方结论是今年该去：调动窗口正在收窄，而孩子的适应可以靠提前安顿来缓冲；理由一是窗口逐年收窄，理由二是迁移冲击可控。依据是近三年苏州面向全国引进骨干教师的公开公告。',
+  question:'你刚把「这一年搬家」定性为「高风险动作」——这个风险是教育路径本身的不可逆，还是可以靠提前安顿缓解的过程性困难？请正面回答。',
+  closing:'但缓冲做得再好，也是拿孩子的中考年在换。按我的标准（不可逆优先于可缓解），今年该去。不过你把「高风险动作」的口径咬得这么紧，让我重新掂了掂「收窄」的证据。',
+  answers:{
+   c0:{ans:'我方定义写在立论结构里：「高风险动作」指教育路径的重大且难逆的变动——孩子中考年的状态波动正落在这个口径里。',evasive:false},
+   c1:{ans:'我的结论落在「家庭稳定优先」上：中考这一年的迁移冲击，风险主体是孩子，缓冲方案只能缓解、不能撤销。',evasive:false},
+   c2:{ans:'「窗口收窄」有公开依据：近年面向 40+ 教师的跨市调动公告逐年减少，这是可以查证的。',evasive:false},
+   c3:{ans:'「学期初集中办理转学」是公开的学籍管理规定，各地教育局官网都能查到。',evasive:false},
+   c4:{ans:'政策的事谁说得准呢，走一步看一步呗。',evasive:true}}}};
+/* 立论结构的条目即质询靶点：定义 / 结论 / 理由 1 / 理由 2 / 依据（无树、无跨发言父子关系）
+   v0.5：定义不再是前置对齐的产物——它是本方立论的一部分，对方可直接选中发问 */
+function botBriefItems(){
+  const b=BOT_SIDES[oppSide].brief,it=[];
+  if(b.def)it.push({k:'定义',t:b.def});
+  it.push({k:'结论',t:b.concl});
+  b.reasons.forEach((x,i)=>it.push({k:'理由 '+(i+1),t:x.r}));
+  if(b.e)it.push({k:'依据',t:b.e});
+  return it;
+}
 const QTYPES=[
  {k:'你的证据是什么？',tpl:'你提到「{X}」，证据是什么？'},
  {k:'结论是否适用于所有情况？',tpl:'「{X}」在哪些情况下不成立？'},
@@ -1399,11 +1425,15 @@ const QTYPES=[
 const FREE_TYPES=['反驳','举证','承认','修正','寻共识'];
 const TIERS=[['启鸣',0],['锋鸣',30],['争鸣',80],['共鸣',180],['和鸣',350]];
 
+
 /* ═══════════ 状态 ═══════════ */
-let state='idle', mp=0, mpLog=[], newNodes=0, evasions=0, botAccepts=0;
+let state='idle', mp=0, mpLog=[], records=0, evasions=0, botAccepts=0;
+/* v0.6 选边制：mySide=用户所选边（允许选自己不信的一边）· oppSide=对手所守边
+   isBot=Bot 兜底路径（不伪造真人在线）· myProfile=我的六维画像（历史对局产出；冷启动为 null） */
+let mySide=null, oppSide='con', isBot=true, myProfile=null;
 let transcript=[];   /* 全场发言记录：AI 中立评估的数据源 */
-let conceptPicks=[null,null], conceptTries=0, conceptAgreed=false;
-let myTree=null, crossClaim=0, pressedOnce=false, revised=false, ackedIdx=null;
+let myBrief=null, crossTarget=null, pressedOnce=false, revised=false;
+let admitted=[];     /* 我方在自由对辩中标「承认」的条目 → 对局报告「已被承认的论证」 */
 const flow=document.getElementById('stage'), composer=document.getElementById('composer');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const esc=s=>String(s).replace(/</g,'&lt;');
@@ -1413,34 +1443,34 @@ function typing(w){const d=document.createElement('div');d.className='typing';d.
 function untype(){const t=document.getElementById('typing');if(t)t.remove();}
 function hostNote(t){const d=document.createElement('div');d.className='host-note';d.innerHTML='<b>Host · 结构提示</b>　'+t;flow.appendChild(d);flow.scrollTop=flow.scrollHeight;}
 /* 聊天气泡消息：我=左侧蓝泡 · 对方=右侧灰泡
-   ack 条 = 「先承认再推进」声明：仅当发言明确回应了对方论点时显示 */
-function msg(who,ack,claim,evid,type){
-  transcript.push({who,type:type||'',text:claim.replace(/<[^>]+>/g,'').trim(),ack:ack||'',evid:evid||''});
+   v0.4：取消「先承认」声明条——任何发言（含结辩）都不要求承认对方观点 */
+function msg(who,claim,evid,type){
+  transcript.push({who,type:type||'',text:claim.replace(/<[^>]+>/g,'').trim(),evid:evid||''});
   const d=document.createElement('div');d.className='msg '+who;
   const typeTag=type?`<span class="tag mut" style="margin-left:6px">${type}</span>`:'';
-  d.innerHTML=`<div class="m-ava">${who==='me'?'我':'妈'}</div>
+  const opp=BOT_SIDES[oppSide];
+  d.innerHTML=`<div class="m-ava">${who==='me'?'我':opp.ava}</div>
     <div class="m-body">
-      <div class="m-who"><b>${who==='me'?'你 · 支持':'两个孩子的妈 · 反对'}</b>${typeTag}</div>
+      <div class="m-who"><b>${who==='me'?'你 · '+CLAIM_PAIR[mySide].tag:opp.name+' · '+CLAIM_PAIR[oppSide].tag}</b>${typeTag}</div>
       <div class="bubble">
-        ${ack?`<div class="ack-part">我听到对方的核心观点是：${esc(ack)}</div>`:''}
         <div class="claim-part">${claim}</div>
         ${evid?`<div class="evid-part"><b>依据</b> ${esc(evid)}</div>`:''}
       </div>
     </div>`;
   flow.appendChild(d);flow.scrollTop=flow.scrollHeight;
 }
-function addToBoard(bucket,text){
+function addRecord(bucket,text){
   const board=document.getElementById('board');
   let bk=document.getElementById('bk-'+bucket);
   if(!bk){bk=document.createElement('div');bk.className='bucket';bk.id='bk-'+bucket;
-    bk.innerHTML=`<div class="bk-h">${{def:'双方定义',pro:'我方 · 支持',con:'对方 · 反对',q:'质询'}[bucket]}</div>`;
+    bk.innerHTML=`<div class="bk-h">${{def:'本局共同定义',pro:'我方立论结构',con:'对方立论结构',q:'质询记录'}[bucket]}</div>`;
     board.appendChild(bk);}
   const d=document.createElement('div');d.className='tn';
   const dot= bucket==='q' ? '<span class="dotc" style="background:transparent;border:1px dashed #a9aebc"></span>'
            : `<span class="dotc" style="background:${bucket==='pro'?'var(--blue)':'var(--ink)'}"></span>`;
   d.innerHTML=dot+`<div><span class="tn-new">${esc(text)}</span></div>`;
   bk.appendChild(d);
-  newNodes++;document.getElementById('tree-count').textContent=newNodes+' 个新节点';
+  records++;document.getElementById('rec-count').textContent=records+' 条已登记';
 }
 let stageIdx=0;
 function setStage(i){
@@ -1459,102 +1489,125 @@ function renderTier(){
   document.getElementById('tier-fill').style.width=Math.min(100,(mp-prev)/span*100)+'%';
 }
 
-/* ═══════════ 匹配 ═══════════ */
-async function startMatch(){
+/* ═══════════ 撮合：选边制（v0.6） ═══════════
+   论点对（争议地图管线）→ 选边 → 真人优先（守另一边候选按六维画像相近度排序）→ Bot 兜底 */
+function renderSidePick(){
+  document.getElementById('m-claims').innerHTML=['pro','con'].map(s=>{
+    const c=CLAIM_PAIR[s];
+    return `<div class="sp-item" data-side="${s}">
+      <div class="sp-head ${s}">${c.label} · ${c.tag}</div>
+      <div class="sp-claim">${c.claim}</div>
+    </div>`;}).join('');
+  document.querySelectorAll('#m-claims .sp-item').forEach(el=>el.onclick=()=>pickSide(el.dataset.side));
+}
+/* 撮合排序纯函数（PLAN 阶段 D-1）：输入我的六维画像与守另一边的候选，
+   score = 1 − mean(|dim_i − dim_i′|)/100；无画像候选（score=null）排在有画像之后；
+   排序稳定，同输入同输出，返回值自带 score 供 UI 展示撮合理由 */
+function rankCandidates(myDims,candidates){
+  return candidates
+    .map(c=>({...c,score:(myDims&&c.dims)?1-AI_DIMS.reduce((s,_,i)=>s+Math.abs(myDims[i]-c.dims[i]),0)/AI_DIMS.length/100:null}))
+    .sort((a,b)=>(b.score??-1)-(a.score??-1));
+}
+/* 演示候选池：池空 → 走 Bot 兜底路径（与 PRD §13 的原型方案一致）。
+   真人候选接入后，元素形如 {side:'con',dims:[...六维...]}（历史 RoomReport 画像写入撮合档案） */
+const CANDIDATE_POOL=[];
+async function pickSide(side){
+  mySide=side;oppSide=side==='pro'?'con':'pro';
+  document.querySelectorAll('#m-claims .sp-item').forEach(el=>{
+    el.classList.toggle('sel',el.dataset.side===side);el.classList.add('off');});
   const btn=document.getElementById('m-btn');
+  btn.disabled=true;btn.textContent='匹配中…';
+  document.getElementById('m-spin').style.display='';
+  document.getElementById('m-found').classList.remove('show');
+  document.getElementById('m-status').textContent=`真人优先 · 正在寻找守「${CLAIM_PAIR[oppSide].label}」的对手…（候选池 90s 超时 → Bot 兜底）`;
   await sleep(1000);
-  document.getElementById('m-status').textContent='找到观点对撞的对手：';
-  document.getElementById('m-found').classList.add('show');
   document.getElementById('m-spin').style.display='none';
+  const cands=rankCandidates(myProfile,CANDIDATE_POOL.filter(c=>c.side===oppSide));
+  let reason;
+  if(cands.length){
+    isBot=false;
+    reason=`同一场论点对、你守${CLAIM_PAIR[mySide].label}；对方画像与你相近（${cands[0].dims.map((v,i)=>AI_DIMS[i]+' '+v).join(' / ')}）`;
+  }else{
+    isBot=true;
+    reason=`候选池暂无守「${CLAIM_PAIR[oppSide].label}」的真人（等待超时）→ Bot 持${CLAIM_PAIR[oppSide].label}预设论点开局 · 不伪造真人在线`;
+  }
+  const opp=BOT_SIDES[oppSide];
+  document.getElementById('m-found').innerHTML=`
+    <div class="seat" style="border:none;padding-top:0">
+      <div class="avatar" style="background:var(--ink)">${opp.ava}</div>
+      <div class="seat-info">
+        <div class="seat-name">${opp.name} <span class="tag ink">${CLAIM_PAIR[oppSide].label} · ${CLAIM_PAIR[oppSide].tag}</span></div>
+        <div class="seat-stance">${reason}</div>
+      </div>
+    </div>`;
+  document.getElementById('m-found').classList.add('show');
   btn.disabled=false;btn.textContent='接受对局，进入结构化流程';
   btn.onclick=enterRoom;
 }
+function startMatch(){renderSidePick();}
+function updateSeats(){
+  const opp=BOT_SIDES[oppSide];
+  document.getElementById('my-tag').textContent=`${CLAIM_PAIR[mySide].label} · ${CLAIM_PAIR[mySide].tag}`;
+  document.getElementById('opp-ava').textContent=opp.ava;
+  document.getElementById('opp-name').innerHTML=`${opp.name} <span class="tag ink">${CLAIM_PAIR[oppSide].label} · ${CLAIM_PAIR[oppSide].tag}</span>`;
+  document.getElementById('opp-stance').textContent=isBot?`Bot 持${CLAIM_PAIR[oppSide].label}预设论点 · 段位 争鸣`:`真人匹配 · 段位 争鸣`;
+}
 function enterRoom(){
+  if(!mySide)return;
   document.getElementById('match').classList.add('hide');
-  setStage(0);
-  sys('房间已建立 · 流程：概念对齐 → 论证树预提交 → 立论 → 质询 → 自由对辩 → 结辩');
-  renderConcept();
-}
-
-/* ═══════════ ① 概念对齐 ═══════════ */
-function renderConcept(){
-  state='concept';
-  flow.innerHTML=`<div class="sec-t">① 概念对齐 · 先把词的意思谈拢，再谈观点</div>
-    <div class="host-note">Host 从辩题里抽出了 <b>2 个关键概念</b>。你和对方各自选择定义——选得不一样，你们的争吵可能只是鸡同鸭讲。对方已选好。</div>
-    ${CONCEPTS.map((c,ci)=>`<div class="concept"><div class="c-k">${c.k}</div>
-      ${c.opts.map((o,oi)=>`<div class="def-opt" data-c="${ci}" data-o="${oi}">${o.t}</div>`).join('')}</div>`).join('')}`;
-  composer.innerHTML=`<div class="c-head"><span class="ph">确认定义</span><span class="c-count">选中的定义将成为本局共同语言</span></div>
-    <div class="c-foot"><span></span><button class="btn btn-primary" id="c-concept" disabled>提交定义</button></div>`;
-  flow.querySelectorAll('.def-opt').forEach(el=>{
-    el.onclick=()=>{
-      const ci=+el.dataset.c;
-      conceptPicks[ci]=+el.dataset.o;
-      flow.querySelectorAll(`.def-opt[data-c="${ci}"]`).forEach(x=>x.classList.remove('sel'));
-      el.classList.add('sel');
-      document.getElementById('c-concept').disabled=!conceptPicks.every(x=>x!==null);
-    };
-  });
-  document.getElementById('c-concept').onclick=checkConcept;
-}
-function checkConcept(){
-  const bad=CONCEPTS.map((c,i)=>({c,i})).filter(x=>!x.c.opts[conceptPicks[x.i]].ok);
-  if(bad.length && conceptTries<2){
-    conceptTries++;
-    sys(`Host：你们对 ${bad.map(x=>x.c.k).join('、')} 的定义不一致——请重选（还可调整 ${2-conceptTries} 次）`);
-    renderConcept();
-    conceptPicks.forEach((p,i)=>{if(p!==null){
-      const el=flow.querySelector(`.def-opt[data-c="${i}"][data-o="${p}"]`);
-      if(el)el.classList.add('sel');}});
-    document.getElementById('c-concept').disabled=!conceptPicks.every(x=>x!==null);
-    return;
-  }
-  conceptAgreed=!bad.length;
-  if(!conceptAgreed) sys('Host：两次调整后仍有定义差异——已记录进争议档案，带着差异继续。');
-  else sys('Host：定义对齐达成 ✓（+2 MP 将计入结算）');
-  addToBoard('def',CONCEPTS.map((c,i)=>`${c.k}＝${c.opts[conceptPicks[i]].t}`).join('；'));
-  setStage(1);renderPreTree();
-}
-
-/* ═══════════ ② 论证树预提交 ═══════════ */
-function renderPreTree(){
-  state='pretree';
-  flow.innerHTML+=`<div class="sec-t">② 论证树预提交 · 先交结构，再开打</div>
-    <div class="host-note">把立场拆成<b>结论 → 理由 → 依据</b>。提交后两棵树一起挂上共享画板，之后的质询就是「指着结构打」。</div>
-    <div class="host-note" style="color:#a9aebc">对方已提交 ✓（两棵树会在你提交后一起上板）</div>`;
-  composer.innerHTML=`
-    <div class="field"><label>核心结论（预填你的立场，可修改）</label><textarea id="pt-concl" rows="1">43 岁该辞职去苏州——窗口期不等人</textarea></div>
-    <div class="field"><label>理由一（必填）</label><textarea id="pt-r1" rows="2" placeholder="为什么结论成立？"></textarea></div>
-    <div class="field"><label>理由二（可选）</label><textarea id="pt-r2" rows="2"></textarea></div>
-    <div class="field"><label>依据（可选，随理由一起被质询）</label><input class="t-in" id="pt-e" placeholder="数据 / 案例 / 研究…"></div>
-    <div class="c-foot"><span class="c-count">理由至少 1 条</span><button class="btn btn-primary" id="pt-go">提交论证树</button></div>`;
-  document.getElementById('pt-go').onclick=()=>submitPreTree(
-    document.getElementById('pt-concl').value.trim(),
-    document.getElementById('pt-r1').value.trim(),
-    document.getElementById('pt-r2').value.trim(),
-    document.getElementById('pt-e').value.trim());
-}
-function submitPreTree(concl,r1,r2,e){
-  if(!r1){sys('Host：至少需要一条理由——结论不会因为重复而成立。');return;}
-  myTree={concl,r1,r2,e};
-  addToBoard('pro',concl);addToBoard('pro',r1);if(r2)addToBoard('pro',r2);
-  addToBoard('con',BOT_TREE.concl);
-  BOT_TREE.reasons.forEach(x=>addToBoard('con',x.r));
-  sys('Host：双方论证树已上树 ✓ 质询阶段可以指着对方节点发问');
+  setStage(0);updateSeats();
+  sys(`房间已建立 · 你守${CLAIM_PAIR[mySide].label}（${CLAIM_PAIR[mySide].tag}）· 五阶段：立论 → 质询轮 → 自由对辩 → 结辩 → 终局（预设论点只预填立论草稿，可改可弃）`);
   botTurnOpening();
 }
+
+
+/* ═══════════ ① 立论：立论结构 → 开篇陈述 ═══════════
+   立论结构是本条发言的骨架，**不是一棵树**：不建节点、不上画板、不产生跨发言父子关系。
+   它唯一的用途是给 ②质询轮一个稳定的定位锚点（定义 / 结论 / 理由 1 / 理由 2 / 依据）。
+   v0.5：没有独立的概念对齐阶段——关键定义作为可选字段随立论公布，由对方在质询中挑战。 */
 async function botTurnOpening(){
-  setStage(2);state='opening';
+  setStage(0);state='opening';
   composer.innerHTML='<div class="c-head"><span class="wait">对方立论中…</span></div>';
   await sleep(800);typing('bot');
   await sleep(1400);untype();
-  msg('bot',null,BOT_OPENING,'青春期迁移研究 · 证据状态：已提供来源','立论');
-  hostNote('结构检查：对方立论含定义/标准/结论/理由/证据五要素 ✓。轮到你——注意观点与证据要对应，Host 只提示，不代写。');
+  const b=BOT_SIDES[oppSide];
+  msg('bot',b.opening,b.brief.e+' · 证据状态：已提供来源','立论');
+  botBriefItems().forEach(it=>addRecord('con',`${it.k}：${it.t}`));
+  hostNote('结构检查：对方立论含定义/标准/结论/理由/证据五要素 ✓。轮到你——先填<b>立论结构</b>（你选边的预设论点已预填进结论草稿，可改可弃），再写开篇陈述。Host 只提示，不代写。');
+  renderBrief();
+}
+function renderBrief(){
+  state='brief';
+  composer.innerHTML=`
+    <div class="c-head"><span class="ph">① 立论 · 立论结构</span><span class="c-count">定义(可选) / 结论 / 理由 1-2 / 依据 · 只作质询锚点，不上画板</span></div>
+    <div class="field"><label>关键定义（可选：你使用的关键词的界定——对方可直接质询它）</label><input class="t-in" id="bf-def" placeholder="例：「窗口期」＝…"></div>
+    <div class="field"><label>核心结论（已预填你选边的预设论点草稿——可改可弃，但不能跳过立论）</label><textarea id="bf-concl" rows="1">${esc(CLAIM_PAIR[mySide].claim)}</textarea></div>
+    <div class="field"><label>理由一（必填）</label><textarea id="bf-r1" rows="2" placeholder="为什么结论成立？"></textarea></div>
+    <div class="field"><label>理由二（可选）</label><textarea id="bf-r2" rows="2"></textarea></div>
+    <div class="field"><label>依据（可选，随理由一起被质询）</label><input class="t-in" id="bf-e" placeholder="数据 / 案例 / 研究…"></div>
+    <div class="c-foot"><span class="c-count">理由至少 1 条</span><button class="btn btn-primary" id="bf-go">提交立论结构</button></div>`;
+  document.getElementById('bf-go').onclick=()=>submitBrief(
+    document.getElementById('bf-def').value.trim(),
+    document.getElementById('bf-concl').value.trim(),
+    document.getElementById('bf-r1').value.trim(),
+    document.getElementById('bf-r2').value.trim(),
+    document.getElementById('bf-e').value.trim());
+}
+function submitBrief(def,concl,r1,r2,e){
+  if(!r1){sys('Host：至少需要一条理由——结论不会因为重复而成立。');return;}
+  myBrief={def,concl,r1,r2,e};
+  if(def)addRecord('pro',`定义：${def}`);
+  addRecord('pro',`结论：${concl}`);addRecord('pro',`理由 1：${r1}`);
+  if(r2)addRecord('pro',`理由 2：${r2}`);
+  if(e)addRecord('pro',`依据：${e}`);
+  sys('Host：立论结构已登记 ✓ 质询轮可按条目发起（定义 / 结论 / 理由 1 / 理由 2 / 依据）——定义没提前对齐，站不站得住质询里见');
   renderOpening();
 }
 function renderOpening(){
+  state='opening';
   composer.innerHTML=`
-    <div class="c-head"><span class="ph">③ 立论</span><span class="c-count">结论 → 理由 → 证据 → 判断标准</span></div>
-    <div class="field"><textarea id="op-t" rows="3" placeholder="你的开篇陈述（基于你预提交的树展开）…"></textarea></div>
+    <div class="c-head"><span class="ph">① 立论 · 开篇陈述</span><span class="c-count">定义 → 结论 → 理由 → 证据 → 判断标准</span></div>
+    <div class="field"><textarea id="op-t" rows="3" placeholder="你的开篇陈述（把你刚填的立论结构展开成完整的话）…"></textarea></div>
     <div class="field"><input class="t-in" id="op-e" placeholder="依据（可选）"></div>
     <div class="c-foot"><span class="c-count" id="op-c">0 字</span><button class="btn btn-primary" id="op-go">提交立论</button></div>`;
   const ta=document.getElementById('op-t');
@@ -1562,36 +1615,36 @@ function renderOpening(){
   document.getElementById('op-go').onclick=()=>submitOpening(ta.value.trim(),document.getElementById('op-e').value.trim());
 }
 function submitOpening(t,e){
-  if(!t){sys('Host：立论不能为空——把你预提交的理由用完整的话说出来。');return;}
-  msg('me',null,esc(t),e||null,'立论');
+  if(!t){sys('Host：立论不能为空——把你刚填的理由用完整的话说出来。');return;}
+  msg('me',esc(t),e||null,'立论');
   startCross();
 }
 
-/* ═══════════ ④ 质询轮 ═══════════ */
+/* ═══════════ ② 质询轮 ═══════════ */
 async function startCross(){
-  setStage(3);state='cross-answer';
+  setStage(1);state='cross-answer';
   composer.innerHTML='<div class="c-head"><span class="wait">质询轮 · 对方向你提问</span></div>';
   await sleep(700);typing('bot');
   await sleep(1300);untype();
-  msg('bot',null,'<b>【质询】</b>'+BOT_QUESTION,null,'质询');
-  addToBoard('q',BOT_QUESTION);
+  msg('bot','<b>【质询】</b>'+BOT_SIDES[oppSide].question,null,'质询');
+  addRecord('q','对你方「立论结构」的质询：'+BOT_SIDES[oppSide].question);
   composer.innerHTML=`
-    <div class="c-head"><span class="ph">④ 质询 · 回答对方</span><span class="c-count">正面回答——回避会被对方指出并记入档案</span></div>
+    <div class="c-head"><span class="ph">② 质询轮 · 回答对方</span><span class="c-count">正面回答——回避会被对方指出并记入对局报告</span></div>
     <div class="field"><textarea id="cr-a" rows="3" placeholder="正面回答这个问题…"></textarea></div>
     <div class="c-foot"><span></span><button class="btn btn-primary" id="cr-go">回答</button></div>`;
   document.getElementById('cr-go').onclick=()=>submitAnswer(document.getElementById('cr-a').value.trim());
 }
 function submitAnswer(a){
   if(a.length<6){sys('Host：回答太短——质询的意义在于正面交锋。');return;}
-  msg('me',null,'<b>【回答】</b>'+esc(a),null,'回答');
-  sys('对方表示：接受 ✓（+2 MP 将计入结算）');botAccepts++;
+  msg('me','<b>【回答】</b>'+esc(a),null,'回答');
+  sys('对方表示：接受 ✓（过程动作，+2 MP 将计入结算·非结果判定）');botAccepts++;
   crossMine();
 }
 function crossMine(){
   state='cross-ask';
   composer.innerHTML=`
-    <div class="c-head"><span class="ph">④ 质询 · 轮到你提问</span><span class="c-count">选对方一条论点 → 选问题类型 → 提一个问题</span></div>
-    <div class="claim-pick">${BOT_TREE.reasons.map((r,i)=>`<div class="cp-item" data-i="${i}">对方论点 ${i+1}：${r.r}</div>`).join('')}</div>
+    <div class="c-head"><span class="ph">② 质询轮 · 轮到你提问</span><span class="c-count">选对方立论结构的一条（可含定义）→ 选问题类型 → 提一个问题</span></div>
+    <div class="claim-pick">${botBriefItems().map((it,i)=>`<div class="cp-item" data-i="${i}">对方${it.k}：${it.t}</div>`).join('')}</div>
     <div class="qtypes">${QTYPES.map((q,i)=>`<span class="qtype" data-i="${i}">${q.k}</span>`).join('')}</div>
     <div class="field"><textarea id="cq-t" rows="2" placeholder="你的问题（一次只问一个）…"></textarea></div>
     <div class="c-foot"><span class="c-count">一问一答 · 不许打包追问</span><button class="btn btn-primary" id="cq-go" disabled>提出质询</button></div>`;
@@ -1603,26 +1656,26 @@ function crossMine(){
     qtype=+el.dataset.i;
     composer.querySelectorAll('.qtype').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');
     const box=document.getElementById('cq-t');
-    if(!box.value.trim())box.value=QTYPES[qtype].tpl.replace('{X}',BOT_TREE.reasons[picked??0].r.slice(0,14)+'…');
+    if(!box.value.trim())box.value=QTYPES[qtype].tpl.replace('{X}',botBriefItems()[picked??0].t.slice(0,14)+'…');
     checkReady();});
   function checkReady(){document.getElementById('cq-go').disabled=!(picked!==null&&qtype!==null);}
   document.getElementById('cq-go').onclick=()=>submitCrossQuestion(picked,qtype,document.getElementById('cq-t').value.trim());
 }
 async function submitCrossQuestion(picked,qtype,q){
     if(!q){sys('Host：问题不能为空。');return;}
-    crossClaim=picked;
-    msg('me',null,`<b>【质询】</b>${esc(q)}`,null,'质询');
-    addToBoard('q',q);
+    crossTarget=picked;
+    msg('me',`<b>【质询】</b>${esc(q)}`,null,'质询');
+    addRecord('q',`对你方${botBriefItems()[crossTarget].k}的质询：${q}`);
     composer.innerHTML='<div class="c-head"><span class="wait">对方回答中…</span></div>';
     await sleep(800);typing('bot');await sleep(1200);untype();
-    const A=BOT_ANSWERS['c'+crossClaim];
-    msg('bot',null,'<b>【回答】</b>'+A.ans,null,'回答');
+    const A=BOT_SIDES[oppSide].answers['c'+crossTarget]||BOT_ANSWER_FALLBACK;
+    msg('bot','<b>【回答】</b>'+A.ans,null,'回答');
     renderReaction(A.evasive);
 }
 function renderReaction(evasive){
   state='cross-react';
   composer.innerHTML=`
-    <div class="c-head"><span class="ph">④ 质询 · 对方的回答，你怎么处理？</span><span class="c-count">接受 / 继续追问（限 1 次） / 指出回避</span></div>
+    <div class="c-head"><span class="ph">② 质询轮 · 对方的回答，你怎么处理？</span><span class="c-count">接受 / 继续追问（限 1 次） / 指出回避</span></div>
     <div class="react-row">
       <button class="btn btn-primary" id="rc-acc">接受这个回答</button>
       <button class="btn" id="rc-press" ${pressedOnce?'disabled':''}>继续追问${pressedOnce?'（已用）':''}</button>
@@ -1636,25 +1689,25 @@ function renderReaction(evasive){
       <div class="c-foot"><span></span><button class="btn btn-primary" id="pr-go">发出追问</button></div>`;
     document.getElementById('pr-go').onclick=async()=>{
       const q=document.getElementById('pr-t').value.trim();if(!q)return;
-      msg('me',null,`<b>【追问】</b>${esc(q)}`,null,'质询');
+      msg('me',`<b>【追问】</b>${esc(q)}`,null,'质询');
       composer.innerHTML='<div class="c-head"><span class="wait">对方补充回答中…</span></div>';
       await sleep(800);typing('bot');await sleep(1100);untype();
-      msg('bot',null,'<b>【补充】</b>这是我目前能给出的全部——如果你觉得还不够，档案会记下来。',null,'回答');
+      msg('bot','<b>【补充】</b>这是我目前能给出的全部——如果你觉得还不够，对局报告会记下来。',null,'回答');
       renderReaction(false);
     };
   };
   document.getElementById('rc-evade').onclick=()=>{
     evasions++;
-    sys(`Host：已记录「指出回避」×${evasions}——写入争议档案（只记录，不扣分）。`);
+    sys(`Host：已记录「指出回避」×${evasions}——写入对局报告（描述式记录，不扣分）。`);
     toFree();
   };
 }
 
-/* ═══════════ ⑤ 自由对辩 ═══════════ */
+/* ═══════════ ③ 自由对辩 ═══════════ */
 function toFree(){
-  setStage(4);state='free';
+  setStage(2);state='free';
   composer.innerHTML=`
-    <div class="c-head"><span class="ph">⑤ 自由对辩</span><span class="c-count">每方 1 次 · 必须标注发言类型</span></div>
+    <div class="c-head"><span class="ph">③ 自由对辩</span><span class="c-count">每方 1 次 · 必须标注发言类型</span></div>
     <div class="qtypes">${FREE_TYPES.map((t,i)=>`<span class="qtype" data-i="${i}">${t}</span>`).join('')}</div>
     <div class="field"><textarea id="fr-t" rows="3" placeholder="反驳谁、举证什么、承认哪条、修正哪句、寻找什么共识…"></textarea></div>
     <div class="c-foot"><span class="c-count" id="fr-c">0 字</span><button class="btn btn-primary" id="fr-go" disabled>发言</button></div>`;
@@ -1669,9 +1722,9 @@ function toFree(){
 }
 function submitFree(typeName,t){
   if(!t)return;
-  msg('me',null,`<b>【${typeName}】</b>${esc(t)}`,null,typeName);
-  if(typeName==='修正'){revised=true;sys('Host：已记录本方修正——原论点痕迹保留，档案可见前后变化。');}
-  if(typeName==='承认'){sys('对方论点被你承认——树上已打金点标记');}
+  msg('me',`<b>【${typeName}】</b>${esc(t)}`,null,typeName);
+  if(typeName==='修正'){revised=true;sys('Host：已记录本方修正——原表述痕迹保留，报告里可见前后变化。');}
+  if(typeName==='承认'){admitted.push(t);sys('Host：已记入对局报告「已被承认的论证」——仅作语义标注，对方不因此得分。');}
   composer.innerHTML='<div class="c-head"><span class="wait">对方自由对辩中…</span></div>';
   botFree(typeName);
 }
@@ -1681,53 +1734,46 @@ async function botFree(myType){
              : myType==='承认' ? '你愿意承认这一点，我很意外，也很感谢。'
              : myType==='修正' ? '你修正后的表述我更能接受——比原来的「不等人」准确。'
              : '这些我记下了，结辩见。';
-  msg('bot',null,`<b>【回应】</b>${reply}`,null,'回应');
+  msg('bot',`<b>【回应】</b>${reply}`,null,'回应');
   toClosing();
 }
 
-/* ═══════════ ⑥ 结辩 ═══════════ */
+/* ═══════════ ④ 结辩 ═══════════ */
 function toClosing(){
-  setStage(5);state='closing';
+  setStage(3);state='closing';
   composer.innerHTML=`
-    <div class="c-head"><span class="ph">⑥ 结辩</span><span class="c-count">先标对方的王牌，再回应它；允许打一次「修正」</span></div>
-    <div class="field"><label>对方最有力的观点是（必选）</label>
-      <div class="claim-pick">${BOT_TREE.reasons.map((r,i)=>`<div class="cp-item" data-i="${i}">${r.r}</div>`).join('')}</div></div>
-    <div class="field"><textarea id="cl-t" rows="3" placeholder="回应它，然后说明为什么按你的标准，结论仍然成立…"></textarea></div>
+    <div class="c-head"><span class="ph">④ 结辩</span><span class="c-count">比较双方立论与质询结果做收束 · 不要求承认对方观点</span></div>
+    <div class="field"><label>收束陈述</label><textarea id="cl-t" rows="4" placeholder="分歧在哪、哪些已经解决、哪些仍未决，按你的标准结论为何成立…"></textarea></div>
     <div class="field"><label style="display:flex;gap:6px;align-items:center;color:var(--ink)"><input type="checkbox" id="cl-rev" style="width:auto"> 本局后我想修正本方观点（会被记录，是加分项不是认输）</label>
       <textarea id="cl-rev-t" rows="2" placeholder="修正后的表述…" style="display:none;margin-top:6px"></textarea></div>
-    <div class="c-foot"><span></span><button class="btn btn-primary" id="cl-go" disabled>提交结辩</button></div>`;
-  let best=null;
-  composer.querySelectorAll('.cp-item').forEach(el=>el.onclick=()=>{
-    best=+el.dataset.i;
-    composer.querySelectorAll('.cp-item').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');
-    document.getElementById('cl-go').disabled=false;});
+    <div class="c-foot"><span></span><button class="btn btn-primary" id="cl-go">提交结辩</button></div>`;
   document.getElementById('cl-rev').onchange=e=>{
     document.getElementById('cl-rev-t').style.display=e.target.checked?'block':'none';};
   document.getElementById('cl-go').onclick=()=>{
     const rev=document.getElementById('cl-rev').checked;
-    submitClosing(best,document.getElementById('cl-t').value.trim(),rev,rev?document.getElementById('cl-rev-t').value.trim():'');
+    submitClosing(document.getElementById('cl-t').value.trim(),rev,rev?document.getElementById('cl-rev-t').value.trim():'');
   };
 }
-function submitClosing(best,t,rev,revT){
-  if(!t){sys('Host：结辩不能为空——它会被写进争议档案。');return;}
+function submitClosing(t,rev,revT){
+  if(!t){sys('Host：结辩不能为空——它会被写进对局报告。');return;}
   if(rev&&!revT){sys('Host：勾了修正就写出修正后的表述。');return;}
   revised=revised||rev;
-  msg('me',BOT_TREE.reasons[best].r,`<b>【结辩】</b>${esc(t)}${rev?`<br><span style="color:var(--blue)">【修正】本方观点修正为：${esc(revT)}</span>`:''}`,null,'结辩');
+  msg('me',`<b>【结辩】</b>${esc(t)}${rev?`<br><span style="color:var(--blue)">【修正】本方观点修正为：${esc(revT)}</span>`:''}`,null,'结辩');
   botClosing();
 }
 async function botClosing(){
   composer.innerHTML='<div class="c-head"><span class="wait">对方结辩中…</span></div>';
   await sleep(800);typing('bot');await sleep(1300);untype();
-  msg('bot','迁移有风险（你我已共同承认）','<b>【结辩】</b>但风险大小和该不该走是两回事。按我的标准（孩子教育连续性优先），今年不该走。不过你今天有几个回答让我重新想了想「窗口期」的定义。',null,'结辩');
-  setStage(6);showEnd();
+  msg('bot','<b>【结辩】</b>'+BOT_SIDES[oppSide].closing,null,'结辩');
+  setStage(4);showEnd();
 }
 
-/* ═══════════ ⑦ 终局 ═══════════ */
+/* ═══════════ ⑤ 终局 ═══════════ */
 /* ═══════════ AI 中立评估模块 ═══════════
    中立角色：只依据场上可观测行为（发言记录/证据提交/质询结果/规范表现）
    生成六维评分与总结，输出的是结构质量反馈，不构成胜负判定。
    原型阶段用启发式规则模拟；接入 LLM 后由同一接口（dims/total/verdict）返回。 */
-const AI_DIMS=['立论','论据','逻辑','回应','表达','规范'];
+/* AI_DIMS（六维结构画像）已上移到「流程数据」区——中立评估与撮合排序共用 */
 function evaluate(){
   const mine=transcript.filter(x=>x.who==='me');
   const open=mine.find(x=>x.type==='立论');
@@ -1736,27 +1782,27 @@ function evaluate(){
   const openLen=open?open.text.length:0;
   const hasStd=!!(open&&/标准/.test(open.text));
   /* ① 立论质量：观点明确 · 扣题 · 判断标准合理 */
-  const s1=Math.min(96,(myTree?62:40)+(myTree&&myTree.r2?12:0)+(openLen>=60?12:6)+(hasStd?10:0));
-  const r1=`预提交树含结论${myTree&&myTree.r2?'与两条理由':myTree?'及一条理由':'——未提交'}；立论 ${openLen} 字${hasStd?'，给出明确判断标准':'，未明确判断标准'}`;
+  const s1=Math.min(96,(myBrief?62:40)+(myBrief&&myBrief.r2?12:0)+(openLen>=60?12:6)+(hasStd?10:0));
+  const r1=`立论结构含结论${myBrief&&myBrief.r2?'与两条理由':myBrief?'及一条理由':'——未提交'}；立论 ${openLen} 字${hasStd?'，给出明确判断标准':'，未明确判断标准'}`;
   /* ② 论据与事实：真实 · 相关 · 充分 · 来源可靠 */
-  const cited=(myTree&&myTree.e?1:0)+((open&&open.evid)?1:0)+((free&&free.type==='举证')?1:0);
+  const cited=(myBrief&&myBrief.e?1:0)+((open&&open.evid)?1:0)+((free&&free.type==='举证')?1:0);
   const s2=Math.min(96,52+cited*15);
   const r2=(cited===0?'全场未给出可核查的证据':`提交可查证来源 ×${cited}`)
-    +(myTree&&myTree.e?'（预提交依据）':'')+((open&&open.evid)?'（立论附依据）':'')
+    +(myBrief&&myBrief.e?'（立论结构依据）':'')+((open&&open.evid)?'（立论附依据）':'')
     +((free&&free.type==='举证')?'（对辩补充举证）':'')+(cited>=2?'，覆盖多个论点':cited===1?'，覆盖部分论点':'');
   /* ③ 逻辑严密性：论点论据匹配 · 推理完整 · 无偷换概念 */
-  let r3=conceptAgreed?'概念对齐达成，全程在同一套定义下推理，未发现偷换概念':'「窗口期」定义存在分歧（已记录），推理中需保持口径一致';
-  if(myTree&&myTree.r2)r3+='；论点-论据对应完整';
+  let r3='定义与结论的口径在立论结构中显式给出，推理中未发现偷换概念';
+  if(myBrief&&myBrief.r2)r3+='；论点-论据对应完整';
   if(revised)r3+='；主动修正过本方表述，前后自洽';
-  const s3=Math.min(96,58+(conceptAgreed?16:6)+(myTree&&myTree.r2?10:0)+(revised?10:0));
+  const s3=Math.min(96,58+(myBrief&&myBrief.def?14:4)+(myBrief&&myBrief.r2?10:0)+(revised?10:0));
   /* ④ 反驳与回应：准确理解对方 · 回应核心攻击 · 反驳有效 */
   const s4=Math.min(96,56+botAccepts*14+(close?12:0));
-  const r4=`质询回答被对方接受 ×${botAccepts}；${close?'结辩正面回应了对方最强点':'结辩未指认对方最强点'}`
-    +(evasions>0?`；你指出对方回避 ×${evasions}（记入对方回应表现，不计入本维）`:'');
+  const r4=`质询回答被对方接受 ×${botAccepts}；${close?'结辩做了比较收束':'未提交结辩'}`
+    +(evasions>0?`；你指出对方回避 ×${evasions}（描述式记录，不扣分）`:'');
   /* ⑤ 表达与组织：清楚 · 连贯 · 结构完整 */
   const avg=mine.length?Math.round(mine.reduce((s,x)=>s+x.text.length,0)/mine.length):0;
-  const s5=Math.min(96,(avg>=45?76:avg>=25?64:50)+(myTree&&myTree.r2?10:0)+(close?8:0));
-  const r5=`场均发言 ${avg} 字，${myTree&&myTree.r2?'结构完整（结论→双理由→依据）':'结构基本完整'}，发言类型标注清晰`;
+  const s5=Math.min(96,(avg>=45?76:avg>=25?64:50)+(myBrief&&myBrief.r2?10:0)+(close?8:0));
+  const r5=`场均发言 ${avg} 字，${myBrief&&myBrief.r2?'结构完整（结论→双理由→依据）':'结构基本完整'}，发言类型标注清晰`;
   /* ⑥ 辩论规范：尊重对手 · 无攻击/打断/捏造/回避 */
   const s6=Math.min(96,80+(revised?8:0)+(botAccepts?8:0));
   const r6='无回避、无人身攻击'+(botAccepts?'，正面回答每次质询':'')+(revised?'；主动修正本方观点（诚信表现）':'');
@@ -1765,7 +1811,7 @@ function evaluate(){
     {k:AI_DIMS[3],v:s4,r:r4},{k:AI_DIMS[4],v:s5,r:r5},{k:AI_DIMS[5],v:s6,r:r6}];
   const total=Math.round(dims.reduce((s,x)=>s+x.v,0)/dims.length);
   const sorted=dims.slice().sort((a,b)=>b.v-a.v), best=sorted[0], worst=sorted[5];
-  const verdict=`本场双方完成七阶段结构化对局。你的强项在<b>${best.k}</b>（${best.v} 分）：${best.r.split('；')[0]}。相对薄弱处是<b>${worst.k}</b>（${worst.v} 分）：${worst.r.split('；')[0]}。综合评价：${total>=85?'论证结构严谨、证据意识突出，是一份高质量的对辩参与。':total>=70?'论证完整、回应到位，具备良好的对辩素养。':'结构基本成立，建议在证据可查证性与追问深度上继续加强。'}本评估仅衡量论证结构与辩论规范，<b>不构成胜负判定</b>。`;
+  const verdict=`本场双方完成五阶段结构化对局（规定轮次走满即完成）。你的强项在<b>${best.k}</b>（${best.v} 分）：${best.r.split('；')[0]}。相对薄弱处是<b>${worst.k}</b>（${worst.v} 分）：${worst.r.split('；')[0]}。综合评价：${total>=85?'论证结构严谨、证据意识突出，是一份高质量的对辩参与。':total>=70?'论证完整、回应到位，具备良好的对辩素养。':'结构基本成立，建议在证据可查证性与追问深度上继续加强。'}本评估仅衡量论证结构与辩论规范，<b>不构成胜负判定</b>。`;
   return {dims,total,verdict};
 }
 function calcRadar(){return evaluate().dims.map(x=>x.v);}
@@ -1784,21 +1830,21 @@ function radarSVG(){
 }
 function showEnd(){
   state='end';
-  composer.innerHTML='<div class="c-head"><span class="wait">对局结束 · AI 中立评估生成中…</span></div>';
-  mpLog=[['完成完整对局',10],['概念对齐'+(conceptAgreed?'达成':'带差异继续'),conceptAgreed?2:0]];
+  composer.innerHTML='<div class="c-head"><span class="wait">轮次走满 · 对局完成 · AI 中立评估生成中…</span></div>';
+  mpLog=[['完成完整对局（五阶段走满）',10]];
   if(botAccepts)mpLog.push(['质询回答被对方接受',2*botAccepts]);
-  if(ackedIdx!==null)mpLog.push(['论点被对手承认',3]);
-  const honor= myTree&&myTree.e ? ['获对方授予「最强证据」',5] : revised ? ['获对方授予「最佳修正」',5] : null;
-  if(honor)mpLog.push(honor);
   mp=mpLog.reduce((s,x)=>s+x[1],0);
   document.getElementById('e-cons').innerHTML=
     `<li>双方都承认「迁移对孩子的教育有风险」</li><li>双方都认同 43 岁处于教师调动的敏感年龄窗口</li>`;
   document.getElementById('e-divs').innerHTML=
-    `<li>「窗口期」是客观机制还是主观感受${conceptAgreed?'（定义已对齐，分歧在事实层）':'（定义分歧已记录）'}</li>
+    `<li>「窗口期」是客观机制还是主观感受（定义随双方立论给出，分歧在质询中显式交锋）</li>
      <li>职业机会收益与家庭稳定风险的权重</li>`;
   document.getElementById('e-cross').innerHTML=
-    `<li>你质询对方论点 ${crossClaim+1} ——${evasions>0?`对方被指出回避 ×${evasions}，已记录`:'对方回答被你接受'}</li>
+    `<li>你质询对方${botBriefItems()[crossTarget??0].k}——${evasions>0?`对方被指出回避 ×${evasions}，已记录`:'对方回答被你接受'}</li>
      <li>对方质询你的「窗口期」断言——你的回答被对方接受</li>`;
+  document.getElementById('e-ack').innerHTML= admitted.length
+    ? admitted.map(x=>`<li>${esc(x)}</li>`).join('')
+    : '<li>本场未标「承认」类型发言（承认只是语义标注，不影响任何结算）</li>';
   const ev=evaluate();
   document.getElementById('e-ai').innerHTML=
     `<div class="ai-head"><b>AI 中立评估</b><span class="ai-total">${ev.total}<small>/ 100 综合得分</small></span></div>
@@ -1814,16 +1860,12 @@ function showEnd(){
   renderTier();
   setTimeout(()=>document.getElementById('room-mask').classList.add('show'),400);
 }
-document.getElementById('btn-settle').onclick=()=>{
-  const t=document.getElementById('room-toast');
-  t.textContent='✓ settlement（争议档案）已挂入辩论树';
-  t.style.display='block';setTimeout(()=>t.style.display='none',2400);
-};
-/* 报告关闭 / 重开：关闭后可回看本场记录，随时重新打开报告 */
+/* 报告关闭 / 重开：关闭后可回看本场记录，随时重新打开报告
+   v0.4：辩论间的两个「写回辩论树」出口已删除——本模块不写任何外部容器（见 PRD §12） */
 function showEndcard(){document.getElementById('room-mask').classList.add('show');}
 function closeEndcard(){
   document.getElementById('room-mask').classList.remove('show');
-  composer.innerHTML=`<div class="c-head"><span class="ph">对局已结束</span><span class="c-count">报告已收起 · 可回看本场聊天记录与共享画板</span></div>
+  composer.innerHTML=`<div class="c-head"><span class="ph">对局已完成</span><span class="c-count">报告已收起 · 可回看本场聊天记录与本场记录板</span></div>
     <div class="react-row">
       <button class="btn btn-primary" id="re-open">查看对局报告</button>
       <button class="btn" id="re-again">再来一局</button>
@@ -1832,17 +1874,15 @@ function closeEndcard(){
   document.getElementById('re-again').onclick=resetRoom;
 }
 document.getElementById('e-close').onclick=closeEndcard;
+document.getElementById('e-close2').onclick=closeEndcard;
 document.getElementById('e-again').onclick=resetRoom;
-document.getElementById('e-go').onclick=()=>{App.go('tree');};
 document.getElementById('room-mask').addEventListener('click',e=>{if(e.target.id==='mask')closeEndcard();});
-function acknowledge(i){ackedIdx=i;}
 
 /* 调试与集成入口 */
-function pickConcept(i0,i1){conceptPicks=[i0,i1];checkConcept();}
 
 /* ═══════════ 自动演示（旁观模式） ═══════════
-   模拟一名真实用户，通过页面事件把七阶段完整走一遍：
-   概念对齐 → 论证树预提交 → 立论 → 质询轮 → 自由对辩 → 结辩 → 终局 */
+   模拟一名真实用户，通过页面事件把五阶段完整走一遍：
+   立论（立论结构 + 开篇陈述）→ 质询轮 → 自由对辩 → 结辩 → 终局 */
 const DEMO_WAIT=20000;
 function waitFor(fn,ms){return new Promise((res,rej)=>{
   const t0=Date.now();
@@ -1857,41 +1897,34 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
 async function demoRoom(){
   const db=document.getElementById('m-demo');
   if(db){db.disabled=true;db.textContent='自动演示中 · 全程旁观…';}
-  if(!document.getElementById('m-found').classList.contains('show')) await startMatch();
+  if(!mySide){ renderSidePick(); await pickSide('pro'); }
   enterRoom();
   try{await demoScript();}
   catch(e){sys('演示中断：'+e.message+'（可点「再来一局」重试）');}
 }
 async function demoScript(){
-  /* ① 概念对齐：两个概念各选中性定义，提交 */
-  await waitFor(()=>flow.querySelector('.def-opt'));
+  /* ① 立论 · 立论结构：填定义(可选)/结论/理由/依据，提交 */
+  await waitFor(()=>document.getElementById('bf-r1'));
   await pause(900);
-  tap(flow.querySelector('.def-opt[data-c="0"][data-o="0"]'));
+  document.getElementById('bf-def').value='「窗口期」＝体制内跨市调动政策对 40+ 教师仍开放的时期';
+  document.getElementById('bf-r1').value='体制内跨市调动对 40+ 教师逐年收窄，今年是政策窗口内的最佳时点';
+  document.getElementById('bf-e').value='苏州近三年面向全国引进骨干教师，公告年龄上限放宽至 45 岁';
   await pause(500);
-  tap(flow.querySelector('.def-opt[data-c="1"][data-o="0"]'));
-  await pause(600);
-  tap(document.getElementById('c-concept'));
-  /* ② 论证树预提交：填结论/理由/依据，提交 */
-  await waitFor(()=>document.getElementById('pt-r1'));
-  await pause(900);
-  document.getElementById('pt-r1').value='体制内跨市调动对 40+ 教师逐年收窄，今年是政策窗口内的最佳时点';
-  document.getElementById('pt-e').value='苏州近三年面向全国引进骨干教师，公告年龄上限放宽至 45 岁';
-  await pause(500);
-  tap(document.getElementById('pt-go'));
-  /* ③ 立论（等对方立论完毕后出现输入框）：填开篇陈述 */
+  tap(document.getElementById('bf-go'));
+  /* ① 立论 · 开篇陈述（等对方立论完毕后出现输入框） */
   await waitFor(()=>document.getElementById('op-t'));
   await pause(1200);
   document.getElementById('op-t').value='我方标准：不可逆的机会损失，优先于可缓解的家庭波动。结论是今年该去——窗口正在收窄，而孩子的适应可以靠提前安顿来缓冲。';
   document.getElementById('op-e').value='近三年苏州跨市引进教师公告（年龄上限 45 岁）';
   await pause(600);
   tap(document.getElementById('op-go'));
-  /* ④ 质询 · 正面回答对方 */
+  /* ② 质询轮 · 正面回答对方 */
   await waitFor(()=>document.getElementById('cr-a'));
   await pause(1000);
   document.getElementById('cr-a').value='「窗口期」指体制内跨市调动政策对 40+ 教师仍开放的这段时期——有公开文件支撑，不是主观感受。';
   await pause(400);
   tap(document.getElementById('cr-go'));
-  /* ④ 质询 · 轮到我提问：选论点 → 选类型（自动填模板）→ 提交 */
+  /* ② 质询轮 · 轮到我提问：选对方立论结构条目（含定义）→ 选类型（自动填模板）→ 提交 */
   await waitFor(()=>document.getElementById('cq-go'));
   await pause(900);
   tap(composer.querySelector('.cp-item[data-i="0"]'));
@@ -1903,40 +1936,41 @@ async function demoScript(){
   await waitFor(()=>document.getElementById('rc-acc'));
   await pause(1000);
   tap(document.getElementById('rc-acc'));
-  /* ⑤ 自由对辩：选「举证」类型发言 */
+  /* ③ 自由对辩：选「举证」类型发言 */
   await waitFor(()=>document.getElementById('fr-t'));
   await pause(900);
   tap(composer.querySelector('.qtype[data-i="1"]'));
   document.getElementById('fr-t').value='举证：苏州 2025 年教师引进公告明确「年龄放宽至 45 周岁」——窗口客观存在，机会成本随年龄递增。';
   await pause(500);
   tap(document.getElementById('fr-go'));
-  /* ⑥ 结辩：先标对方最强点，再回应它 */
+  /* ④ 结辩：比较双方立论与质询结果做收束（不要求承认对方观点） */
   await waitFor(()=>document.getElementById('cl-t'));
   await pause(900);
-  tap(composer.querySelector('.cp-item[data-i="0"]'));
-  document.getElementById('cl-t').value='我承认中考年的状态波动是真实风险。但提前半年安顿、周末往返可以缓解它，而错过窗口不可逆——按「不可逆优先」的标准，结论仍是该去。';
+  document.getElementById('cl-t').value='分歧不在风险有无，而在权重：职业机会收益 vs 家庭稳定风险。质询轮走完后，我仍按「不可逆优先」的标准得出今年该去；对方提出的中考适应问题，属于流程内可缓解的那一类。';
   await pause(600);
   tap(document.getElementById('cl-go'));
-  /* ⑦ 终局：等争议档案弹出 */
+  /* ⑤ 终局：等对局报告弹出 */
   await waitFor(()=>document.getElementById('room-mask').classList.contains('show'));
 }
 
 /* 重置 */
 function resetRoom(){
-  state='idle';mp=0;mpLog=[];newNodes=0;evasions=0;botAccepts=0;transcript=[];
-  conceptPicks=[null,null];conceptTries=0;conceptAgreed=false;
-  myTree=null;pressedOnce=false;revised=false;ackedIdx=null;
+  state='idle';mp=0;mpLog=[];records=0;evasions=0;botAccepts=0;transcript=[];
+  myBrief=null;crossTarget=null;pressedOnce=false;revised=false;admitted=[];
   flow.innerHTML='';composer.innerHTML='';
   document.getElementById('board').querySelectorAll('.bucket').forEach(b=>b.remove());
-  document.getElementById('tree-count').textContent='0 个新节点';
+  document.getElementById('rec-count').textContent='0 条已登记';
   document.getElementById('room-mask').classList.remove('show');
   document.getElementById('match').classList.remove('hide');
   const db=document.getElementById('m-demo');
   if(db){db.disabled=false;db.textContent='▶ 自动演示完整流程（旁观模式）';}
+  mySide=null;oppSide='con';isBot=true;
   document.getElementById('m-found').classList.remove('show');
-  document.getElementById('m-spin').style.display='';
-  document.getElementById('m-status').textContent='按立场对撞原则匹配中…';
-  const btn=document.getElementById('m-btn');btn.disabled=true;btn.textContent='匹配中…';
+  document.getElementById('m-found').innerHTML='';
+  document.getElementById('m-spin').style.display='none';
+  document.getElementById('m-status').textContent='论点对来自争议地图管线（知乎立场抽取）——选一边守；选自己不信的一边也完全允许（竞技辩论式训练）';
+  document.getElementById('m-btn').disabled=true;document.getElementById('m-btn').textContent='选边后开始撮合';
+  renderSidePick();
   renderTier();
 }
 
@@ -1953,11 +1987,12 @@ window.Room = {
     startMatch();
   },
   reset(){ resetRoom(); },
-  _debug:{ enterRoom, pickConcept, submitPreTree, submitOpening, submitAnswer,
-    submitCrossQuestion, submitFree, submitClosing, acknowledge, showEnd, resetRoom,
-    evaluate, CONCEPTS, BOT_TREE, TIERS,
-    state:()=>state, mp:()=>mp, newNodes:()=>newNodes, evasions:()=>evasions,
-    transcript:()=>transcript }
+  _debug:{ enterRoom, submitBrief, submitOpening, submitAnswer,
+    submitCrossQuestion, submitFree, submitClosing, showEnd, resetRoom,
+    evaluate, BOT_SIDES, CLAIM_PAIR, TIERS, botBriefItems,
+    pickSide, rankCandidates, mySide:()=>mySide, oppSide:()=>oppSide,
+    state:()=>state, mp:()=>mp, records:()=>records, evasions:()=>evasions,
+    admitted:()=>admitted, transcript:()=>transcript }
 };
 })();
 </script>
