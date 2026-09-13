@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="NcYHZNoaYoYhqvHyF8CRBb">
+<head data-page-node-id="bRXUrG0AoOR3Sww6mslyx7">
+<meta charset="UTF-8" data-page-node-id="Eyltj8mE8DZrtrcq1l60U2">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="VFPcEc7wjWEgoaLQoZQLzH">
+<title>争鸣 · 辩论树（画布版）</title>
+<style>
+:root{
+  --blue:#056DE8; --blue-bg:#E8F1FF; --blue-soft:#F0F6FF;
+  --ink:#121212; --sub:#8590a6; --line:#ebebeb; --page:#f6f6f6;
+  --card:#ffffff; --neu:#a9aebc; --warn:#c96a00;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  background:var(--page);color:var(--ink);font-size:14px;line-height:1.6;
+  display:flex;flex-direction:column;overflow:hidden}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+/* ── 顶栏 ── */
+header{background:#fff;border-bottom:1px solid var(--line);flex:none;
+  height:52px;display:flex;align-items:center;padding:0 24px;gap:16px}
+.logo{font-size:18px;font-weight:600;color:var(--blue);letter-spacing:1px}
+.crumb{color:var(--sub);font-size:13px}
+.crumb b{color:var(--ink);font-weight:500}
+.spacer{flex:1}
+.btn{padding:7px 16px;border-radius:6px;font-size:13px;transition:.15s}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:#0455c4}
+.btn-ghost{border:1px solid var(--line);color:var(--ink);background:#fff}
+.btn-ghost:hover{border-color:var(--blue);color:var(--blue)}
+/* ── 议题条 ── */
+.topic{flex:none;background:#fff;border-bottom:1px solid var(--line);padding:12px 24px;
+  display:flex;align-items:center;gap:14px}
+.topic-tag{flex:none;font-size:12px;color:var(--blue);background:var(--blue-bg);
+  border-radius:4px;padding:2px 8px}
+.topic-title{font-size:16px;font-weight:600}
+.topic-meta{font-size:12px;color:var(--sub)}
+.topic-meta a{color:var(--sub)}
+/* ── 主区 ── */
+main{flex:1;display:flex;min-height:0}
+/* 左栏 */
+#side{flex:none;width:212px;background:#fff;border-right:1px solid var(--line);
+  padding:16px 14px;overflow-y:auto}
+.s-title{font-size:12px;color:var(--sub);font-weight:600;margin:14px 0 8px}
+.s-title:first-child{margin-top:0}
+.s-item{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:var(--ink)}
+.s-item b{font-weight:600}
+.ai-status{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--sub);
+  background:var(--blue-soft);border-radius:6px;padding:8px 10px;line-height:1.4}
+.ai-dot{width:7px;height:7px;border-radius:50%;background:var(--blue);flex:none;animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.legend .l-item{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink);padding:3px 0}
+.legend .dot{width:9px;height:9px;border-radius:2px;flex:none}
+.side-bar{height:6px;border-radius:3px;overflow:hidden;background:#eee;display:flex;margin-top:4px}
+.side-bar div{height:100%}
+.balance-warn{font-size:11.5px;color:var(--warn);display:none;margin-top:6px;line-height:1.4}
+.balance-warn.show{display:block}
+/* 画布 */
+#viewport{flex:1;position:relative;overflow:hidden;background:#fbfbfc;cursor:grab;min-width:0}
+#viewport.panning{cursor:grabbing}
+#viewport::before{content:'';position:absolute;inset:0;
+  background-image:radial-gradient(circle,#d9dde5 1px,transparent 1px);background-size:24px 24px}
+#world{position:absolute;left:0;top:0;transform-origin:0 0}
+#edges{position:absolute;left:0;top:0;overflow:visible;z-index:0;pointer-events:none}
+.cnode{position:absolute;width:250px;background:#fff;border:1px solid var(--line);border-radius:10px;
+  padding:12px 14px 10px;cursor:pointer;z-index:1;box-shadow:0 1px 2px rgba(18,18,18,.05);
+  transition:box-shadow .15s,border-color .15s}
+.cnode:hover{border-color:#c9d9f0;box-shadow:0 6px 16px rgba(5,109,232,.10)}
+.cnode.sel{border-color:var(--blue);box-shadow:0 0 0 2px rgba(5,109,232,.15),0 6px 16px rgba(5,109,232,.10)}
+.cnode.new{animation:pop .22s ease}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.97)}}
+.c-bar{position:absolute;left:-1px;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0}
+.c-bar.pro{background:var(--blue)} .c-bar.con{background:var(--ink)} .c-bar.neu{background:var(--neu)}
+.cnode.root{width:320px;background:var(--blue);border-color:var(--blue);color:#fff;padding:14px 16px 12px}
+.cnode.root:hover{border-color:var(--blue)}
+.cnode.root.sel{box-shadow:0 0 0 3px rgba(5,109,232,.25)}
+.cnode.question{border:1px dashed var(--blue);background:var(--blue-soft)}
+.c-head{display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap}
+.n-tag{display:inline-block;font-size:11px;border-radius:3px;padding:0 6px;color:#fff;line-height:18px}
+.n-tag.pro{background:var(--blue)} .n-tag.con{background:var(--ink)}
+.n-tag.neu{background:#a9aebc}
+.n-tag.que{background:#fff;color:var(--blue);border:1px dashed var(--blue)}
+.n-tag.rtag{background:rgba(255,255,255,.2)}
+.fold{font-size:11px;color:var(--blue);background:var(--blue-soft);border-radius:4px;padding:0 7px;line-height:18px}
+.fold:hover{background:var(--blue-bg)}
+.cnode.root .fold{background:rgba(255,255,255,.18);color:#fff}
+.fold:hover{opacity:.85}
+.pending{font-size:11px;color:var(--warn)}
+.c-text{font-size:13.5px;font-weight:500;line-height:1.5}
+.cnode.root .c-text{font-size:15px;font-weight:600}
+.c-evid{display:block;font-size:12px;color:var(--sub);background:var(--page);border-left:2px solid var(--line);
+  border-radius:0 4px 4px 0;padding:4px 8px;margin-top:6px;line-height:1.5}
+.c-evid b{font-weight:600;color:#6b7484;margin-right:6px;font-size:11px}
+.cnode.root .c-evid{display:none}
+.c-meta{font-size:11.5px;color:var(--sub);margin-top:7px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.n-src{font-size:11px;color:#b0b8c8;border:1px solid var(--line);border-radius:3px;padding:0 5px;text-decoration:none}
+.n-src:hover{color:var(--blue);border-color:var(--blue)}
+.n-votes{display:inline-flex;align-items:center;gap:2px}
+.n-votes button{font-size:11px;color:var(--sub);padding:0 4px;border-radius:4px;line-height:18px}
+.n-votes button:hover{background:var(--blue-bg);color:var(--blue)}
+.quick{position:absolute;right:8px;top:-14px;display:none;gap:4px;z-index:2}
+.cnode:hover .quick{display:flex}
+.quick button{font-size:11px;border-radius:4px;padding:1px 8px;border:1px solid var(--line);background:#fff;color:var(--sub);box-shadow:0 2px 6px rgba(18,18,18,.08)}
+.quick button:hover{border-color:var(--blue);color:var(--blue)}
+/* 画布悬浮控件 */
+#zoom-ctl{position:absolute;right:16px;bottom:16px;z-index:10;display:flex;gap:6px;align-items:center;
+  background:#fff;border:1px solid var(--line);border-radius:8px;padding:4px 6px;box-shadow:0 2px 8px rgba(18,18,18,.06)}
+#zoom-ctl button{width:26px;height:26px;border-radius:6px;font-size:14px;color:var(--ink)}
+#zoom-ctl button:hover{background:var(--blue-soft);color:var(--blue)}
+#zoom-ctl .zlabel{font-size:12px;color:var(--sub);min-width:40px;text-align:center}
+#zoom-ctl .fit{width:auto;padding:0 10px;font-size:12px}
+#canvas-hint{position:absolute;left:16px;bottom:16px;z-index:10;font-size:11.5px;color:#a5adbd;
+  background:rgba(255,255,255,.85);border:1px solid var(--line);border-radius:6px;padding:3px 10px;pointer-events:none}
+/* 右栏 */
+#detail{flex:none;width:300px;background:#fff;border-left:1px solid var(--line);
+  overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.panel-title{font-size:13px;color:var(--sub);margin-bottom:10px;font-weight:500}
+.d-type{margin-bottom:8px}
+.d-content{font-size:14.5px;font-weight:500;margin-bottom:8px}
+.d-src{font-size:12px;color:var(--sub);background:var(--page);border-radius:6px;padding:8px 10px;margin-bottom:10px;line-height:1.5}
+.d-src b{color:#6b7484}
+.d-src a{color:var(--blue)}
+.d-actions{display:flex;flex-direction:column;gap:8px}
+.d-actions .btn{text-align:center}
+.agent-card{border:1px dashed var(--blue);background:var(--blue-soft);border-radius:8px;padding:11px;margin-bottom:10px}
+.agent-card .a-head{font-size:12px;color:var(--blue);font-weight:600;margin-bottom:4px}
+.agent-card .a-body{font-size:12.5px;margin-bottom:9px}
+.d-conflict{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.d-conflict .c-item{font-size:12.5px;padding:6px 9px;border:1px solid var(--line);border-radius:6px;margin-top:6px;cursor:pointer}
+.d-conflict .c-item:hover{border-color:var(--blue);color:var(--blue)}
+.d-empty{color:var(--sub);font-size:13px;text-align:center;padding:26px 0}
+/* 回应撰写器 */
+.comp-target{font-size:12px;color:var(--sub);background:var(--page);border-radius:6px;padding:6px 9px;margin-bottom:10px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.comp-target b{color:var(--blue);font-weight:500}
+.stance-pick{display:flex;gap:6px;margin-bottom:9px}
+.stance-pick button{flex:1;padding:6px;border:1px solid var(--line);border-radius:6px;font-size:12.5px;background:#fff}
+.stance-pick button.on{border-color:var(--blue);color:var(--blue);background:var(--blue-soft);font-weight:600}
+textarea{width:100%;height:64px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;
+  font:inherit;font-size:13px;resize:vertical;outline:none}
+textarea:focus{border-color:var(--blue)}
+#comp-evid{height:44px;margin-top:7px}
+.comp-btn{width:100%;margin-top:10px}
+/* ── 弹窗 ── */
+.mask{position:fixed;inset:0;background:rgba(18,18,18,.4);display:none;z-index:50;align-items:flex-start;justify-content:center;padding-top:12vh}
+.mask.show{display:flex}
+.modal{background:#fff;border-radius:12px;width:520px;max-width:92vw;padding:22px}
+.modal h3{font-size:16px;margin-bottom:4px}
+.modal .m-sub{font-size:12px;color:var(--sub);margin-bottom:14px}
+.modal .stance-pick button{padding:8px;font-size:13px}
+.modal textarea{height:88px}
+.modal #m-evid{height:52px;margin-top:8px}
+.m-hint{font-size:12px;color:var(--sub);margin:8px 0 14px}
+.m-hint em{font-style:normal;color:var(--warn)}
+.m-foot{display:flex;justify-content:flex-end;gap:10px}
+</style>
+</head>
+<body data-page-node-id="UcXji8vKzNNjQkCcU4XugJ">
+
+<header data-page-node-id="FeI8v2K1B0D9KAgfjh4KsZ">
+  <span class="logo" data-page-node-id="HvBb1MO80JNaPE0VDvCyh0">争鸣</span>
+  <span class="crumb" data-page-node-id="c9qcxUD0leN25VQ7jND37X">辩论树 · 画布版 · <b data-page-node-id="DFZbDMPRekALphNdqbcxZF">县中教师辞职局</b></span>
+  <span class="spacer" data-page-node-id="Cv3x3sTCIzeyn8DvHfV7wO"></span>
+  <button class="btn btn-ghost" onclick="collapseAll()" data-page-node-id="0khx3fjsCfJXk0Ll816o9G">收起全树</button>
+  <button class="btn btn-primary" data-page-node-id="4MRE3oRAB0EcdRBWQxkvez">邀请辩论</button>
+</header>
+
+<div class="topic" data-page-node-id="U7kZVHy7iwDRj29GUtXTvx">
+  <span class="topic-tag" data-page-node-id="zQHDMeeosbl5jhuGM5tC2m">知乎议题溯源</span>
+  <span class="topic-title" data-page-node-id="pkJBK3tTlRMeTRAKx12Jh1">43 岁县中物理老师考上苏州头部公办校（正式编制），该不该辞职去？</span>
+  <span class="topic-meta" data-page-node-id="ch1g9AgKso7GgCQwMfXxxL">· <a href="#" onclick="return false" data-page-node-id="P2WbHfbp121Ug6GtSvTzBJ">查看原问题</a> · 由回答摘要自动归纳生成</span>
+</div>
+
+<main data-page-node-id="FFWbzKPOY2CBb05VJ0ZWZq">
+  <aside id="side" data-page-node-id="ePlivIl3fhB0OFtRlyw86I">
+    <div class="ai-status" data-page-node-id="s7FUB5jb85BsLzVodaQCVX"><span class="ai-dot" data-page-node-id="a8mgmh9wTWcYAIW6KVeTnU"></span>AI 正在识别这些说法的立场，标注可追问点</div>
+    <div class="s-title" data-page-node-id="3FOK6TZJ9EweHwIAx62PK3">局概览</div>
+    <div class="s-item" data-page-node-id="yDeXCnN8zBD90MQsNHE0T4"><span data-page-node-id="q0KiIt6bX7gmGQd2wMIlvx">观点节点</span><b id="st-claims" data-page-node-id="YOgx4S2ehL784pBjX6GvC7">0</b></div>
+    <div class="s-item" data-page-node-id="UsQYI6PcHNk1qz2HhkTGnI"><span data-page-node-id="YbexT510rKpFKyp6yl9Iqf">追问</span><b id="st-que" data-page-node-id="IMN8SadXWrn5olCKr5tkpv">0</b></div>
+    <div class="s-item" data-page-node-id="oHqgVaTCPTv3uU7gFHRny8"><span data-page-node-id="leH6WOppAxF9tzLfikLeYc">待回应</span><b id="st-pending" data-page-node-id="gMK1t5FK04gWoo0uJd9kmX">0</b></div>
+    <div class="s-item" data-page-node-id="vtvc3NBCxwynKtFO8wbbDq"><span data-page-node-id="7Z5XvCfacAHZAvX9g8Lci1">参与者</span><b data-page-node-id="ooDrR1XrsoTsm6EGQIr2V3">7</b></div>
+    <div class="s-title" data-page-node-id="h1rdOZRqmHS8Ud2kk0iK3S">立场分布</div>
+    <div class="side-bar" data-page-node-id="wyX6JCzj4Oj4KnsiugneOK">
+      <div id="sb-pro" style="background:var(--blue)" data-page-node-id="Yt8JSz5h5lEtAddMpgAGKv"></div>
+      <div id="sb-neu" style="background:#c3c8d4" data-page-node-id="VYEqBA5sRC078pSHqLHplT"></div>
+      <div id="sb-con" style="background:var(--ink)" data-page-node-id="hgZIjFE2YlVAlM8o0IsN3Q"></div>
+    </div>
+    <div class="s-item" style="margin-top:6px" data-page-node-id="PQ9eQk1VE4OaS1OCAu5lnx"><span style="color:var(--sub);font-size:12px" data-page-node-id="BUGXoDyRtgW6RxVxRmg2Vo">支持 / 看条件 / 反对</span>
+      <b style="font-size:12px" id="st-ratio" data-page-node-id="bbFfMwXeDbGBWzGVX8lIpk">–</b></div>
+    <div class="balance-warn" id="balance-warn" data-page-node-id="PzV2tQ0bb54OpuRKqNeGHg">最大簇占比过高，建议补充反方立场</div>
+    <div class="s-title" data-page-node-id="0Qfxg7XoblOzoPh5HSU1Ou">图例</div>
+    <div class="legend" data-page-node-id="mBurj0rCju7ZDPb7nDleiK">
+      <div class="l-item" data-page-node-id="1pGSnDMA9n5RCALin3kCof"><span class="dot" style="background:var(--blue)" data-page-node-id="VAKBTo3TMwjlYPkoBBt86n"></span>支持 / 议题</div>
+      <div class="l-item" data-page-node-id="9IepEQi7Bqk8IBznWrXSFN"><span class="dot" style="background:var(--ink)" data-page-node-id="tW9vdOCOxpkMZs0M5Qqqpm"></span>反对</div>
+      <div class="l-item" data-page-node-id="HqFl6a1zWpPA0jCgF7kHSs"><span class="dot" style="background:#c3c8d4" data-page-node-id="ZpYEHpJMS5CPqsepaz7rh6"></span>看条件</div>
+      <div class="l-item" data-page-node-id="5Y6dK0HQOYV13Mp1rKAenn"><span class="dot" style="background:none;border:1.5px dashed var(--blue)" data-page-node-id="voWPpKDia8jgBHFwGT9qTV"></span>追问（不投票）</div>
+      <div class="l-item" data-page-node-id="pcpuS4CtXaZjPkd2LTYd5h"><span class="dot" style="background:none;border:1.5px solid var(--line)" data-page-node-id="1OJ45143gQPDAzACGeNbUl"></span>左侧色条 = 立场</div>
+    </div>
+  </aside>
+
+  <section id="viewport" data-page-node-id="vMKw1JDAkLh4WkTiapIfne">
+    <div id="world" data-page-node-id="CgpHKRZdcEEXAhyAmfE9l0"><svg id="edges" data-page-node-id="gDAztuafQJwkqZdyO1SCGK"></svg></div>
+    <div id="canvas-hint" data-page-node-id="sk1Z0OtzXURgBxg8XmP4uR">拖拽平移 · 滚轮缩放 · 点击卡片展开下一级</div>
+    <div id="zoom-ctl" data-page-node-id="LgTPapnrd9OdkqQHVacMMM">
+      <button onclick="zoomBy(0.8)" title="缩小" data-page-node-id="3mpFL0skxZoh8dG7TicN5l">−</button>
+      <span class="zlabel" id="zoom-label" data-page-node-id="3dEBHDwJh2T513gHC70MGf">100%</span>
+      <button onclick="zoomBy(1.25)" title="放大" data-page-node-id="7lMppvQomjcjc7tLwrk5HO">＋</button>
+      <button class="fit" onclick="fitView()" data-page-node-id="DXmts9imdpznadt2zv12ED">适应视图</button>
+    </div>
+  </section>
+
+  <aside id="detail" data-page-node-id="fsSZEfql1GqtPysAXED2em">
+    <div data-page-node-id="4o3P27GtXVJEiHazN5luR4">
+      <div class="panel-title" data-page-node-id="ZNb5bLe2F6GDbEtrH6042I">节点详情</div>
+      <div id="detail-body" data-page-node-id="BNmobFGrOEdw7OqqjyS2Q7"><div class="d-empty" data-page-node-id="WWgMg7a9344OnU8pXPSydo">在画布中选择一个节点</div></div>
+    </div>
+    <div data-page-node-id="bJ3tPQhKJWcKbBCtAwvLhq">
+      <div class="panel-title" data-page-node-id="tiM54u9SepuT3T7G3Kb2cE">回应此论点</div>
+      <div class="comp-target" id="comp-target" data-page-node-id="Ygfxk3xwjVAkNM4ujn23q4">未选择节点 — 先点击画布中的卡片</div>
+      <div class="stance-pick" id="comp-stance" data-page-node-id="DLkW7Wezc1MItX75S1QJLS">
+        <button data-s="pro" class="on" onclick="pickComp('pro')" data-page-node-id="7PpeB1EZKbZ6s5DX5bxRh1">支持</button>
+        <button data-s="con" onclick="pickComp('con')" data-page-node-id="LhIaYikDq9CNxwc8gMVnUB">反对</button>
+        <button data-s="neu" onclick="pickComp('neu')" data-page-node-id="tjctArLwwmPFTH637T2BAJ">看条件</button>
+      </div>
+      <textarea id="comp-text" placeholder="写下一个具体理由…"></textarea>
+      <textarea id="comp-evid" placeholder="依据（可选）：数据、来源或亲身经历"></textarea>
+      <button class="btn btn-primary comp-btn" onclick="composerSubmit()" data-page-node-id="WZwXroFOSTd3Hq5jYCRRNe">回应此论点 →</button>
+    </div>
+  </aside>
+</main>
+
+<div class="mask" id="mask" data-page-node-id="qT3NPZ5JAHEFWnu0EKVqO1">
+  <div class="modal" data-page-node-id="TgLvw98vOtPMVrqZ1IggkY">
+    <h3 data-page-node-id="zwlYh7iGAVZEtAXFGfDhLT">添加子论点</h3>
+    <div class="m-sub" id="m-sub" data-page-node-id="xvzaRg5SK3IflITbvTHS2V"></div>
+    <div class="stance-pick" id="stance-pick" data-page-node-id="VnLqnIrX6X3tc6pBNpzhhz">
+      <button data-s="pro" onclick="pickStance('pro')" data-page-node-id="4hQUz8bbD7zvZfdVNfliEZ">支持</button>
+      <button data-s="con" onclick="pickStance('con')" data-page-node-id="HMXCiy8TMs0G8tQTGtQ7x3">反对</button>
+      <button data-s="neu" onclick="pickStance('neu')" data-page-node-id="pi7Y6jEO7f49x50hmCtV3y">看条件</button>
+    </div>
+    <textarea id="m-text" placeholder="一句话说明你的论点。为什么成立？"></textarea>
+    <textarea id="m-evid" placeholder="依据（可选）：数据、来源或亲身经历——回应时直接给出证据，不单独成节点"></textarea>
+    <div class="m-hint" data-page-node-id="eC1PKYu57IKwTjcHvIfIcn">规则：必须回应父节点的<em data-page-node-id="Mevjjt7PsPNGjZ1GpCpYYF">具体内容</em>；纯表态（如"我就是不同意"）不会通过。</div>
+    <div class="m-foot" data-page-node-id="8GECysQDZFGC8cjKlOy3Fx">
+      <button class="btn btn-ghost" onclick="closeModal()" data-page-node-id="kVAc2r36kP9ekmXm3TqiFz">取消</button>
+      <button class="btn btn-primary" onclick="submitNode()" data-page-node-id="EWBoexWVVxwS9XjyVNzFDS">发布到画布</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ────────── 数据 ────────── */
+const tree = {
+  id:'root', type:'root', stance:'root', text:'43 岁县中物理老师考上苏州头部公办校（正式编制），该不该辞职去？',
+  author:'建局助手', votes:{up:41,down:18}, children:[
+    { id:'p1', type:'claim', stance:'pro', text:'苏州编制含金量远高于县中，职业天花板和资源都不是一个量级',
+      author:'物理组张老师', votes:{up:18,down:6},
+      evidence:'苏州头部校人均教研经费、实验设备与竞赛通道，县中通常不具备',
+      children:[
+        { id:'p1b', type:'question', stance:'pro', text:'苏州头部校高手云集，你的排位可能从县中前 3 变成中游——"天花板更高"还成立吗？',
+          author:'Agent 建议追问', answered:false, votes:null, children:[] },
+      ]},
+    { id:'p2', type:'claim', stance:'pro', text:'43 岁是最后的窗口期：再不走，这辈子就定型在县中了',
+      author:'过客', votes:{up:14,down:9},
+      agentHint:'"最后窗口期"是一个断言——43 岁之后真的没有调动可能，还是概率变低？这是可以追问的点',
+      evidence:'教师跨市调动案例中，40 岁以上成功比例显著下降，但体制内引进高层次人才通道仍存在',
+      source:{url:'https://www.zhihu.com/question/2038884733304697602', quote:'来自知乎回答摘要：多地人才引进政策对高级职称教师放宽年龄限制…'},
+      children:[]},
+    { id:'p3', type:'claim', stance:'con', text:'孩子中考在即，搬家是高风险动作，家庭稳定优先于个人发展',
+      author:'两个孩子的妈', votes:{up:16,down:8}, children:[
+        { id:'p3a', type:'question', stance:'con', text:'"高风险"具体指什么？升学路径断裂、心理适应，还是无人照护？损失不同，解法完全不同',
+          author:'Agent 建议追问', answered:false, votes:null, children:[] },
+        { id:'p3b', type:'claim', stance:'con', text:'苏州头部校竞争烈度高，43 岁转入可能被安排非核心岗位，得不偿失',
+          author:'隔壁老王', votes:{up:9,down:5},
+          agentHint:'"非核心岗位"是假设还是事实？苏州该校的年龄结构与岗位分配有数据吗？这是可以追问的点',
+          children:[] },
+      ]},
+    { id:'p4', type:'claim', stance:'con', text:'县城生活成本低、房价已消化，去苏州背房贷等于把余生押给一套房',
+      author:'财务自由观察', votes:{up:10,down:7},
+      evidence:'按苏州头部校周边房价估算，月供约占家庭收入 45%，风险缓冲极薄',
+      children:[]},
+    { id:'p5', type:'claim', stance:'neu', text:'关键变量是苏州校给出的条件：编制性质、住房支持、岗位安排，谈妥了再去',
+      author:'理性人', votes:{up:13,down:2}, children:[
+        { id:'p5a', type:'claim', stance:'neu', text:'若苏州校解决住宿与配偶工作，天平明显倾斜；若只给编制，需要再算',
+          author:'条件论者', votes:{up:9,down:1}, children:[] },
+      ]},
+  ]
+};
+
+/* ────────── 状态 ────────── */
+let selectedId = null, lastAddedId = null;
+let modalParent = null, modalStance = 'pro';
+let compStance = 'pro';
+const TYPE_LABEL = {root:'议题',pro:'支持',con:'反对',neu:'看条件',que:'追问'};
+const byId = {}, parentOf = {};
+(function index(n,p,d){ byId[n.id]=n; parentOf[n.id]=p?p.id:null; n.depth=d; n.children.forEach(c=>index(c,n,d+1)); })(tree,null,0);
+function register(n,p){ byId[n.id]=n; parentOf[n.id]=p?p.id:null; n.depth=(p?p.depth+1:0); }
+/* 渐进展开：初始只显示根节点，点击节点才展开它的下一级 */
+const expanded = new Set();
+function expandTo(id){ let cur=byId[id]; while(cur){ expanded.add(cur.id); cur=byId[parentOf[cur.id]]; } }
+function visibleNodes(){ const list=[];(function c(n){list.push(n);if(expanded.has(n.id))n.children.forEach(c);})(tree);return list; }
+
+/* ────────── 视图（平移/缩放） ────────── */
+const viewport=document.getElementById('viewport'), world=document.getElementById('world');
+let view={x:0,y:0,k:1};
+function applyView(){
+  world.style.transform=`translate(${view.x}px,${view.y}px) scale(${view.k})`;
+  viewport.style.backgroundPosition=`${view.x}px ${view.y}px`;
+  document.getElementById('zoom-label').textContent=Math.round(view.k*100)+'%';
+}
+function zoomBy(f){
+  const r=viewport.getBoundingClientRect(), mx=r.width/2, my=r.height/2;
+  setZoom(view.k*f, mx, my);
+}
+function setZoom(k2,mx,my){
+  k2=Math.min(2,Math.max(0.35,k2));
+  view.x=mx-(mx-view.x)*k2/view.k;
+  view.y=my-(my-view.y)*k2/view.k;
+  view.k=k2; applyView();
+}
+viewport.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const r=viewport.getBoundingClientRect();
+  setZoom(view.k*(e.deltaY<0?1.12:0.9), e.clientX-r.left, e.clientY-r.top);
+},{passive:false});
+/* 拖拽平移（背景） */
+let pan=null;
+viewport.addEventListener('mousedown',e=>{
+  if(e.target.closest('.cnode')||e.target.closest('#zoom-ctl')) return;
+  pan={sx:e.clientX,sy:e.clientY,ox:view.x,oy:view.y,moved:false};
+  viewport.classList.add('panning');
+});
+window.addEventListener('mousemove',e=>{
+  if(!pan) return;
+  const dx=e.clientX-pan.sx, dy=e.clientY-pan.sy;
+  if(Math.abs(dx)+Math.abs(dy)>4) pan.moved=true;
+  view.x=pan.ox+dx; view.y=pan.oy+dy; applyView();
+});
+window.addEventListener('mouseup',e=>{
+  if(pan && !pan.moved && !e.target.closest('.cnode') && !e.target.closest('#zoom-ctl')){
+    selectedId=null; renderCanvas(); renderDetail(); updateComposerTarget();
+  }
+  pan=null; viewport.classList.remove('panning');
+});
+function fitView(){
+  const nodes=visibleNodes(); if(!nodes.length) return;
+  let minX=1e9,maxX=-1e9,minY=1e9,maxY=-1e9;
+  nodes.forEach(n=>{ const p=layout[n.id]; if(!p) return;
+    minX=Math.min(minX,p.x); maxX=Math.max(maxX,p.x+(n.type==='root'?320:250));
+    minY=Math.min(minY,p.y); maxY=Math.max(maxY,p.y+p.h); });
+  const vw=viewport.clientWidth, vh=viewport.clientHeight, pad=70;
+  const k=Math.min((vw-pad*2)/(maxX-minX),(vh-pad*2)/(maxY-minY),1);
+  view.k=Math.max(k,0.35);
+  view.x=(vw-(maxX-minX)*view.k)/2 - minX*view.k;
+  view.y=(vh-(maxY-minY)*view.k)/2 - minY*view.k + 10;
+  applyView();
+}
+
+/* ────────── 画布渲染 ────────── */
+const CW=250, CW_ROOT=320, SLOT=CW+34, LEVEL_GAP=64;
+let layout={};            /* id -> {x,y,h} 世界坐标 */
+function stanceColor(n){
+  if(n.type==='root') return 'var(--blue)';
+  return n.stance==='pro'?'var(--blue)':n.stance==='con'?'var(--ink)':'var(--neu)';
+}
+function tagOf(n){
+  if(n.type==='root') return '<span class="n-tag rtag">议题 · 根主张</span>';
+  return `<span class="n-tag ${n.stance==='pro'?'pro':n.stance==='con'?'con':'neu'}">${TYPE_LABEL[n.stance]}</span>`;
+}
+function votesHtml(n){
+  if(n.type==='question'||!n.votes) return '';
+  return `<span class="n-votes"><button onclick="vote(event,'${n.id}',1)">▲</button><b id="v-${n.id}">${n.votes.up-n.votes.down}</b><button onclick="vote(event,'${n.id}',-1)">▼</button></span>`;
+}
+function cardHtml(n){
+  const open=expanded.has(n.id);
+  const quick = n.type==='root'
+    ? `<button onclick="openModal('${n.id}','pro')">＋支持</button><button onclick="openModal('${n.id}','con')">＋反对</button><button onclick="openModal('${n.id}','neu')">＋看条件</button>`
+    : `<button onclick="openModal('${n.id}','pro')">＋支持</button><button onclick="openModal('${n.id}','con')">＋反对</button>`;
+  const fold = n.children.length
+    ? `<button class="fold" onclick="toggleNode(event,'${n.id}')">${open?'收起 ▲':'展开 '+n.children.length+' 条 ▼'}</button>` : '';
+  const pending = n.type==='question'&&n.answered===false ? '<span class="pending">待回应</span>' : '';
+  const evid = n.evidence ? `<span class="c-evid"><b>依据</b>${n.evidence}</span>` : '';
+  const src = n.source ? `<a class="n-src" href="${n.source.url}" onclick="return false">源自知乎回答</a>` : '';
+  const bar = n.type!=='root' ? `<span class="c-bar ${n.stance}"></span>` : '';
+  return `<div class="cnode ${n.type==='root'?'root':n.type==='question'?'question':''} ${n.id===selectedId?'sel':''} ${n.id===lastAddedId?'new':''}"
+    id="card-${n.id}" style="left:${layout[n.id].x}px;top:${layout[n.id].y}px" onclick="selectNode('${n.id}')">
+    ${bar}
+    <div class="quick">${quick}</div>
+    <div class="c-head">${tagOf(n)}${fold}${pending}</div>
+    <div class="c-text">${n.text}</div>
+    ${evid}
+    <div class="c-meta"><span>${n.author}</span>${votesHtml(n)}${src}</div>
+  </div>`;
+}
+function renderCanvas(){
+  const nodes=visibleNodes();
+  /* 1. 水平位置：叶子按序占槽，父节点居中于子节点 */
+  const pos={}; let leaf=0;
+  (function place(n){
+    const kids=expanded.has(n.id)?n.children:[];
+    if(!kids.length){ pos[n.id]={x:leaf*SLOT}; leaf++; }
+    else{ kids.forEach(place);
+      const xs=kids.map(k=>pos[k.id].x);
+      pos[n.id]={x:(Math.min(...xs)+Math.max(...xs))/2}; }
+  })(tree);
+  /* 2. 先渲染测高，再自上而下分配 y */
+  layout={};
+  nodes.forEach(n=>{ layout[n.id]={x:n.type==='root'?pos[n.id].x:pos[n.id].x, y:0, h:0}; });
+  world.innerHTML='<svg id="edges"></svg>'+nodes.map(cardHtml).join('');
+  nodes.forEach(n=>{ layout[n.id].h=document.getElementById('card-'+n.id).offsetHeight; });
+  const yOf={};
+  (function assignY(n){
+    let y=0;
+    if(n.id!==parentOf[n.id]&&parentOf[n.id]) y=yOf[parentOf[n.id]]+layout[parentOf[n.id]].h+LEVEL_GAP;
+    yOf[n.id]=y; layout[n.id].y=y;
+    if(expanded.has(n.id)) n.children.forEach(assignY);
+  })(tree);
+  nodes.forEach(n=>{ document.getElementById('card-'+n.id).style.top=layout[n.id].y+'px'; });
+  /* 3. 连线：父底中点 → 子顶中点 */
+  const svg=document.getElementById('edges');
+  let paths='';
+  (function e(n){
+    if(expanded.has(n.id)) n.children.forEach(c=>{
+      const x1=layout[n.id].x+(n.type==='root'?CW_ROOT:CW)/2, y1=layout[n.id].y+layout[n.id].h;
+      const x2=layout[c.id].x+CW/2, y2=layout[c.id].y;
+      const my=(y1+y2)/2;
+      paths+=`<path d="M ${x1} ${y1} C ${x1} ${my}, ${x2} ${my}, ${x2} ${y2}" fill="none" stroke="#cfd6e2" stroke-width="1.5"/>`;
+      e(c); });
+  })(tree);
+  svg.setAttribute('width','10'); svg.setAttribute('height','10');
+  svg.innerHTML=paths;
+  lastAddedId=null;
+  renderStats();
+}
+function toggleNode(e,id){
+  e.stopPropagation();
+  expanded.has(id)?expanded.delete(id):expanded.add(id);
+  renderCanvas();
+}
+function collapseAll(){ expanded.clear(); renderCanvas(); renderDetail(); updateComposerTarget(); }
+
+/* ────────── 统计（左栏） ────────── */
+function walk(n,fn){ fn(n); n.children.forEach(c=>walk(c,fn)); }
+function renderStats(){
+  let c={pro:0,con:0,neu:0,que:0,pending:0};
+  walk(tree,n=>{
+    if(n.type==='question'){ c.que++; if(n.answered===false)c.pending++; }
+    else if(n.stance==='pro') c.pro++;
+    else if(n.stance==='con') c.con++;
+    else if(n.stance==='neu') c.neu++;
+  });
+  document.getElementById('st-claims').textContent=c.pro+c.con+c.neu;
+  document.getElementById('st-que').textContent=c.que;
+  document.getElementById('st-pending').textContent=c.pending;
+  const total=c.pro+c.con+c.neu||1;
+  document.getElementById('sb-pro').style.width=(c.pro/total*100)+'%';
+  document.getElementById('sb-neu').style.width=(c.neu/total*100)+'%';
+  document.getElementById('sb-con').style.width=(c.con/total*100)+'%';
+  document.getElementById('st-ratio').textContent=Math.round(Math.max(c.pro,c.con,c.neu)/total*100)+'%';
+  document.getElementById('balance-warn').classList.toggle('show', Math.max(c.pro,c.con,c.neu)/total>0.7);
+}
+
+/* ────────── 选中与详情 ────────── */
+function selectNode(id){
+  selectedId=id;
+  expandTo(id);
+  renderCanvas();
+  renderDetail();
+  updateComposerTarget();
+  const p=layout[id];
+  if(p){ /* 选中项保持在视口内 */
+    const vx=p.x*view.k+view.x, vy=p.y*view.k+view.y;
+    const vw=viewport.clientWidth, vh=viewport.clientHeight;
+    if(vx<40||vy<40||vx>vw-80||vy>vh-80){ view.x+=vw/2-vx; view.y+=vh/2-vy; applyView(); }
+  }
+  const n=byId[id], body=document.getElementById('detail-body');
+  const stanceTxt = n.stance==='pro'?'支持':n.stance==='con'?'反对':n.stance==='neu'?'看条件':'—';
+  const conflict=(n.stance==='pro'||n.stance==='con')?findConflicts(n):[];
+  body.innerHTML=`
+    <div class="d-type">${tagOf(n)} <span style="font-size:12px;color:var(--sub)">立场：${stanceTxt}</span></div>
+    <div class="d-content">${n.text}</div>
+    ${n.evidence?`<div class="d-src"><b>依据：</b>${n.evidence}</div>`:''}
+    <div class="c-meta" style="margin-bottom:10px"><span>${n.author}</span>${votesHtml(n)}</div>
+    ${n.agentHint?`<div class="agent-card">
+      <div class="a-head">Agent 追问建议</div>
+      <div class="a-body">${n.agentHint}</div>
+      <button class="btn btn-primary" onclick="followUp('${n.id}')">以此追问</button>
+    </div>`:''}
+    ${n.source?`<div class="d-src">知乎回答摘要：「${n.source.quote}」<br><a href="${n.source.url}" onclick="return false">查看原文</a></div>`:''}
+    <div class="d-actions">
+      <button class="btn btn-primary" onclick="openModal('${n.id}','pro')">添加支持论点</button>
+      <button class="btn btn-ghost" onclick="openModal('${n.id}','con')">添加反对论点</button>
+      ${n.type!=='question'?`<button class="btn btn-ghost" onclick="openQuestion('${n.id}')">追问此节点</button>`:''}
+    </div>
+    ${conflict.length?`<div class="d-conflict">
+      <span style="font-size:12px;color:var(--sub)">与它冲突的节点</span>
+      ${conflict.map(c=>`<div class="c-item" onclick="selectNode('${c.id}')">${c.text}</div>`).join('')}
+    </div>`:''}`;
+}
+function findConflicts(n){
+  let out=[];
+  (function scan(x){
+    if(x.id!==n.id && x.stance && n.stance && x.stance!==n.stance && x.stance!=='neu' && n.stance!=='neu' && x.type==='claim' && n.type==='claim') out.push(x);
+    x.children.forEach(scan);
+  })(tree);
+  return out.slice(0,3);
+}
+function renderDetail(){
+  if(!selectedId) document.getElementById('detail-body').innerHTML='<div class="d-empty">在画布中选择一个节点</div>';
+}
+function updateComposerTarget(){
+  const el=document.getElementById('comp-target');
+  if(selectedId){ const n=byId[selectedId];
+    el.innerHTML=`回应 <b>「${n.text.slice(0,18)}${n.text.length>18?'…':''}」</b>`;
+  } else el.textContent='未选择节点 — 先点击画布中的卡片';
+}
+
+/* ────────── 投票 ────────── */
+function vote(e,id,dir){
+  e.stopPropagation();
+  const n=byId[id];
+  dir>0?n.votes.up++:n.votes.down++;
+  const el=document.getElementById('v-'+id);
+  if(el) el.textContent=n.votes.up-n.votes.down;
+}
+
+/* ────────── 弹窗添加 ────────── */
+function openModal(parentId,stance){
+  modalParent=parentId; modalStance=stance;
+  const p=byId[parentId];
+  document.getElementById('m-sub').textContent=`将作为「${TYPE_LABEL[stance]}」挂在：${p.text.slice(0,36)}…`;
+  document.querySelectorAll('#stance-pick button').forEach(b=>b.classList.toggle('on',b.dataset.s===stance));
+  document.getElementById('m-text').value='';
+  document.getElementById('m-evid').value='';
+  document.getElementById('mask').classList.add('show');
+}
+function pickStance(s){ modalStance=s;
+  document.querySelectorAll('#stance-pick button').forEach(b=>b.classList.toggle('on',b.dataset.s===s)); }
+function closeModal(){ document.getElementById('mask').classList.remove('show'); }
+function submitNode(){
+  const txt=document.getElementById('m-text').value.trim();
+  if(!txt){ document.getElementById('m-text').focus(); return; }
+  const evid=document.getElementById('m-evid').value.trim();
+  const p=byId[modalParent];
+  const node={ id:'n'+Date.now(), type:'claim', stance:modalStance, text:txt,
+    evidence:evid||undefined, author:'我', votes:{up:1,down:0}, children:[] };
+  register(node,p); p.children.push(node);
+  lastAddedId=node.id;
+  closeModal(); selectNode(node.id);
+}
+
+/* ────────── 追问 ────────── */
+function openQuestion(id){
+  const n=byId[id];
+  if(!n.agentHint){ n.agentHint='请先阅读该节点内容，指出你想要澄清的具体依据或前提'; }
+  followUp(id);
+}
+function followUp(id){
+  const n=byId[id];
+  const q={ id:'q'+Date.now(), type:'question', stance:n.stance==='root'?'neu':n.stance,
+    text:n.agentHint.replace('这是可以追问的点','——请回应').replace(/^"|"$/g,''),
+    author:'我（采纳 Agent 建议）', answered:null, votes:null, children:[] };
+  register(q,n); n.children.push(q);
+  lastAddedId=q.id;
+  selectNode(q.id);
+}
+
+/* ────────── 回应撰写器 ────────── */
+function pickComp(s){ compStance=s;
+  document.querySelectorAll('#comp-stance button').forEach(b=>b.classList.toggle('on',b.dataset.s===s)); }
+function composerSubmit(){
+  if(!selectedId){ document.getElementById('comp-target').textContent='请先点击选择一个节点'; return; }
+  const txt=document.getElementById('comp-text').value.trim();
+  if(!txt){ document.getElementById('comp-text').focus(); return; }
+  const evid=document.getElementById('comp-evid').value.trim();
+  const p=byId[selectedId];
+  const node={ id:'n'+Date.now(), type:'claim', stance:compStance, text:txt,
+    evidence:evid||undefined, author:'我', votes:{up:1,down:0}, children:[] };
+  register(node,p); p.children.push(node);
+  lastAddedId=node.id;
+  document.getElementById('comp-text').value='';
+  document.getElementById('comp-evid').value='';
+  selectNode(node.id);
+}
+
+/* ────────── 启动 ────────── */
+renderCanvas();          /* 初始只显示根节点 */
+renderDetail();
+updateComposerTarget();
+fitView();               /* 根节点居中 */
+document.getElementById('mask').addEventListener('click',e=>{ if(e.target.id==='mask') closeModal(); });
+</script>
+</body>
+</html>

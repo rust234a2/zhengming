@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>shot</title>
+<style>body{margin:0}</style></head>
+<body>
+<iframe id="f" src="debate-room-prototype.html" style="width:1180px;height:840px;border:0"></iframe>
+<script>
+const f=document.getElementById('f');
+f.onload=async()=>{
+  await new Promise(r=>setTimeout(r,1800));
+  f.contentDocument.getElementById('m-demo').click();
+};
+</script>
+</body>
+</html>

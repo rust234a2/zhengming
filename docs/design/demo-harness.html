@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>demo-harness</title></head>
+<body>
+<iframe id="f" src="debate-room-prototype.html" style="width:1200px;height:800px"></iframe>
+<pre id="report">RUNNING</pre>
+<script>
+const f=document.getElementById('f');
+f.onload=async()=>{
+  try{
+    const d=f.contentDocument;
+    // 等匹配动画（startMatch 内 1s）完成
+    await new Promise(r=>setTimeout(r,1800));
+    const st0=d.getElementById('m-found').classList.contains('show');
+    // 真实点击「自动演示完整流程」
+    d.getElementById('m-demo').click();
+    // 等演示跑完（脚本总时长约 20s + 余量）
+    await new Promise(r=>setTimeout(r,26000));
+    const stages=d.getElementById('stages').textContent.replace(/\s+/g,' ').trim();
+    const maskShow=d.getElementById('mask').classList.contains('show');
+    const mpRows=[...d.querySelectorAll('#mp-list .mrow')].map(x=>x.textContent.replace(/\s+/g,'')).join(' | ');
+    const radar=d.querySelector('#radar-box svg')!==null;
+    const err=(/演示中断/.test(d.getElementById('stage').textContent))?d.getElementById('stage').textContent.match(/演示中断[^（]*/)[0]:'none';
+    document.getElementById('report').textContent=JSON.stringify({
+      matchFound:st0, finalStage:stages, maskShow, mpRows, radar, demoError:err
+    },null,1);
+  }catch(e){document.getElementById('report').textContent='HARNESS-ERR '+e.message;}
+};
+</script>
+</body>
+</html>

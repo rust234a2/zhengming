@@ -1,0 +1,17 @@
+# 依赖与构建产物
+**/node_modules/
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+**/target/
+dist/
+**/*.tsbuildinfo
+.DS_Store
+
+# 多 worktree 开发目录（各模块分支的独立工作区）
+.worktrees/
+
+# LLM 管线断点续跑缓存（可重新生成，不必入库）
+docs/research/controversy-map/.claim-cache.json
+docs/research/controversy-map/.cross-cache.json

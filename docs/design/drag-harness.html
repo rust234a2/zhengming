@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>drag-harness</title>
+<style>body{margin:0}</style></head>
+<body>
+<iframe id="f" src="debate-tree-prototype.html" style="width:1260px;height:780px;border:0"></iframe>
+<pre id="report" style="display:none"></pre>
+<script>
+/* 拖拽交互 E2E：合成 MouseEvent 赥真实 DOM 事件路径
+   断言：拖拽跟随 / 邻居响应 / 松手解钉 / 回弹重排
+   timeline（虚拟时间）：0.6s 进图谱 → 11s 冷却后拖拽 → 11.1s 松手 → 28s 回弹后出报告 */
+const f=document.getElementById('f');
+const pass=[], fail=[];
+const ok=(c,name)=>{ (c?pass:fail).push((c?'✓ ':'✗ ')+name); };
+f.onload=()=>{
+  const W=f.contentWindow, D=W.document;
+  setTimeout(()=>{ W.switchView('graph'); },600);
+  setTimeout(()=>{
+    try{
+      const svg=D.getElementById('graph-svg');
+      const r=svg.getBoundingClientRect();
+      const GW=940, GH=660;   /* 顶层 let 不挂 window，画布尺寸按已知常量换算 */
+      const toScr=(wx,wy)=>({ x:r.left+wx*(r.width/GW), y:r.top+wy*(r.height/GH) });
+      /* 选一个非中心节点（第一个 .gnode:not(.center)） */
+      const nodes=[...D.querySelectorAll('.gnode')];
+      const g=nodes.find(el=>!el.classList.contains('center'));
+      const tr0=g.getAttribute('transform').match(/translate\(([\d.]+)[, ]([\d.]+)\)/);
+      const n0={ x:+tr0[1], y:+tr0[2] };
+      const centerEl=D.querySelector('.gnode.center');
+      const ctr0=centerEl.getAttribute('transform').match(/translate\(([\d.]+)[, ]([\d.]+)\)/);
+      const snap=()=>nodes.map(el=>{
+        const m=el.getAttribute('transform').match(/translate\(([\d.]+)[, ]([\d.]+)\)/);
+        return { x:+m[1], y:+m[2] };
+      });
+      const before=snap();
+      /* dragstart */
+      const p0=toScr(n0.x,n0.y);
+      g.dispatchEvent(new W.MouseEvent('mousedown',{bubbles:true,cancelable:true,clientX:p0.x,clientY:p0.y}));
+      /* drag → 目标世界坐标 (150,480)（远离所有目标环，回弹可断言） */
+      const p1=toScr(150,480);
+      for(let i=1;i<=8;i++){
+        const mx=p0.x+(p1.x-p0.x)*i/8, my=p0.y+(p1.y-p0.y)*i/8;
+        W.dispatchEvent(new W.MouseEvent('mousemove',{clientX:mx,clientY:my}));
+      }
+      /* transform 由 16ms tick 的 graphDraw 更新，同步 dispatch 后必须等真实 tick 再读 */
+      setTimeout(()=>{
+        try{
+          const m=g.getAttribute('transform').match(/translate\(([\d.]+)[, ]([\d.]+)\)/);
+          const cur={x:+m[1],y:+m[2]};
+          ok(Math.abs(cur.x-150)<40 && Math.abs(cur.y-480)<40, `拖拽中节点跟随鼠标（到达 ${cur.x.toFixed(0)},${cur.y.toFixed(0)}）`);
+          let nbMoved=0;
+          const during=snap();
+          before.forEach((b,i)=>{
+            if(nodes[i]===g||nodes[i]===centerEl) return;
+            if(Math.hypot(during[i].x-b.x,during[i].y-b.y)>2) nbMoved++;
+          });
+          ok(nbMoved>=2, `拖拽中邻居被带动（${nbMoved} 个位移>2px）`);
+          const ctr1=centerEl.getAttribute('transform').match(/translate\(([\d.]+)[, ]([\d.]+)\)/);
+          ok(Math.abs(+ctr1[1]-470)<1 && Math.abs(+ctr1[2]-330)<1, '非中心节点拖拽不影响中心位置');
+          /* dragend */
+          W.dispatchEvent(new W.MouseEvent('mouseup',{clientX:p1.x,clientY:p1.y}));
+          /* 松手后鼠标移到远处：节点不应跳到鼠标点（gDragNode 已清） */
+          const away=toScr(700,120);
+          W.dispatchEvent(new W.MouseEvent('mousemove',{clientX:away.x,clientY:away.y}));
+          window.__dragEndAt=Date.now();
+        }catch(err){ fail.push('✗ 拖拽断言异常: '+err.message); }
+      },500);
+      window.__dragReport={ n0 };
+    }catch(err){ fail.push('✗ harness 异常: '+err.message); }
+  },11000);
+  /* 回弹冷却后出报告 */
+  setTimeout(()=>{
+    try{
+      const D2=f.contentDocument;
+      const g=D2.querySelector('.gnode:not(.center)');
+      const m=g.getAttribute('transform').match(/translate\(([\d.]+)[, ]([\d.]+)\)/);
+      const d=Math.hypot(+m[1]-150,+m[2]-480);
+      ok(d>60, `松手回弹重新参与布局（距拖拽点 ${d.toFixed(0)}px）`);
+      const all=[...D2.querySelectorAll('.gnode')].every(el=>{
+        const t=el.getAttribute('transform').match(/translate\(([\d.]+)[, ]([\d.]+)\)/);
+        return t && +t[1]>=0 && +t[1]<=940 && +t[2]>=0 && +t[2]<=660;
+      });
+      ok(all,'回弹后全部节点在画布内');
+    }catch(err){ fail.push('✗ 回弹断言异常: '+err.message); }
+    const rep=document.getElementById('report');
+    rep.setAttribute('style','');
+    rep.textContent='<report>\n'+pass.join('\n')+(fail.length?'\n'+fail.join('\n'):'')+'\nPASS '+pass.length+' FAIL '+fail.length+'\n</report>';
+  },28500);
+};
+</script>
+</body>
+</html>

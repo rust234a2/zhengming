@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>shot-graph</title>
+<style>body{margin:0}</style></head>
+<body>
+<iframe id="f" src="debate-tree-prototype.html" style="width:1260px;height:780px;border:0"></iframe>
+<script>
+const f=document.getElementById('f');
+const MUTATE=location.search.includes('mutate');
+f.onload=()=>{
+  setTimeout(()=>{ f.contentWindow.switchView('graph'); },600);
+  if(MUTATE){
+    setTimeout(()=>{ f.contentWindow.graphAddRandom(); },9000);
+    setTimeout(()=>{ f.contentWindow.graphAddRandom(); },10000);
+  }
+};
+</script>
+</body>
+</html>

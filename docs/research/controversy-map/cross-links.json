@@ -1,0 +1,345 @@
+{
+  "generatedAt": "2026-09-12T06:37:33.944Z",
+  "links": [
+    {
+      "source": "a--7087091483973468197",
+      "target": "a-6926770995914242054",
+      "relation": "rebuts",
+      "label": "AI是否毁灭程序员职业",
+      "confidence": 0.95,
+      "reasonType": "行业周期",
+      "sourceTopic": "马斯克预计到明年底人类将无法与 AI 竞争软件开发,AI 将胜任所有数字工作,对程序员群体影响有多大?",
+      "targetTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?"
+    },
+    {
+      "source": "a--7087091483973468197",
+      "target": "a-3132737687244157601",
+      "relation": "same-claim",
+      "label": "AI导致程序员需求萎缩",
+      "confidence": 0.85,
+      "reasonType": "行业周期",
+      "sourceTopic": "马斯克预计到明年底人类将无法与 AI 竞争软件开发,AI 将胜任所有数字工作,对程序员群体影响有多大?",
+      "targetTopic": "为什么别选计算机专业?"
+    },
+    {
+      "source": "a-6926770995914242054",
+      "target": "a-3132737687244157601",
+      "relation": "rebuts",
+      "label": "AI是否消灭程序员需求",
+      "confidence": 0.9,
+      "reasonType": "行业周期",
+      "sourceTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?",
+      "targetTopic": "为什么别选计算机专业?"
+    },
+    {
+      "source": "a-8883296274167542039",
+      "target": "a-7694646029523666707",
+      "relation": "same-claim",
+      "label": "编程仍要学但需转型",
+      "confidence": 0.8,
+      "reasonType": "教育培养",
+      "sourceTopic": "2026年了,大学生还有必要学编程吗,AI会不会让程序员失业?",
+      "targetTopic": "AI时代下,学习一门编程语言是否还有意义?"
+    },
+    {
+      "source": "a-7415577803219682552",
+      "target": "a--6512767791850319549",
+      "relation": "same-claim",
+      "label": "AI不可替代人类核心能力",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?",
+      "targetTopic": "未来几年 AI 会取代艺术设计类的工作吗?"
+    },
+    {
+      "source": "a-7415577803219682552",
+      "target": "a--27641170957010190",
+      "relation": "same-claim",
+      "label": "AI不可替代人类核心能力",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?",
+      "targetTopic": "AI越来越强,人类真正不可替代的到底是什么?"
+    },
+    {
+      "source": "a-7415577803219682552",
+      "target": "a-2068354476218263395",
+      "relation": "same-claim",
+      "label": "AI不可替代人类核心能力",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?",
+      "targetTopic": "在AI能秒答一切的时代,人的核心竞争力到底是什么?"
+    },
+    {
+      "source": "a--6512767791850319549",
+      "target": "a-7578589222068007825",
+      "relation": "same-claim",
+      "label": "AI不可替代人类核心能力",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "未来几年 AI 会取代艺术设计类的工作吗?",
+      "targetTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?"
+    },
+    {
+      "source": "a--6512767791850319549",
+      "target": "a--27641170957010190",
+      "relation": "same-claim",
+      "label": "AI不可替代人类核心能力",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "未来几年 AI 会取代艺术设计类的工作吗?",
+      "targetTopic": "AI越来越强,人类真正不可替代的到底是什么?"
+    },
+    {
+      "source": "a--6512767791850319549",
+      "target": "a-2068354476218263395",
+      "relation": "same-claim",
+      "label": "AI不可替代人类核心能力",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "未来几年 AI 会取代艺术设计类的工作吗?",
+      "targetTopic": "在AI能秒答一切的时代,人的核心竞争力到底是什么?"
+    },
+    {
+      "source": "a-7578589222068007825",
+      "target": "a--27641170957010190",
+      "relation": "same-claim",
+      "label": "AI不可替代人类核心能力",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?",
+      "targetTopic": "AI越来越强,人类真正不可替代的到底是什么?"
+    },
+    {
+      "source": "a-7578589222068007825",
+      "target": "a-2068354476218263395",
+      "relation": "same-claim",
+      "label": "AI不可替代人类核心能力",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?",
+      "targetTopic": "在AI能秒答一切的时代,人的核心竞争力到底是什么?"
+    },
+    {
+      "source": "a--27641170957010190",
+      "target": "a-2068354476218263395",
+      "relation": "same-claim",
+      "label": "AI不可替代人类核心能力",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "AI越来越强,人类真正不可替代的到底是什么?",
+      "targetTopic": "在AI能秒答一切的时代,人的核心竞争力到底是什么?"
+    },
+    {
+      "source": "a--6123579788034080189",
+      "target": "a--2483126025033303325",
+      "relation": "same-claim",
+      "label": "AI不取代高阶程序员",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "计算机专业还值得学吗?",
+      "targetTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?"
+    },
+    {
+      "source": "a--6123579788034080189",
+      "target": "a-4560790726606256329",
+      "relation": "same-claim",
+      "label": "程序员价值转向高阶能力",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "计算机专业还值得学吗?",
+      "targetTopic": "2026年了,大学生还有必要学编程吗,AI会不会让程序员失业?"
+    },
+    {
+      "source": "a--6123579788034080189",
+      "target": "a--7940648025065138231",
+      "relation": "same-claim",
+      "label": "AI只替代执行环节",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "计算机专业还值得学吗?",
+      "targetTopic": "AI绘画,AI设计,AI真的能代替各行各业的设计师吗?"
+    },
+    {
+      "source": "a--6123579788034080189",
+      "target": "a--6636081953562257961",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "计算机专业还值得学吗?",
+      "targetTopic": "5年后计算机专业出来还有前途吗?"
+    },
+    {
+      "source": "a--8636163842687801585",
+      "target": "a--7940648025065138231",
+      "relation": "same-claim",
+      "label": "AI只替代执行环节",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "2026 计算机科学专业还值得报考吗?",
+      "targetTopic": "AI绘画,AI设计,AI真的能代替各行各业的设计师吗?"
+    },
+    {
+      "source": "a--8636163842687801585",
+      "target": "a--6636081953562257961",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "2026 计算机科学专业还值得报考吗?",
+      "targetTopic": "5年后计算机专业出来还有前途吗?"
+    },
+    {
+      "source": "a--8636163842687801585",
+      "target": "a--7940648025065138231",
+      "relation": "same-claim",
+      "label": "AI只替代执行环节",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "2026 计算机科学专业还值得报考吗?",
+      "targetTopic": "AI绘画,AI设计,AI真的能代替各行各业的设计师吗?"
+    },
+    {
+      "source": "a--8636163842687801585",
+      "target": "a--6636081953562257961",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "2026 计算机科学专业还值得报考吗?",
+      "targetTopic": "5年后计算机专业出来还有前途吗?"
+    },
+    {
+      "source": "a--2483126025033303325",
+      "target": "a-4560790726606256329",
+      "relation": "same-claim",
+      "label": "程序员价值转向高阶能力",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+      "targetTopic": "2026年了,大学生还有必要学编程吗,AI会不会让程序员失业?"
+    },
+    {
+      "source": "a--2483126025033303325",
+      "target": "a--7940648025065138231",
+      "relation": "same-claim",
+      "label": "AI只替代执行环节",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+      "targetTopic": "AI绘画,AI设计,AI真的能代替各行各业的设计师吗?"
+    },
+    {
+      "source": "a--2483126025033303325",
+      "target": "a--6636081953562257961",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+      "targetTopic": "5年后计算机专业出来还有前途吗?"
+    },
+    {
+      "source": "a--3116936308957756347",
+      "target": "a--6636081953562257961",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?",
+      "targetTopic": "5年后计算机专业出来还有前途吗?"
+    },
+    {
+      "source": "a-8130782778536502254",
+      "target": "a-4560790726606256329",
+      "relation": "same-claim",
+      "label": "程序员价值转向高阶能力",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+      "targetTopic": "2026年了,大学生还有必要学编程吗,AI会不会让程序员失业?"
+    },
+    {
+      "source": "a-8130782778536502254",
+      "target": "a--7940648025065138231",
+      "relation": "same-claim",
+      "label": "AI只替代执行环节",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+      "targetTopic": "AI绘画,AI设计,AI真的能代替各行各业的设计师吗?"
+    },
+    {
+      "source": "a-8130782778536502254",
+      "target": "a--6636081953562257961",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+      "targetTopic": "5年后计算机专业出来还有前途吗?"
+    },
+    {
+      "source": "a-4560790726606256329",
+      "target": "a--7940648025065138231",
+      "relation": "same-claim",
+      "label": "AI只替代执行环节",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "2026年了,大学生还有必要学编程吗,AI会不会让程序员失业?",
+      "targetTopic": "AI绘画,AI设计,AI真的能代替各行各业的设计师吗?"
+    },
+    {
+      "source": "a-4560790726606256329",
+      "target": "a--6636081953562257961",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "2026年了,大学生还有必要学编程吗,AI会不会让程序员失业?",
+      "targetTopic": "5年后计算机专业出来还有前途吗?"
+    },
+    {
+      "source": "a--7940648025065138231",
+      "target": "a--6636081953562257961",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI绘画,AI设计,AI真的能代替各行各业的设计师吗?",
+      "targetTopic": "5年后计算机专业出来还有前途吗?"
+    },
+    {
+      "source": "a-7506223916112815660",
+      "target": "a--3596866254648524842",
+      "relation": "same-claim",
+      "label": "程序员价值转向担责",
+      "confidence": 0.95,
+      "reasonType": "责任归属",
+      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+      "targetTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?"
+    },
+    {
+      "source": "a-7506223916112815660",
+      "target": "a--3606585513578338451",
+      "relation": "same-claim",
+      "label": "人类核心价值在担责",
+      "confidence": 0.85,
+      "reasonType": "责任归属",
+      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+      "targetTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?"
+    },
+    {
+      "source": "a--3596866254648524842",
+      "target": "a--3606585513578338451",
+      "relation": "same-claim",
+      "label": "AI时代核心价值是担责",
+      "confidence": 0.85,
+      "reasonType": "责任归属",
+      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+      "targetTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?"
+    }
+  ]
+}

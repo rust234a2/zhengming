@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="011cgOStw5aE9NLo454bQ6">
+<head data-page-node-id="lvR1EecohI7KIh1XDyEE6B">
+<meta charset="utf-8" data-page-node-id="7NT7LIMwYGpns9IVM8onpf">
+<meta name="viewport" content="width=device-width, initial-scale=1" data-page-node-id="mwd6xCA71tNpZ0K6py7Wdz">
+<title>争鸣 · 辩论列阵</title>
+<style>
+  :root{
+    --blue:#056DE8; --blue-bg:#E8F1FF; --blue-soft:#F0F6FF;
+    --ink:#121212; --sub:#8590a6; --line:#ebebeb;
+    --page:#f6f6f6; --card:#fff; --neu:#a9aebc; --warn:#c96a00;
+    --neu-bar:#c3c8d4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font:14px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    background:var(--page); color:var(--ink);
+  }
+  /* ---------- 顶栏 ---------- */
+  .topbar{
+    height:52px; background:var(--card); border-bottom:1px solid var(--line);
+    display:flex; align-items:center; padding:0 24px; gap:10px;
+    position:sticky; top:0; z-index:20;
+  }
+  .logo{font-size:18px; font-weight:700; color:var(--blue); letter-spacing:1px}
+  .topbar .sub{font-size:12px; color:var(--sub)}
+  /* ---------- 布局 ---------- */
+  main{max-width:1240px; margin:0 auto; padding:16px 24px 80px}
+  /* ---------- 议题卡 ---------- */
+  .topic{
+    background:var(--card); border-radius:8px; padding:20px 24px;
+    box-shadow:0 1px 2px rgba(18,18,18,.05); margin-bottom:12px;
+  }
+  .topic h1{font-size:17px; line-height:1.5; font-weight:600; margin-bottom:8px}
+  .topic .meta{display:flex; align-items:center; gap:12px; font-size:12px; color:var(--sub); flex-wrap:wrap}
+  .src-badge{
+    display:inline-flex; align-items:center; gap:4px; cursor:pointer;
+    color:var(--blue); background:var(--blue-soft); border-radius:3px; padding:1px 6px; font-size:11px;
+  }
+  .src-badge:hover{background:var(--blue-bg)}
+  /* ---------- 统计条 ---------- */
+  .stats{
+    background:var(--card); border-radius:8px; padding:14px 24px;
+    box-shadow:0 1px 2px rgba(18,18,18,.05); margin-bottom:16px;
+  }
+  .stats .bar{display:flex; height:8px; border-radius:4px; overflow:hidden; background:#f0f0f0}
+  .stats .bar i{display:block; height:100%}
+  .stats .bar .p{background:var(--blue)} .stats .bar .n{background:var(--neu-bar)} .stats .bar .c{background:var(--ink)}
+  .stats .legend{display:flex; align-items:center; gap:16px; margin-top:8px; font-size:12px; color:var(--sub); flex-wrap:wrap}
+  .stats .legend b{color:var(--ink); font-weight:600}
+  .dot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px; vertical-align:1px}
+  .dot.p{background:var(--blue)} .dot.n{background:var(--neu-bar)} .dot.c{background:var(--ink)}
+  .warn-chip{
+    display:none; color:var(--warn); background:#fdf3e7; border:1px solid #f0dcc0;
+    border-radius:3px; padding:1px 8px; font-size:11.5px;
+  }
+  .warn-chip.on{display:inline-block}
+  /* ---------- 三栏 ---------- */
+  .columns{display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; align-items:start}
+  @media (max-width:900px){ .columns{grid-template-columns:1fr} }
+  .col-head{
+    display:flex; align-items:center; gap:8px; padding:4px 2px 10px;
+    font-size:13.5px; font-weight:600;
+  }
+  .col-head .cnt{font-size:11px; color:var(--sub); font-weight:400}
+  .col-head .add{
+    margin-left:auto; border:1px solid var(--line); background:var(--card); color:var(--sub);
+    width:22px; height:22px; border-radius:6px; cursor:pointer; font-size:14px; line-height:1;
+  }
+  .col-head .add:hover{color:var(--blue); border-color:var(--blue)}
+  /* ---------- 论点卡 ---------- */
+  .card{
+    background:var(--card); border:1px solid var(--line); border-left:3px solid var(--blue);
+    border-radius:8px; padding:12px 14px; margin-bottom:10px;
+    box-shadow:0 1px 2px rgba(18,18,18,.05); cursor:pointer; transition:box-shadow .15s;
+  }
+  .card:hover{box-shadow:0 6px 16px rgba(5,109,232,.10)}
+  .card.selected{box-shadow:0 0 0 2px rgba(5,109,232,.15)}
+  .card.stance-con{border-left-color:var(--ink)}
+  .card.stance-neu{border-left-color:var(--neu)}
+  .card .txt{font-size:13.5px; line-height:1.6}
+  .card .meta{display:flex; align-items:center; gap:10px; margin-top:6px; font-size:11.5px; color:var(--sub); flex-wrap:wrap}
+  .vote{display:inline-flex; align-items:center; gap:2px}
+  .vote button{
+    border:1px solid var(--line); background:var(--card); color:var(--sub);
+    border-radius:4px; cursor:pointer; font-size:10px; padding:0 4px; line-height:16px;
+  }
+  .vote button:hover{color:var(--blue); border-color:var(--blue)}
+  .vote .n{min-width:16px; text-align:center; font-size:11.5px; color:var(--ink)}
+  .badge{font-size:11px; border-radius:3px; padding:0 5px; background:#f5f5f5; color:var(--sub)}
+  .badge.ev{background:var(--blue-soft); color:var(--blue)}
+  .badge.q{background:#fdf3e7; color:var(--warn)}
+  .caret{margin-left:auto; color:var(--sub); font-size:11px}
+  .card .actions{
+    display:flex; gap:8px; margin-top:8px; opacity:0; transition:opacity .15s;
+  }
+  .card:hover .actions, .card.open .actions{opacity:1}
+  .actions button{
+    border:none; background:none; color:var(--blue); font-size:12px; cursor:pointer; padding:0;
+  }
+  .actions button:hover{text-decoration:underline}
+  /* 展开体 */
+  .card .body{display:none; margin-top:10px}
+  .card.open .body{display:block}
+  .evidence{
+    background:#f7f7f7; border-radius:4px; padding:6px 10px;
+    font-size:12px; color:var(--sub); margin-bottom:8px;
+  }
+  .evidence b{color:var(--ink); font-weight:500}
+  .agent-strip{
+    border:1px dashed var(--blue); background:var(--blue-soft); border-radius:6px;
+    padding:8px 10px; font-size:12.5px; color:var(--blue); margin-bottom:8px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .agent-strip .btn{
+    margin-left:auto; flex:none; border:1px solid var(--blue); background:var(--card);
+    color:var(--blue); border-radius:6px; font-size:11.5px; padding:2px 8px; cursor:pointer;
+  }
+  .agent-strip .btn:hover{background:var(--blue); color:#fff}
+  .children{margin:4px 0 0 14px; padding-left:12px; border-left:2px solid #f0f0f0}
+  /* 追问气泡 */
+  .q-bubble{
+    border:1px dashed var(--blue); border-radius:8px; background:var(--blue-soft);
+    padding:10px 12px; margin-bottom:8px; font-size:13px;
+  }
+  .q-bubble .tag{
+    display:inline-block; font-size:11px; color:var(--blue); border:1px solid var(--blue);
+    border-radius:3px; padding:0 5px; margin-right:6px; vertical-align:1px;
+  }
+  .q-bubble .meta{display:flex; align-items:center; gap:10px; margin-top:6px; font-size:11.5px; color:var(--sub)}
+  .q-bubble .answered{font-size:11px; color:#1a9c54}
+  .q-bubble .respond{border:none; background:none; color:var(--blue); font-size:12px; cursor:pointer; padding:0}
+  .q-bubble .respond:hover{text-decoration:underline}
+  /* ---------- 弹窗 ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:50;
+    display:none; align-items:center; justify-content:center;
+  }
+  .overlay.on{display:flex}
+  .panel{
+    width:480px; max-width:92vw; background:var(--card); border-radius:12px; padding:20px 24px;
+  }
+  .panel h3{font-size:15px; margin-bottom:12px}
+  .panel .reply-to{
+    font-size:12px; color:var(--sub); background:#f7f7f7; border-radius:4px;
+    padding:6px 10px; margin-bottom:12px; max-height:60px; overflow:hidden;
+  }
+  .stance-row{display:flex; gap:8px; margin-bottom:12px}
+  .stance-row label{
+    flex:1; text-align:center; font-size:12.5px; padding:6px 0; cursor:pointer;
+    border:1px solid var(--line); border-radius:6px; color:var(--sub);
+  }
+  .stance-row input{display:none}
+  .stance-row input:checked + span{font-weight:600}
+  .stance-row label:has(input:checked){border-color:var(--blue); color:var(--blue); background:var(--blue-soft)}
+  .stance-row label.locked{opacity:.6; cursor:not-allowed}
+  .panel textarea, .panel input[type=text]{
+    width:100%; border:1px solid var(--line); border-radius:6px; padding:8px 10px;
+    font:inherit; font-size:13px; resize:vertical; margin-bottom:10px;
+  }
+  .panel textarea{min-height:80px}
+  .panel textarea:focus, .panel input[type=text]:focus{outline:none; border-color:var(--blue)}
+  .panel .err{display:none; color:#d4380d; font-size:12px; margin:-6px 0 8px}
+  .panel .err.on{display:block}
+  .panel .foot{display:flex; justify-content:flex-end; gap:10px; margin-top:4px}
+  .panel .foot button{
+    border-radius:6px; font-size:13px; padding:6px 16px; cursor:pointer;
+  }
+  .btn-ghost{border:1px solid var(--line); background:var(--card); color:var(--sub)}
+  .btn-primary{border:1px solid var(--blue); background:var(--blue); color:#fff}
+  .btn-primary:hover{background:#0461cf}
+  /* ---------- toast ---------- */
+  .toast{
+    position:fixed; top:64px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:#fff; font-size:12.5px; border-radius:6px;
+    padding:8px 16px; z-index:60; opacity:0; transition:opacity .2s; pointer-events:none;
+  }
+  .toast.on{opacity:.92}
+  /* ---------- 自测条 ---------- */
+  .testbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:40;
+    font-size:11px; padding:3px 12px; color:#fff; background:#1a9c54;
+  }
+  .testbar.fail{background:#d4380d}
+</style>
+</head>
+<body data-page-node-id="wZt4I0SKRsbn9fsKIoT1c2">
+
+<header class="topbar" data-page-node-id="t3Ira3aAd8A9Cwen6JstKm">
+  <span class="logo" data-page-node-id="CngXdS2Y4uGwAjSJKCnUOU">争鸣</span>
+  <span class="sub" data-page-node-id="G035y0GHNR0qAXMpIms4YS">辩论列阵 · 找到跟你吵得有价值的人</span>
+</header>
+
+<main data-page-node-id="dImLoC2I3cumBVHUT8tGGv">
+  <section class="topic" id="topic" data-page-node-id="tY4cFspVyquPeuWi9hbZ8P"></section>
+  <section class="stats" id="stats" data-page-node-id="13kiBnCY6HtYQ9qucgMSKq"></section>
+  <section class="columns" id="columns" data-page-node-id="y4h69TG7cp7dp1TucKOEBH"></section>
+</main>
+
+<div class="overlay" id="overlay" data-page-node-id="LbFaoI6Ms6k7U29JJOmSaA"><div class="panel" id="panel" data-page-node-id="whn5aA4IG81qGTUm4pimPA"></div></div>
+<div class="toast" id="toast" data-page-node-id="EUObeglFMK3ZDMbx4m9K41"></div>
+<div class="testbar" id="testbar" data-page-node-id="l1YxSr3tjADiiMeYnAbrjO">selfTest: 未运行</div>
+
+<script>
+'use strict';
+/* ================= 数据层 ================= */
+
+const tree = {
+  id:'root', type:'root', stance:'root',
+  text:'43岁县中教师考上苏州公办校，该不该辞职去？',
+  author:'知乎问题', votes:{up:128,down:9},
+  source:{url:'https://www.zhihu.com/question/example-43', quote:'43岁，县中高级教师，考上了苏州公办校，纠结要不要放弃编制去苏州……'},
+  children:[
+    { id:'p1', type:'claim', stance:'pro', author:'知乎用户_2v8f',
+      text:'苏州编制含金量高于县中，职业天花板更高。',
+      evidence:'苏州头部校人均教研经费约为县中 3 倍（据两地教育局公开预算）',
+      votes:{up:42,down:6},
+      agentHint:'「天花板更高」是个断言：苏州头部校竞争烈度也更高，晋升未必更容易——这是可以追问的点',
+      source:{url:'https://www.zhihu.com/question/example-43/answer/1', quote:'苏州的教研资源和培训机会确实多，但竞争也激烈……'},
+      children:[
+        { id:'q1', type:'question', stance:'pro', author:'知乎用户_7k2m', answered:false,
+          text:'你说的「天花板」指职级晋升还是专业成长？县中骨干教师的专业成长空间可能反而更大。',
+          children:[] },
+        { id:'p1b', type:'claim', stance:'con', author:'知乎用户_9d1x',
+          text:'但苏州房价会吃掉编制溢价，实际可支配收入未必更高。',
+          evidence:'苏州园区均价约为县城 4 倍', votes:{up:18,down:3}, children:[] }
+      ]},
+    { id:'p2', type:'claim', stance:'pro', author:'知乎用户_4h6t',
+      text:'43 岁是最后的流动窗口，再不走就没机会了。',
+      votes:{up:35,down:11},
+      children:[
+        { id:'q2', type:'question', stance:'pro', author:'知乎用户_1w5e', answered:false,
+          text:'「最后窗口」的判断依据是什么？很多地方 45 岁前都可调动，这个期限是否被夸大了？',
+          children:[] }
+      ]},
+    { id:'p3', type:'claim', stance:'pro', author:'知乎用户_8u3o',
+      text:'子女教育资源是硬升级，这一代人的投入换下一代人的起点。',
+      votes:{up:51,down:8}, children:[] },
+    { id:'c1', type:'claim', stance:'con', author:'知乎用户_5y9i',
+      text:'43 岁正是家庭牵绊最重的年纪，异地调动的隐性成本被系统性低估。',
+      evidence:'父母养老、配偶工作、孩子转学三重成本叠加',
+      votes:{up:47,down:5},
+      agentHint:'「系统性低估」需要论证：哪些成本被低估、低估多少——这是可以追问的点',
+      children:[
+        { id:'c1a', type:'claim', stance:'pro', author:'知乎用户_6t0p',
+          text:'这些成本可以用钱解决，而平台差距用钱买不来。',
+          votes:{up:9,down:14}, children:[] }
+      ]},
+    { id:'c2', type:'claim', stance:'con', author:'知乎用户_3r7q',
+      text:'备案制还是编内没写清，政策风险没人兜底，去了可能留不住。',
+      votes:{up:23,down:4},
+      source:{url:'https://www.zhihu.com/question/example-43/answer/2', quote:'苏州部分公办校新招教师是备案制，待遇和编内有差距……'},
+      children:[] },
+    { id:'n1', type:'claim', stance:'neu', author:'知乎用户_0a4s',
+      text:'关键看苏州给的是编内还是备案制——这是两个完全不同的决策。',
+      votes:{up:38,down:2},
+      children:[
+        { id:'n1a', type:'claim', stance:'neu', author:'知乎用户_2m8k',
+          text:'还要看到手收入结构：绩效占比高的学校，编制的意义会被稀释。',
+          votes:{up:12,down:1}, children:[] }
+      ]},
+    { id:'n2', type:'claim', stance:'neu', author:'知乎用户_7f3g',
+      text:'取决于家庭是否随迁：单职工家庭和小家庭会得出相反结论。',
+      votes:{up:27,down:3}, children:[] }
+  ]
+};
+
+/* 索引（parentOf 只存 id 字符串——历史 bug：存对象导致查表崩溃） */
+const byId = {};
+const parentOf = {};
+const depthOf = {};
+const expanded = new Set();
+let selectedId = null;
+let uid = 100;
+
+function register(n, pid, depth){
+  byId[n.id] = n;
+  parentOf[n.id] = pid;
+  depthOf[n.id] = depth;
+  (n.children || []).forEach(function(c){ register(c, n.id, depth + 1); });
+}
+register(tree, null, 0);
+
+const DEPTH_MAX = 4, CHILD_MAX = 8, QUESTION_MAX = 3;
+
+/* ================= 纯逻辑（可测试） ================= */
+
+function countNodes(n){
+  return 1 + (n.children || []).reduce(function(s, c){ return s + countNodes(c); }, 0);
+}
+
+function stanceStats(){
+  const counts = { pro:0, neu:0, con:0 };
+  tree.children.forEach(function(c){ if (counts[c.stance] !== undefined) counts[c.stance]++; });
+  const total = counts.pro + counts.neu + counts.con;
+  const max = Math.max(counts.pro, counts.neu, counts.con);
+  return { counts:counts, total:total, maxPct: total ? max / total : 0 };
+}
+
+function isImbalanced(counts){
+  const total = counts.pro + counts.neu + counts.con;
+  return total > 0 && Math.max(counts.pro, counts.neu, counts.con) / total > 0.7;
+}
+
+function canAddChild(pid){
+  const p = byId[pid];
+  if (!p) return { ok:false, msg:'节点不存在' };
+  if (depthOf[pid] + 1 > DEPTH_MAX) return { ok:false, msg:'该分支已到最深，建议另开分叉议题' };
+  if ((p.children || []).length >= CHILD_MAX) return { ok:false, msg:'该节点回应已满，请收敛到已有分支' };
+  return { ok:true };
+}
+
+function addClaim(pid, opts){
+  const chk = canAddChild(pid);
+  if (!chk.ok) return chk;
+  const text = (opts.text || '').trim();
+  if (text.length < 4) return { ok:false, msg:'论点太短，请把主张说清楚' };
+  const node = {
+    id:'u' + (++uid), type:'claim', stance:opts.stance,
+    text:text, author:'我', votes:{up:0,down:0}, children:[]
+  };
+  if (opts.evidence && opts.evidence.trim()) node.evidence = opts.evidence.trim();
+  byId[pid].children.push(node);
+  register(node, pid, depthOf[pid] + 1);
+  expanded.add(pid);
+  return { ok:true, node:node };
+}
+
+const PURE_STANCE = /^(我就是)?(不同意|反对|支持|赞同|说得好|顶一个?|扯|胡说)[!！。.~～]*$/;
+
+function validQuestionText(t){
+  t = (t || '').trim();
+  if (t.length < 8) return { ok:false, msg:'追问太短，请指向你想追问的具体内容' };
+  if (PURE_STANCE.test(t)) return { ok:false, msg:'纯表态不构成追问，请指出具体想追问哪一点' };
+  return { ok:true };
+}
+
+function addQuestion(pid, text, author){
+  const chk = canAddChild(pid);
+  if (!chk.ok) return chk;
+  const p = byId[pid];
+  const qCount = (p.children || []).filter(function(c){ return c.type === 'question'; }).length;
+  if (qCount >= QUESTION_MAX) return { ok:false, msg:'该节点追问已满，请先回应现有追问' };
+  const v = validQuestionText(text);
+  if (!v.ok) return v;
+  const node = {
+    id:'u' + (++uid), type:'question', stance:p.stance === 'root' ? 'neu' : p.stance,
+    text:text.trim(), author:author || '我', answered:false, children:[]
+  };
+  p.children.push(node);
+  register(node, pid, depthOf[pid] + 1);
+  expanded.add(pid);
+  return { ok:true, node:node };
+}
+
+/* 回应追问：立场继承被追问论点的立场 */
+function respondToQuestion(qid, opts){
+  const q = byId[qid];
+  if (!q || q.type !== 'question') return { ok:false, msg:'追问不存在' };
+  const parentClaim = byId[parentOf[qid]];
+  opts = Object.assign({}, opts, { stance: parentClaim && parentClaim.stance !== 'root' ? parentClaim.stance : 'neu' });
+  const r = addClaim(qid, opts);
+  if (r.ok) q.answered = true;
+  return r;
+}
+
+function vote(id, dir){
+  const n = byId[id];
+  if (!n || !n.votes) return;
+  if (dir > 0) n.votes.up++; else n.votes.down++;
+}
+
+function toggleNode(id){
+  if (expanded.has(id)) expanded.delete(id); else expanded.add(id);
+}
+
+/* ================= 渲染层 ================= */
+
+function el(id){ return document.getElementById(id); }
+
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+const STANCE_NAME = { pro:'支持', neu:'看条件', con:'反对' };
+
+function srcBadge(n){
+  if (!n.source) return '';
+  return '<span class="src-badge" onclick="event.stopPropagation();openSource(\'' + n.id + '\')">源自知乎回答 ↗</span>';
+}
+
+function voteHtml(n){
+  const score = n.votes.up - n.votes.down;
+  return '<span class="vote">' +
+    '<button onclick="event.stopPropagation();doVote(\'' + n.id + '\',1)">▲</button>' +
+    '<span class="n">' + score + '</span>' +
+    '<button onclick="event.stopPropagation();doVote(\'' + n.id + '\',-1)">▼</button></span>';
+}
+
+function renderQuestion(q){
+  let h = '<div class="q-bubble" data-id="' + q.id + '">' +
+    '<span class="tag">追问</span>' + esc(q.text) +
+    '<div class="meta"><span>' + esc(q.author) + '</span>';
+  if (q.answered) h += '<span class="answered">已回应</span>';
+  else h += '<button class="respond" onclick="event.stopPropagation();openRespond(\'' + q.id + '\')">回应</button>';
+  h += '</div>';
+  if (q.children && q.children.length && expanded.has(q.id)){
+    h += '<div class="children">' + q.children.map(renderCard).join('') + '</div>';
+  } else if (q.children && q.children.length){
+    h += '<div class="meta"><button class="respond" onclick="event.stopPropagation();doToggle(\'' + q.id + '\')">展开 ' + q.children.length + ' 条回应 ▼</button></div>';
+  }
+  return h + '</div>';
+}
+
+function renderCard(n){
+  const open = expanded.has(n.id);
+  const kids = n.children || [];
+  const qKids = kids.filter(function(c){ return c.type === 'question'; });
+  const cKids = kids.filter(function(c){ return c.type === 'claim'; });
+  let h = '<div class="card stance-' + n.stance + (open ? ' open' : '') + (selectedId === n.id ? ' selected' : '') + '" data-id="' + n.id + '">';
+  h += '<div onclick="doToggle(\'' + n.id + '\')">';
+  h += '<div class="txt">' + esc(n.text) + '</div>';
+  h += '<div class="meta">' + voteHtml(n) + '<span>' + esc(n.author) + '</span>';
+  if (n.evidence) h += '<span class="badge ev">依据</span>';
+  h += srcBadge(n);
+  if (qKids.some(function(q){ return !q.answered; })) h += '<span class="badge q">有追问待回应</span>';
+  if (kids.length) h += '<span class="caret">' + (open ? '收起 ▲' : kids.length + ' 条回应 ▼') + '</span>';
+  h += '</div></div>';
+  h += '<div class="actions">' +
+    '<button onclick="event.stopPropagation();openAddClaim(\'' + n.id + '\')">＋回应</button>' +
+    '<button onclick="event.stopPropagation();openQuestion(\'' + n.id + '\')">追问</button>' +
+    '</div>';
+  if (open){
+    h += '<div class="body">';
+    if (n.evidence) h += '<div class="evidence"><b>依据 ·</b> ' + esc(n.evidence) + '</div>';
+    if (n.agentHint){
+      h += '<div class="agent-strip"><span>Agent 在听：' + esc(n.agentHint) + '</span>' +
+        '<button class="btn" onclick="event.stopPropagation();openQuestion(\'' + n.id + '\',1)">以此追问</button></div>';
+    }
+    if (kids.length){
+      h += '<div class="children">' + cKids.map(renderCard).join('') + qKids.map(renderQuestion).join('') + '</div>';
+    }
+    h += '</div>';
+  }
+  return h + '</div>';
+}
+
+function renderTopic(){
+  const t = tree;
+  el('topic').innerHTML =
+    '<h1>' + esc(t.text) + '</h1>' +
+    '<div class="meta">' + voteHtml(t) + '<span>' + esc(t.author) + '</span>' + srcBadge(t) +
+    '<span>' + countNodes(t) + ' 个节点 · ' + tree.children.length + ' 个立场</span></div>';
+}
+
+function renderStats(){
+  const s = stanceStats();
+  const pct = function(k){ return s.total ? Math.round(s.counts[k] / s.total * 100) : 0; };
+  const imbalanced = s.maxPct > 0.7;
+  el('stats').innerHTML =
+    '<div class="bar">' +
+    '<i class="p" style="width:' + pct('pro') + '%"></i>' +
+    '<i class="n" style="width:' + pct('neu') + '%"></i>' +
+    '<i class="c" style="width:' + pct('con') + '%"></i></div>' +
+    '<div class="legend">' +
+    '<span><i class="dot p"></i>支持 <b>' + s.counts.pro + '</b></span>' +
+    '<span><i class="dot n"></i>看条件 <b>' + s.counts.neu + '</b></span>' +
+    '<span><i class="dot c"></i>反对 <b>' + s.counts.con + '</b></span>' +
+    '<span>最大立场占比 <b>' + Math.round(s.maxPct * 100) + '%</b></span>' +
+    '<span class="warn-chip' + (imbalanced ? ' on' : '') + '">失衡：该议题立场一边倒，建议补充少数派视角</span>' +
+    '</div>';
+}
+
+function renderColumns(){
+  const order = ['pro', 'neu', 'con'];
+  el('columns').innerHTML = order.map(function(st){
+    const kids = tree.children.filter(function(c){ return c.stance === st; }); /* 按内容顺序，不按票数 */
+    return '<div class="col" data-stance="' + st + '">' +
+      '<div class="col-head"><i class="dot ' + st[0] + '"></i>' + STANCE_NAME[st] +
+      '<span class="cnt">' + kids.length + ' 个立场</span>' +
+      '<button class="add" title="添加' + STANCE_NAME[st] + '论点" onclick="openAddClaim(\'root\',\'' + st + '\')">＋</button></div>' +
+      (kids.length ? kids.map(renderCard).join('') : '<div style="font-size:12px;color:var(--sub);padding:8px 2px">还没有立场，来抢沙发</div>') +
+      '</div>';
+  }).join('');
+}
+
+function render(){ renderTopic(); renderStats(); renderColumns(); }
+
+/* ================= 交互层 ================= */
+
+function doToggle(id){
+  selectedId = id;
+  toggleNode(id);
+  render();
+}
+
+function doVote(id, dir){
+  vote(id, dir);
+  render();
+}
+
+function openSource(id){
+  const n = byId[id];
+  if (n && n.source && typeof window !== 'undefined' && window.open) window.open(n.source.url, '_blank');
+}
+
+let toastTimer = null;
+function toast(msg){
+  const t = el('toast');
+  t.textContent = msg;
+  t.className = 'toast on';
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.className = 'toast'; }, 2400);
+}
+
+/* ---------- 弹窗 ---------- */
+
+function showPanel(html){ el('panel').innerHTML = html; el('overlay').className = 'overlay on'; }
+function closeModal(){ el('overlay').className = 'overlay'; el('panel').innerHTML = ''; }
+
+function stanceRadios(name, preset, locked){
+  return ['pro','neu','con'].map(function(st){
+    const checked = st === preset ? ' checked' : '';
+    const dis = locked && st !== preset ? ' disabled' : '';
+    return '<label class="' + (locked ? 'locked' : '') + '"><input type="radio" name="' + name + '" value="' + st + '"' + checked + dis + '><span>' + STANCE_NAME[st] + '</span></label>';
+  }).join('');
+}
+
+function openAddClaim(pid, presetStance){
+  const chk = canAddChild(pid);
+  if (!chk.ok){ toast(chk.msg); return; }
+  const parent = byId[pid];
+  const stance = presetStance || (parent.stance === 'root' ? 'pro' : parent.stance);
+  showPanel(
+    '<h3>添加论点</h3>' +
+    '<div class="reply-to">回应：' + esc(parent.text) + '</div>' +
+    '<div class="stance-row">' + stanceRadios('m-stance', stance, pid !== 'root' && !presetStance ? false : !!presetStance) + '</div>' +
+    '<textarea id="m-text" placeholder="你的主张（一句话说清）"></textarea>' +
+    '<input type="text" id="m-evidence" placeholder="依据（可选）：数据、经历、出处">' +
+    '<div class="err" id="m-err"></div>' +
+    '<div class="foot"><button class="btn-ghost" onclick="closeModal()">取消</button>' +
+    '<button class="btn-primary" onclick="submitClaim(\'' + pid + '\')">发布</button></div>'
+  );
+}
+
+function submitClaim(pid){
+  const stanceEl = document.querySelector('input[name="m-stance"]:checked');
+  const r = addClaim(pid, {
+    stance: stanceEl ? stanceEl.value : 'neu',
+    text: el('m-text').value,
+    evidence: el('m-evidence').value
+  });
+  if (!r.ok){ const e = el('m-err'); e.textContent = r.msg; e.className = 'err on'; return; }
+  closeModal();
+  render();
+}
+
+function openQuestion(pid, fromHint){
+  const chk = canAddChild(pid);
+  if (!chk.ok){ toast(chk.msg); return; }
+  const parent = byId[pid];
+  if ((parent.children || []).filter(function(c){ return c.type === 'question'; }).length >= QUESTION_MAX){
+    toast('该节点追问已满，请先回应现有追问'); return;
+  }
+  const draft = fromHint && parent.agentHint ? parent.agentHint : '';
+  showPanel(
+    '<h3>追问这个论点</h3>' +
+    '<div class="reply-to">追问对象：' + esc(parent.text) + '</div>' +
+    '<textarea id="m-text" placeholder="指出你想追问的具体内容（纯表态不构成追问）">' + esc(draft) + '</textarea>' +
+    '<div class="err" id="m-err"></div>' +
+    '<div class="foot"><button class="btn-ghost" onclick="closeModal()">取消</button>' +
+    '<button class="btn-primary" onclick="submitQuestion(\'' + pid + '\')">发布追问</button></div>'
+  );
+}
+
+function submitQuestion(pid){
+  const r = addQuestion(pid, el('m-text').value);
+  if (!r.ok){ const e = el('m-err'); e.textContent = r.msg; e.className = 'err on'; return; }
+  byId[pid].agentHint = null; /* 追问已生成，建议条淡出 */
+  closeModal();
+  render();
+}
+
+function openRespond(qid){
+  const q = byId[qid];
+  const parentClaim = byId[parentOf[qid]];
+  const stance = parentClaim && parentClaim.stance !== 'root' ? parentClaim.stance : 'neu';
+  const chk = canAddChild(qid);
+  if (!chk.ok){ toast(chk.msg); return; }
+  showPanel(
+    '<h3>回应追问（立场继承：' + STANCE_NAME[stance] + '）</h3>' +
+    '<div class="reply-to">回应追问：' + esc(q.text) + '</div>' +
+    '<textarea id="m-text" placeholder="你的回应"></textarea>' +
+    '<input type="text" id="m-evidence" placeholder="依据（可选）">' +
+    '<div class="err" id="m-err"></div>' +
+    '<div class="foot"><button class="btn-ghost" onclick="closeModal()">取消</button>' +
+    '<button class="btn-primary" onclick="submitRespond(\'' + qid + '\')">发布</button></div>'
+  );
+}
+
+function submitRespond(qid){
+  const r = respondToQuestion(qid, { text: el('m-text').value, evidence: el('m-evidence').value });
+  if (!r.ok){ const e = el('m-err'); e.textContent = r.msg; e.className = 'err on'; return; }
+  closeModal();
+  render();
+}
+
+/* ================= 自测 ================= */
+
+const FORBIDDEN = /谬误|错误|偷换/;
+
+function selfTest(){
+  const fails = [];
+  /* 1. 索引完整 */
+  if (Object.keys(byId).length !== countNodes(tree)) fails.push('索引不完整: byId=' + Object.keys(byId).length + ' nodes=' + countNodes(tree));
+  /* 2. parentOf 全是字符串 id */
+  Object.keys(parentOf).forEach(function(id){
+    if (parentOf[id] !== null && typeof parentOf[id] !== 'string') fails.push('parentOf[' + id + '] 不是字符串');
+  });
+  /* 3-5. 深度/子数/追问上限 */
+  (function walk(n){
+    if (depthOf[n.id] > DEPTH_MAX) fails.push('深度超限: ' + n.id);
+    if ((n.children || []).length > CHILD_MAX) fails.push('子节点超限: ' + n.id);
+    if ((n.children || []).filter(function(c){ return c.type === 'question'; }).length > QUESTION_MAX) fails.push('追问超限: ' + n.id);
+    (n.children || []).forEach(walk);
+  })(tree);
+  /* 6. Agent 文案红线 */
+  (function walk(n){
+    if (n.agentHint && FORBIDDEN.test(n.agentHint)) fails.push('Agent 文案含评判词: ' + n.id);
+    (n.children || []).forEach(walk);
+  })(tree);
+  /* 7. DOM 渲染 */
+  if (!el('topic').innerHTML) fails.push('议题卡未渲染');
+  const cols = document.querySelectorAll('#columns .col');
+  if (cols.length !== 3) fails.push('三栏未渲染: ' + cols.length);
+  /* 8. 失衡判定逻辑（合成数据） */
+  if (!isImbalanced({ pro:7, neu:1, con:1 })) fails.push('失衡判定失效(应判失衡)');
+  if (isImbalanced({ pro:3, neu:2, con:2 })) fails.push('失衡判定失效(不应判失衡)');
+  return fails;
+}
+
+function init(){
+  render();
+  const fails = selfTest();
+  const bar = el('testbar');
+  if (fails.length){
+    bar.className = 'testbar fail';
+    bar.textContent = 'selfTest ✗ ' + fails.length + ' 项失败: ' + fails.join(' | ');
+    if (typeof console !== 'undefined') console.error('selfTest fails:', fails);
+  } else {
+    bar.className = 'testbar';
+    bar.textContent = 'selfTest ✓ 全部通过（索引/父引用/深度/子数/追问上限/文案红线/渲染/失衡判定）';
+  }
+}
+
+if (typeof document !== 'undefined' && document.addEventListener){
+  document.addEventListener('DOMContentLoaded', init);
+}
+</script>
+</body>
+</html>

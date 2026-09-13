@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="4eha3DfX2iFARO8q3mv7Rk">
+<head data-page-node-id="I9XvaJtlNgcHjzMHqNjXJE">
+<meta charset="UTF-8" data-page-node-id="2uxgGOXIWokn5Rs4Nfp7wA">
+<meta name="viewport" content="width=device-width,initial-scale=1" data-page-node-id="Ocfv7CC0YfaqttgH3bmRph">
+<title>争鸣 · 事件推演</title>
+<style>
+:root{--blue:#056DE8;--ink:#121212;--sub:#6b7484;--line:#e5e8ee;--card:#fff;--bg:#f6f7f9;--real:#5a6474;--warn:#c2571f}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#fff;color:var(--ink);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:#fff}
+.logo{font-weight:700;font-size:19px;color:var(--blue)}
+.crumb{font-size:13px;color:var(--sub)}
+.crumb b{color:var(--ink)}
+.spacer{flex:1}
+.btn{border:none;background:#f6f7f9;border-radius:6px;padding:7px 14px;font-size:13px;color:var(--ink);cursor:pointer;text-decoration:none}
+.btn:hover{background:#eceef2;color:var(--blue)}
+.btn-primary{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:500}
+.btn-primary:hover{opacity:.9;color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+main{flex:1;display:flex;gap:12px;padding:12px 16px;min-height:0;overflow-x:auto}
+.mcard{background:none;border:none;border-radius:0;padding:2px 10px 6px}
+/* 知乎风：内缩分割线 */
+.col-l .mcard+.mcard,.col-r .mcard+.mcard{position:relative;padding-top:14px}
+.col-l .mcard+.mcard::before,.col-r .mcard+.mcard::before{content:'';position:absolute;top:0;left:10px;right:10px;height:1px;background:var(--line)}
+.panel-title{font-size:13px;font-weight:600;margin-bottom:10px}
+/* 左栏 */
+.col-l{width:250px;flex-shrink:1;min-width:180px;display:flex;flex-direction:column;gap:10px;overflow-y:auto}
+.adapt{font-size:11px;color:var(--sub);background:#f7f8fa;border-radius:6px;padding:7px 10px;line-height:1.6}
+.adapt b{color:var(--warn)}
+.tl{display:flex;flex-direction:column;gap:0;margin-top:4px}
+.tl-item{display:flex;gap:9px;position:relative;padding-bottom:14px}
+.tl-item::before{content:"";position:absolute;left:5px;top:14px;bottom:0;width:1.5px;background:var(--line)}
+.tl-item:last-child::before{display:none}
+.tl-dot{width:11px;height:11px;border-radius:50%;background:#fff;border:2px solid var(--line);flex-shrink:0;margin-top:3px;z-index:1}
+.tl-item.hit .tl-dot{border-color:var(--blue);background:var(--blue)}
+.tl-item.cur .tl-dot{border-color:var(--blue);box-shadow:0 0 0 3px #dbeafe}
+.tl-txt{font-size:11.5px;color:var(--sub);line-height:1.5}
+.tl-item.hit .tl-txt,.tl-item.cur .tl-txt{color:var(--ink)}
+.tl-fork{font-size:10.5px;color:var(--blue);margin-top:2px;cursor:pointer}
+.tl-fork:hover{text-decoration:underline}
+.legend{display:flex;flex-direction:column;gap:7px;font-size:11.5px;color:var(--sub)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+/* 中栏：沙盘舞台 */
+.col-c{flex:1;display:flex;flex-direction:column;min-width:300px;overflow-y:auto;background:none;border:none;border-radius:0;padding:18px 6px}
+.stage{animation:fadein .4s}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.s-time{font-size:11.5px;color:var(--blue);font-weight:600;letter-spacing:1px;margin-bottom:8px}
+.s-text{font-size:14.5px;line-height:1.85}
+.s-forkq{font-size:13px;font-weight:600;color:var(--blue);margin:16px 0 10px}
+.opt{border:none;border-radius:8px;padding:12px 14px;margin-bottom:9px;cursor:pointer;position:relative;transition:background .15s;background:#f7f8fa}
+.opt:hover{background:#f0f2f5}
+.opt .o-t{font-size:13.5px;line-height:1.6}
+.opt .o-bar{height:4px;border-radius:2px;background:var(--line);margin-top:8px;overflow:hidden}
+.opt .o-bar i{display:block;height:100%;background:#c3cad6;border-radius:2px;transition:width .5s}
+.opt.chosen{background:#e8f3ff}
+.opt.chosen .o-bar i{background:var(--blue)}
+.opt .o-pct{position:absolute;right:12px;top:10px;font-size:11px;color:#c3cad6}
+.opt.chosen .o-pct{color:var(--blue);font-weight:600}
+.opt.dis{opacity:.45;cursor:default;pointer-events:none}
+.opt.dis.chosen{opacity:1}
+/* 事实层 */
+.real-fold{border:none;border-radius:8px;margin-top:14px;background:#f7f8fa}
+.real-fold summary{font-size:12px;color:var(--real);padding:9px 12px;cursor:pointer;list-style:none;user-select:none}
+.real-fold summary::before{content:"▸ "}
+.real-fold[open] summary::before{content:"▾ "}
+.real-body{padding:0 12px 12px;font-size:12.5px;color:#3c4350;line-height:1.7}
+.real-body .r-tag{display:inline-block;font-size:10.5px;background:var(--real);color:#fff;border-radius:3px;padding:0 6px;margin-bottom:6px}
+.real-body a{color:var(--blue);text-decoration:none;font-size:11.5px}
+/* 后果卡 */
+.conseq{border-left:3px solid var(--blue);background:#f7fbff;border-radius:0 8px 8px 0;padding:12px 14px;font-size:13px;line-height:1.8;margin-top:14px}
+.conseq .c-l{font-size:11px;color:var(--blue);font-weight:600;margin-bottom:4px}
+.stage-foot{display:flex;gap:10px;margin-top:16px}
+/* 右栏 */
+.col-r{width:300px;flex-shrink:1;min-width:220px;display:flex;flex-direction:column;gap:10px;overflow-y:auto}
+.hint-card{border:none;border-radius:10px;padding:10px 13px;background:#eef4ff}
+.hint-card .h-head{font-size:11px;color:var(--blue);font-weight:600;margin-bottom:5px}
+.hint-card .h-body{font-size:12.5px;line-height:1.65}
+.path-chip{font-size:11.5px;color:var(--ink);background:#f7f8fa;border:none;border-radius:16px;padding:3px 10px;display:inline-block;margin:0 5px 6px 0}
+.path-chip.dev{border-color:var(--warn);color:var(--warn)}
+.p-note{font-size:11px;color:var(--sub);margin-top:6px;line-height:1.6}
+.stats{display:flex;gap:8px;margin-top:8px}
+.stat{flex:1;background:var(--bg);border-radius:8px;padding:8px;text-align:center}
+.stat b{display:block;font-size:18px;color:var(--blue)}
+.stat span{font-size:10.5px;color:var(--sub)}
+/* 终局遮罩 */
+.mask{position:fixed;inset:0;background:rgba(18,18,18,.5);display:none;align-items:center;justify-content:center;z-index:50}
+.mask.show{display:flex}
+.endcard{background:#fff;border-radius:14px;width:640px;max-width:94vw;max-height:88vh;overflow-y:auto;padding:26px 30px}
+.endcard h2{font-size:17px;margin-bottom:4px}
+.e-sub{font-size:12px;color:var(--sub);margin-bottom:16px}
+.cmp{width:100%;border-collapse:collapse;margin-bottom:16px}
+.cmp th{font-size:11px;color:var(--sub);font-weight:500;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.cmp td{font-size:12.5px;line-height:1.6;padding:9px 8px;border-bottom:1px dashed var(--line);vertical-align:top}
+.cmp td.you{color:var(--blue);font-weight:500}
+.cmp td.real{color:#3c4350}
+.cmp td.crowd{color:var(--sub)}
+.cmp .same{font-size:10.5px;background:#e8f3ff;color:var(--blue);border-radius:3px;padding:0 5px;margin-left:4px}
+.e-host{border:1.5px dashed var(--blue);border-radius:10px;padding:12px 14px;background:#f7fbff;margin-bottom:14px}
+.e-host h3{font-size:12px;color:var(--blue);margin-bottom:8px}
+.e-host li{font-size:12.5px;line-height:1.7;color:#3c4350;margin-left:16px}
+.e-actions{display:flex;gap:10px;justify-content:flex-end}
+.end-story{font-size:13px;line-height:1.85;background:var(--bg);border-radius:8px;padding:12px 14px;margin-bottom:16px}
+.end-story b{color:var(--blue)}
+.toast{position:fixed;left:50%;top:15%;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:13px;border-radius:8px;padding:10px 22px;display:none;z-index:60}
+</style>
+</head>
+<body data-page-node-id="AFnCfMvHM43wBFkoQ4mb3V">
+<header data-page-node-id="4YARZe9cEEtNMofBL4Djah">
+  <span class="logo" data-page-node-id="BUTG4dEoEm7CmiZxabr2DY">争鸣</span>
+  <span class="crumb" data-page-node-id="dcU6PdZiARecSbyKOEKgCj">事件推演 · <b data-page-node-id="sIk1jJY4VJwWLkAdiOAUQp">老陈事件（2023）</b></span>
+  <span class="spacer" data-page-node-id="5tATvdmZSGrTR5mk2rEhK0"></span>
+  <a class="btn" href="debate-tree-prototype.html" style="text-decoration:none" data-page-node-id="nDqTQPkd2voTVO9bYFYCCC">← 返回辩论树</a>
+</header>
+
+<main data-page-node-id="0vXm9YdXAmyyjVEPdlBvpr">
+  <div class="col-l" data-page-node-id="0dA6rAZO6ClgusWuleH3Yr">
+    <div class="mcard" data-page-node-id="0zNcCTSqhgnRf6nReBtmDN">
+      <div class="panel-title" data-page-node-id="9vhM4Cqj5nvINRUSAoTBZa">事件卡</div>
+      <div style="font-size:13.5px;font-weight:600;line-height:1.6;margin-bottom:8px" data-page-node-id="4F6kQnQv0UOju0zJ4f0qwP">老陈事件：43 岁那年，他接到了苏州学校的电话</div>
+      <div class="adapt" data-page-node-id="MumN8IPils1lQYEKRMmniH"><b data-page-node-id="1JuxA2ukHImpykcgR9qD5I">改编声明</b> · 改编自真实教师流动事件的公开讨论，人物为化名、机构已模糊、时间粒度到月。模拟推演 ≠ 真实历史。</div>
+    </div>
+    <div class="mcard" data-page-node-id="jiCPB9vBzWu63kWbRhwaP4">
+      <div class="panel-title" data-page-node-id="YfkWye1wyiR1y4vNbwn4c0">推演路径</div>
+      <div class="tl" id="timeline" data-page-node-id="vHyehHXJSI7yeXsPzZkNBr"></div>
+      <div style="margin-top:10px;display:flex;gap:8px" data-page-node-id="G3qxl8kMWUwkuI3iL7hjan">
+        <button class="btn" id="btn-replay" style="flex:1" data-page-node-id="QZIvA7Hj0fBJ1BoWDdq3rF">↺ 回到最初，重新推演</button>
+      </div>
+      <div class="p-note" id="run-note" data-page-node-id="ztN5PLyg6dzL4YHSuWH4m8">已推演 1 次</div>
+    </div>
+    <div class="mcard" data-page-node-id="sJ7bKRfdb2aMiAXwaDyEqg">
+      <div class="panel-title" data-page-node-id="CTW7kWCwgjPFEJ6sPZB7kp">图层说明</div>
+      <div class="legend" data-page-node-id="E20OABfwgsnUpx55xFVd4L">
+        <span data-page-node-id="QyFTqHaOCgpnLrt1XXJ6R1"><i style="background:#f7fbff;border:1px solid var(--blue)" data-page-node-id="3avkCBoH6u1DBzzaZN1csF"></i>模拟层 · 你的推演</span>
+        <span data-page-node-id="RUoOtnRVWSkJNyETJi8tYJ"><i style="background:var(--bg);border:1px dashed var(--real)" data-page-node-id="4ps5FaKGdSwM5GnDGBvjby"></i>事实层 · 真实历史（默认折叠）</span>
+        <span data-page-node-id="0pKmDRUUnBw3WsY2eFgZdG"><i style="background:var(--blue)" data-page-node-id="CCYDtlDXOhCp20iPBeMG4A"></i>已走过的岔路口</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-c" id="stage-wrap" data-page-node-id="z2OjcvbZThrsVcnBiKpHCC"></div>
+
+  <div class="col-r" data-page-node-id="RQzgYiZrbNklTWNlt3LXSp">
+    <div class="mcard" data-page-node-id="4PYHG3XpWYraYaSeXghq69">
+      <div class="panel-title" data-page-node-id="qhCHmfynmXEj3ytQRtA2M8">Host · 当前节点的追问</div>
+      <div id="host-hint" data-page-node-id="NbeLksIP0NR45fOMK9U5VB"></div>
+    </div>
+    <div class="mcard" data-page-node-id="SHsb1LXeMzS9voi5j9u6Sa">
+      <div class="panel-title" data-page-node-id="4ECc93FeiGxHwh0g5s8eKX">我的路径</div>
+      <div id="my-path" data-page-node-id="QLpCDg4NCZ3BHIFGqvWLMk"></div>
+      <div class="p-note" data-page-node-id="1EXZSTTRPwozISDHkTJV0v">灰色 = 与真实历史一致的岔路口 · 橙色 = 偏离点</div>
+    </div>
+    <div class="mcard" data-page-node-id="lSaoXB4GmZWVTjkBWoC99R">
+      <div class="panel-title" data-page-node-id="viraunz77CWHtiLHglYHTr">本次推演数据</div>
+      <div class="stats" data-page-node-id="JjWtV1IoEYgU41eTAiSlB3">
+        <div class="stat" data-page-node-id="wj5TWNZvEzVYoFWJECJ1Dt"><b id="st-fork" data-page-node-id="CqwIIIzEL0fG55g8Jcddo4">0</b><span data-page-node-id="PeblSfiQMG0ANkyvMREOBR">走过的岔路</span></div>
+        <div class="stat" data-page-node-id="xzRK7ADMQbozACeE4RyEdh"><b id="st-dev" data-page-node-id="ex3Xz2cYxCCoSUbicEQXDP">0</b><span data-page-node-id="AfFWI9HfvJFCACeMfcf4F2">偏离真实</span></div>
+        <div class="stat" data-page-node-id="dm5SAGJMOrlxLZ9vCzrn7e"><b id="st-real" data-page-node-id="9femBWII26TwxwgRCP13vx">0</b><span data-page-node-id="Gcun7ssRPqhrNOfMySNEMA">对照过事实</span></div>
+      </div>
+    </div>
+    <div class="mcard" data-page-node-id="rHfPB4BCXoEaBF3rThpkuB">
+      <div class="panel-title" data-page-node-id="EPhhM58f1zCnjArHFnPOMe">分歧点 · 开辩论</div>
+      <div style="font-size:12px;color:var(--sub);line-height:1.6;margin-bottom:9px" data-page-node-id="IwJP5h15NMA50tqL37l5iV">在任何岔路口，都可以把这个选择丢进辩论树，让别人接着辩。</div>
+      <button class="btn btn-primary" style="width:100%" onclick="location.href='debate-tree-prototype.html'" data-page-node-id="7mlbhxCLTtsjtVPoHrdjJL">到辩论树讨论老陈事件 →</button>
+    </div>
+  </div>
+</main>
+
+<div class="mask" id="mask" data-page-node-id="PtWMQqiz5TT2ZVMlml2ycJ">
+  <div class="endcard" data-page-node-id="okyahsiVRuumNm7DRrmREx">
+    <h2 data-page-node-id="DMzIOqRefxDQM0s08codqR">推演结束 · 终局对照</h2>
+    <div class="e-sub" id="e-sub" data-page-node-id="UrSJuc2MPhA1WKsb2kr3cX"></div>
+    <div class="end-story" id="e-story" data-page-node-id="ssMtt19FYmoL6xTYhmj2my"></div>
+    <table class="cmp" data-page-node-id="jV3g5A2SpVrXpeHkAERi39">
+      <thead data-page-node-id="RHTiQ6dmuWztuABCWbtEav"><tr data-page-node-id="ElWM9CPKMVv8gZ6xCYvEVW"><th style="width:20%" data-page-node-id="gkU69vVV4CNcl7Cn1xZu1p">岔路口</th><th data-page-node-id="IVdSy28jpfuOnEXiuimfD0">你的选择</th><th data-page-node-id="zX5sojlcxKYorVRveAVLCO">真实历史</th><th data-page-node-id="R1ljGUlMm3xdCGEPoKPZl7">多数人</th></tr></thead>
+      <tbody id="cmp-body" data-page-node-id="8sh1aA30xjBpGKoC6jx0WK"></tbody>
+    </table>
+    <div class="e-host" data-page-node-id="VPbyFg9wjMGETk5y95Dfip">
+      <h3 data-page-node-id="Il5g7PdDKMwKgX9eeOfiPu">Host 推演追问（可一键转成辩论树追问）</h3>
+      <ul id="e-host-qs" data-page-node-id="0rJ0pYQCdKSkDQpYJtph0D"></ul>
+    </div>
+    <div class="e-actions" data-page-node-id="k7xH5EPN0tYpyFjcyfWDIH">
+      <button class="btn" onclick="location.reload()" data-page-node-id="kmg2YgAARGxhon91h9KBJa">↺ 重新推演</button>
+      <button class="btn" id="er-settle" data-page-node-id="4bWHAh1WiVViRXl71LBr3T">把分歧点沉淀到辩论树</button>
+      <button class="btn btn-primary" onclick="location.href='debate-tree-prototype.html'" data-page-node-id="KOhdIh1l1cLyLnYj6stPVD">进入辩论树 →</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" data-page-node-id="88mZOIG2TG1U1Pp3gWrzDv"></div>
+
+<script>
+/* ═══════════ 事件分岔链（改编自真实教师流动讨论） ═══════════
+   real:true 的选项 = 当事人真实走过的路；real.src = 知乎溯源摘要 */
+const NODES = {
+  s1:{ time:'2023 年 3 月 · 深夜',
+    text:'县中教了 18 年物理的老陈，43 岁，接到苏州一所头部公办校的电话：面试通过，正式编制，明年暑假前报到。挂了电话，他看了一眼隔壁屋写作业的孩子——今年初二。妻子问他：「你想好了吗？」',
+    hint:'「43 岁是最后的窗口」是老陈自己的断言——窗口真的存在，还是被焦虑放大了？',
+    real:{choice:'辞职去苏州', src:'知乎讨论摘要：多地人才引进政策近年对高级职称、骨干教师放宽年龄限制，40+ 调动案例显著上升，但成功率口径不一。', url:'#'},
+    opts:[
+      {t:'辞职去苏州——窗口不等人', pct:38, next:'a1', real:true, result:'两周后，老陈递交了辞职报告。校长沉默了很久，说：「你想清楚就好。」'},
+      {t:'留在县中——孩子初二不是小事', pct:45, next:'b1', result:'老陈婉拒了邀请。电话那头说：「名额给您留一年。」'},
+      {t:'先请长假考察一学期', pct:17, next:'c1', result:'老陈办了半年无薪长假。临走那天，教研组长欲言又止。'},
+    ]},
+  a1:{ time:'2023 年 6 月 · 苏州',
+    text:'入职三个月：老陈带初二两个班——不是毕业班。教研会上没人接他的话；他讲的段子，学生要在普通话和方言之间转换一下才笑。夜里他常翻县中家长群，那里还有他教了三年的孩子。',
+    hint:'「被边缘化」是客观事实还是落差感？判断不同，下一步完全不同。',
+    real:{choice:'接受安排，先站稳脚跟', src:'知乎讨论摘要：多位外调教师提到，调入头部校首年多被安排非毕业班，是惯例而非针对。', url:'#'},
+    opts:[
+      {t:'主动找校长谈，争取带毕业班', pct:30, next:'a2', result:'校长听完只说了一句：「明年看你今年的成绩。」球回到了老陈手里。'},
+      {t:'接受安排，先站稳脚跟', pct:52, next:'a2', real:true, result:'老陈决定闭嘴做事：把初二的课备到极致。他在等一个证明自己的机会。'},
+      {t:'偷偷联系县中老同事，留条后路', pct:18, next:'a2', result:'老同事回他：「岗位给你留到明年夏天。」老陈握着手机，像握着一张保险单。'},
+    ]},
+  b1:{ time:'2024 年 2 月 · 县中',
+    text:'一年过去。老陈带初三毕业班，区里统考排名稳中有升。苏州的电话再次打来：「名额还有一个，这次不留了。」孩子成绩正是关键期，妻子看着他。',
+    hint:'「窗口只剩一次」是谁规定的？窗口大小，取决于它对你多重要。',
+    real:{choice:'——（真实历史中老陈已离开）', src:null, url:null},
+    opts:[
+      {t:'再赌一次，这次全家一起搬', pct:26, next:'b2', result:'全家开了三次家庭会议。孩子说：「反正你们早就想去了。」'},
+      {t:'彻底放下，安心在县中', pct:58, next:'e4', result:'老陈把苏州的号码存进了通讯录备注「不再联系」。'},
+      {t:'折中：自己去，孩子和妈妈留下', pct:16, next:'e2', result:'一个家从此拆成两座城市，周末的高铁成了回家的路。'},
+    ]},
+  c1:{ time:'2023 年 10 月 · 县中',
+    text:'考察到第二个月，老陈听到风声：县里明年可能推进两所高中合并，编制将重新核定。苏州那边催他：「长假不能一直请。」',
+    hint:'「合并裁编」目前只是风声——基于传闻做重大决策，风险和机会是同一样东西。',
+    real:{choice:'——（真实历史中老陈已离开）', src:null, url:null},
+    opts:[
+      {t:'立刻签约苏州——落袋为安', pct:44, next:'a1', result:'老陈结束长假，直接入职。风声？等它变成文件再说。'},
+      {t:'继续观望，两边都吊着', pct:39, next:'c2', result:'老陈过起了双城生活：周一到周四在苏州代课，周五回县中看孩子。'},
+      {t:'放弃苏州，回来教书', pct:17, next:'e4', result:'长假结束，老陈回到讲台。苏州的号码他没有删，也没有再响过。'},
+    ]},
+  c2:{ time:'2024 年 5 月 · 双城',
+    text:'双城生活第七个月。孩子在电话里说「你不用回来了」，妻子在电话里说「你看着办」。合并的文件终于下发：县中保留，裁编传闻落空。',
+    hint:'当不确定消失时，人才发现自己早已用行动做了选择。',
+    real:{choice:'——（真实历史中老陈已离开）', src:null, url:null},
+    opts:[
+      {t:'辞职在苏州办妥，全家搬来', pct:33, next:'a2', result:'老陈正式入职苏州，把妻儿的行李寄了过去。'},
+      {t:'回县中——折腾够了', pct:67, next:'e4', result:'老陈回到县中的讲台。粉笔灰落下来的时候，他长出了一口气。'},
+    ]},
+  b2:{ time:'2024 年 9 月 · 苏州',
+    text:'全家搬到苏州四个月。老陈带初二，孩子转学后第一次月考，比县中模考低了 40 分，回家把自己关进房间。老陈的公开课倒是拿了个区一等奖。',
+    hint:'孩子的「40 分」有多少归因于转学？没有对照实验，只有归因方式。',
+    real:{choice:'——（真实历史中老陈独自先走）', src:null, url:null},
+    opts:[
+      {t:'坚持住——适应期总会过去', pct:47, next:'e1', result:'全家决定再撑一年，请了家教盯着孩子的物理。'},
+      {t:'送孩子回县中读书，自己留下', pct:38, next:'e2', result:'妻子带孩子回了县中。老陈的周末从此属于 G 字头的高铁。'},
+      {t:'全家搬回县中', pct:15, next:'e3', result:'行李箱还没有完全归位，就又开始打包了。'},
+    ]},
+  a2:{ time:'2024 年 6 月 · 中考报名在即',
+    text:'又是一年过去。孩子在苏州的月考比县中模考低了 40 分，把自己关进房间。老陈的公开课拿了区一等奖，校长松了口：明年让他带毕业班。但中考报名表就摆在桌上。',
+    hint:'孩子的「40 分」有多少归因于转学？没有对照实验，只有归因方式——而归因方式决定下一步。',
+    real:{choice:'坚持留在苏州', src:'知乎讨论摘要：跨市转学对学生成绩的影响研究结论不一，家庭支持质量是比迁移本身更强的变量。', url:'#'},
+    opts:[
+      {t:'坚持留在苏州——开弓没有回头箭', pct:40, next:'e1', real:true, result:'老陈在报名表上签了字，出门给孩子买了最爱吃的糖炒栗子。'},
+      {t:'送孩子回县中读书，自己周末往返', pct:42, next:'e2', result:'妻子带孩子回去了。老陈的出租屋里，多了一张全家福和一张高铁时刻表。'},
+      {t:'全家搬回县中——编制可以再挣', pct:18, next:'e3', result:'辞职信还没捂热，又写了第二封。校长这次只回了两个字：「随意。」'},
+    ]},
+  /* ── 结局 ── */
+  e1:{ end:true, time:'结局 A · 第三年',
+    text:'老陈的毕业班物理均分冲进全区前五。孩子考上苏州的普高，话变少了，但那次月考后主动说「爸，物理我预习了」。深夜老陈偶尔还是会想县中——想的是那里的人，不是那里的岗。他至今说不清这笔账是赚是亏，但他知道，如果重来一次，他还是会签那个字。',
+    ending:'闯出去，也扛住了代价'},
+  e2:{ end:true, time:'结局 B · 两地之间',
+    text:'周末高铁坐了一年半，老陈的腰出了问题。孩子的成绩回了县中水平，妻子学会了独自处理一切。职称评上了，一家三口的「一家人时间」却要按车次表安排。老陈说这是他人生最精力充沛也最心力交瘁的两年。',
+    ending:'两边都要，两边都亏欠'},
+  e3:{ end:true, time:'结局 C · 归途',
+    text:'回到县中的第一个学期，老陈上课总有点恍惚——像刚吵完架回家的夫妻，看什么都别扭。慢慢地，他重新带起了物理竞赛小组。编制、职称、熟悉的方言都在，只是每次路过苏州方向的高铁站，他都会多看一眼。',
+    ending:'退回来，把日子过成另一种答案'},
+  e4:{ end:true, time:'结局 D · 未曾离开',
+    text:'老陈带完了那一届初三，评上了高级职称。苏州后来又打过一次电话，他笑着挂了。偶尔刷到「35 岁危机」「中年裸辞」的帖子，他会在评论区停留很久，然后什么都不写。有些选择的价值，在于它让你不再幻想另一种生活。',
+    ending:'留下来，幻想就此落地'},
+};
+const CROWD_MOST = { s1:1, a1:1, a2:1, b1:1, b2:0, c1:0, c2:1 };  /* 多数人选项索引 */
+const REAL_HOST_QS = [
+  '你在偏离真实路径的那个岔路口，隐含假设是什么？这个假设放到当时的信息条件下还成立吗？',
+  '对比三种结局：你追求的到底是「最优解」，还是「不后悔」？这两者是不是一回事？',
+];
+
+/* ═══════════ 状态 ═══════════ */
+let cur='s1', path=[], runs=1, devCount=0, realOpened=0;
+const stageWrap=document.getElementById('stage-wrap');
+
+function esc(s){ return s.replace(/</g,'&lt;'); }
+
+function renderTimeline(){
+  const tl=document.getElementById('timeline'); tl.innerHTML='';
+  const seen=[...path.map(p=>p.node), cur];
+  Object.keys(NODES).filter(k=>!NODES[k].end).forEach(k=>{
+    const n=NODES[k];
+    const hit=seen.includes(k);
+    const isCur=k===cur;
+    const d=document.createElement('div');
+    d.className='tl-item'+(hit?' hit':'')+(isCur?' cur':'');
+    let fork='';
+    if(path.find(p=>p.node===k)) fork=`<div class="tl-fork" data-node="${k}">↺ 从这里重走</div>`;
+    d.innerHTML=`<div class="tl-dot"></div><div class="tl-txt">${n.time.split('·')[0]}<br>${fork}</div>`;
+    tl.appendChild(d);
+  });
+  tl.querySelectorAll('.tl-fork').forEach(el=>{
+    el.onclick=()=>replayFrom(el.dataset.node);
+  });
+}
+function replayFrom(node){
+  const idx=path.findIndex(p=>p.node===node);
+  path=path.slice(0,idx);
+  cur=node;
+  updateStats(); render();
+}
+function updateStats(){
+  document.getElementById('st-fork').textContent=path.length;
+  document.getElementById('st-dev').textContent=path.filter(p=>p.dev).length;
+  document.getElementById('st-real').textContent=realOpened;
+  document.getElementById('run-note').textContent=`已推演 ${runs} 次`;
+  /* 我的路径 chips */
+  const mp=document.getElementById('my-path'); mp.innerHTML='';
+  path.forEach(p=>{
+    const n=NODES[p.node];
+    const c=document.createElement('span');
+    c.className='path-chip'+(p.dev?' dev':'');
+    c.textContent=NODES[p.node].opts[p.choice].t.slice(0,14)+(NODES[p.node].opts[p.choice].t.length>14?'…':'');
+    mp.appendChild(c);
+  });
+  if(!path.length) mp.innerHTML='<div class="p-note">还没有走过岔路口</div>';
+}
+function renderHost(){
+  const n=NODES[cur];
+  document.getElementById('host-hint').innerHTML=
+    `<div class="hint-card"><div class="h-head">Host · 追问（不评判）</div><div class="h-body">${n.hint}</div></div>`;
+}
+function render(){
+  renderTimeline(); renderHost(); updateStats();
+  const n=NODES[cur];
+  if(n.end){ showEnd(); return; }
+  let html=`<div class="stage"><div class="s-time">${n.time}</div><div class="s-text">${n.text}</div>`;
+  html+=`<div class="s-forkq">换你来做这个决定——</div>`;
+  n.opts.forEach((o,i)=>{
+    html+=`<div class="opt" data-i="${i}"><span class="o-pct">${o.pct}%</span><div class="o-t">${o.t}</div><div class="o-bar"><i style="width:${o.pct}%"></i></div></div>`;
+  });
+  /* 事实层折叠（剧透保护：默认收起） */
+  if(n.real && n.real.src!==null){
+    html+=`<details class="real-fold" id="real-fold"><summary>真实历史中，老陈在这一步做了什么？（含剧透，慎点）</summary>
+      <div class="real-body"><span class="r-tag">真实历史</span>老陈选择了：<b>${n.real.choice}</b><br>${n.real.src}<br>
+      <a href="${n.real.url}" onclick="return false">知乎 · 查看相关事件讨论 →</a></div></details>`;
+  } else if(n.real){
+    html+=`<details class="real-fold"><summary>真实历史中，老陈在这一步做了什么？</summary>
+      <div class="real-body"><span class="r-tag">真实历史</span>${n.real.choice}</div></details>`;
+  }
+  html+='</div>';
+  stageWrap.innerHTML=html; stageWrap.scrollTop=0;
+  /* 占比置灰：选择前不点亮数字（视觉弱化） */
+  stageWrap.querySelectorAll('.o-pct').forEach(el=>el.style.visibility='hidden');
+  /* 事实层展开计数 */
+  const rf=document.getElementById('real-fold');
+  if(rf) rf.addEventListener('toggle',()=>{ if(rf.open){ realOpened++; updateStats(); } });
+  /* 选择 */
+  stageWrap.querySelectorAll('.opt').forEach(el=>{ el.onclick=()=>chooseOpt(+el.dataset.i); });
+}
+
+function chooseOpt(i){
+  const n=NODES[cur], o=n.opts[i];
+  /* 点亮占比 */
+  stageWrap.querySelectorAll('.o-pct').forEach(e2=>e2.style.visibility='visible');
+  stageWrap.querySelectorAll('.opt').forEach((e2,k)=>{ e2.classList.add('dis'); if(k===i) e2.classList.remove('dis'); });
+  const chosenEl=stageWrap.querySelector(`.opt[data-i="${i}"]`);
+  if(chosenEl) chosenEl.classList.add('chosen');
+  const dev=(o.real===true)?false:true;
+  path.push({node:cur, choice:i, dev});
+  if(dev) devCount++;
+  /* 后果卡 */
+  const cq=document.createElement('div');
+  cq.className='conseq stage';
+  cq.innerHTML=`<div class="c-l">模拟后果</div>${o.result}
+    <div class="stage-foot" style="margin-top:10px">
+      ${dev&&NODES[o.next]&&!NODES[o.next].end?'<span style="font-size:11px;color:var(--warn);align-self:center">◈ 这一走偏离了真实历史</span>':''}
+      <span style="flex:1"></span>
+      <button class="btn btn-primary" id="btn-go">继续推演 →</button>
+    </div>`;
+  stageWrap.appendChild(cq);
+  document.getElementById('btn-go').onclick=()=>goNext(o.next);
+}
+function goNext(key){ cur=key; render(); }
+
+/* ═══════════ 终局对照 ═══════════ */
+function showEnd(){
+  const n=NODES[cur];
+  document.getElementById('e-sub').textContent=`${n.time} · ${n.ending} · 你的第 ${runs} 次推演`;
+  document.getElementById('e-story').innerHTML=n.text;
+  /* 三列对照 */
+  let rows='';
+  path.forEach((p,idx)=>{
+    const node=NODES[p.node];
+    const your=node.opts[p.choice].t;
+    const real=node.opts.findIndex(o=>o.real===true);
+    const realTxt=real>=0?node.opts[real].t:'（真实历史已在此前的岔路口分流）';
+    const crowd=node.opts[CROWD_MOST[p.node]].t;
+    rows+=`<tr><td>岔路 ${idx+1}<br><span style="font-size:10px;color:var(--sub)">${node.time.split('·')[0]}</span></td>
+      <td class="you">${your}</td>
+      <td class="real">${realTxt}${real===p.choice?'<span class="same">与真实一致</span>':''}</td>
+      <td class="crowd">${crowd}</td></tr>`;
+  });
+  document.getElementById('cmp-body').innerHTML=rows;
+  /* Host 推演：动态生成第一条 */
+  const devNode=path.find(p=>p.dev);
+  const q1=devNode
+    ? `你在「${NODES[devNode.node].opts[devNode.choice].t.slice(0,18)}…」偏离了真实历史——当时支撑你的是哪一条依据？放到真实老陈的信息条件下，这条依据还成立吗？`
+    : REAL_HOST_QS[0];
+  document.getElementById('e-host-qs').innerHTML=`<li>${q1}</li><li>${REAL_HOST_QS[1]}</li>`;
+  document.getElementById('mask').classList.add('show');
+}
+document.getElementById('er-settle').onclick=()=>{
+  const t=document.getElementById('toast');
+  const devN=path.filter(p=>p.dev).length;
+  t.textContent=`✓ ${devN||1} 个分歧点已生成辩论树追问节点`;
+  t.style.display='block';
+  setTimeout(()=>t.style.display='none',2400);
+};
+document.getElementById('btn-replay').onclick=()=>{
+  runs++; path=[]; cur='s1';
+  document.getElementById('mask').classList.remove('show');
+  render();
+};
+
+/* 启动 */
+render();
+</script>
+</body>
+</html>
