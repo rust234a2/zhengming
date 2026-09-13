@@ -380,6 +380,49 @@ const flow=document.getElementById('stage'), composer=document.getElementById('c
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const esc=s=>String(s).replace(/</g,'&lt;');
 
+function resolveCapability(client, capability){
+  return capability.split('.').reduce(function(value, key){ return value && value[key]; }, client);
+}
+
+function createHostCoordinator(hostClient){
+  const requests=new Map();
+  let sequence=0;
+  async function invoke(capability, context, draft){
+    if(!context || !context.roomId || !context.turnId) throw new Error('Host 请求缺少 roomId 或 turnId');
+    const key=[context.roomId,context.turnId,capability].join(':');
+    let entry=requests.get(key);
+    if(entry && entry.status==='success') return entry;
+    if(!entry){
+      entry={
+        capability,
+        requestId:'room-'+context.roomId+'-'+context.turnId+'-'+(++sequence),
+        context:Object.assign({},context),
+        draft:String(draft == null?'':draft),
+        status:'idle',
+        attempts:0,
+        response:null,
+        error:null,
+      };
+      requests.set(key,entry);
+    }
+    const fn=resolveCapability(hostClient,capability);
+    if(typeof fn!=='function') throw new Error('HostClient 未实现能力: '+capability);
+    entry.status='pending';entry.attempts++;entry.error=null;
+    try{
+      entry.response=await fn(Object.assign({},entry.context,{requestId:entry.requestId,draft:entry.draft}));
+      entry.status='success';
+    }catch(err){
+      entry.status='error';entry.error=err instanceof Error?err:new Error(String(err));
+    }
+    return entry;
+  }
+  return {
+    invoke,
+    retry:function(capability,context){ return invoke(capability,context,requests.get([context.roomId,context.turnId,capability].join(':'))?.draft||''); },
+    getRequest:function(capability,context){ return requests.get([context.roomId,context.turnId,capability].join(':'))||null; },
+  };
+}
+
 function sys(t){const d=document.createElement('div');d.className='sys';d.textContent=t;flow.appendChild(d);flow.scrollTop=flow.scrollHeight;}
 function typing(w){const d=document.createElement('div');d.className='typing';d.id='typing';d.innerHTML=(w==='me'?'你':'对方')+' 正在输入<i>…</i>';flow.appendChild(d);flow.scrollTop=flow.scrollHeight;}
 function untype(){const t=document.getElementById('typing');if(t)t.remove();}
