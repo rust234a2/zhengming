@@ -532,9 +532,9 @@ msedge --headless=new --disable-gpu --virtual-time-budget=35000 \
 | 辩论树 独占 | `debate-tree-*.html`、`debate-tree-v2.test.mjs`、`debate-graph.test.mjs`、`debate-tree-PRD.md` |
 | 辩论间 独占 | `debate-room-prototype.html`、`debate-room.test.mjs`、`debate-room-PRD.md` |
 | 事件推演 独占 | `event-replay-prototype.html`、`event-replay.test.mjs`、`event-replay-PRD.md` |
-| **共享 → 禁止在任何 worktree 分支上改** | `build-app.mjs`、`app.test.mjs`、`README.md`、`IMPLEMENTATION-PATH.md`、`host-contract.md`、`zhengming-server/`（原型后端） |
-| **生成物 → 任何人都禁止手改** | `zhengming-app.html`（由 `build-app.mjs` 产出，改完原型重跑构建即可） |
-| **不在本仓（属于 `runi` 仓库）** | `runi-desktop/**` 里的三个争鸣视图（`ControversyMap` / `DebateForceTree` / `DebateTreePrototype`）——改它们要切到 `../runi/`，不在这三个 worktree 的范围内 |
+| **共享 → 禁止在任何 worktree 分支上改** | `build-app.mjs`、`app.test.mjs`、`README.md`、`IMPLEMENTATION-PATH.md`、`host-contract.md`、`zhengming-server/`（原型后端），以及 `web/` 的工程配置（`package.json`、`vite.config.ts`、`tsconfig*.json`、`src/App.tsx`、`src/styles.css`、`tests/setup.ts`） |
+| **生成物 → 任何人都禁止手改** | `zhengming-app.html`（由 `build-app.mjs` 产出）、`web/src/data/controversyMap.ts`（由 `build-ts.mjs` 产出） |
+| **桌面视图归属** | `web/src/ui/DebateTreePrototype.tsx`（`?view=debate`）归**辩论树** worktree；`ControversyMap.tsx`（`?view=map`）与 `DebateForceTree.tsx`（`?view=force`）不属于这三个模块中的任何一个——它们没有对应 worktree，改动直接走 `main`。 |
 
 **规则**：某个 worktree 需要动共享文件时，**回到 `main` 改**，然后其余 worktree `git merge main` 跟进。
 
@@ -560,9 +560,10 @@ msedge --headless=new --disable-gpu --virtual-time-budget=35000 \
 
 ### 13.4 两个环境注意
 
-**（1）worktree 里没有 `node_modules`。** 它被 gitignore，不会跟过去；而本机 `npm` 不可用，装不了。
+**（1）依赖分布。** `node_modules` 是 gitignore 的，不会进 worktree；本机 `npm` 又不可用。
 
-- **本仓库的测试全部零依赖**，`node xxx.test.mjs` 直接能跑（已在原 debate-tree worktree 实测 40 项通过）。所以三个模块的 worktree **不需要任何依赖**。
-- 只有一种例外：若某分支要跑桌面端 vitest，那是 `runi` 仓库的事（见 §13.1 最后一行），应直接切到 `../runi/runi-desktop` 去跑，**不要**在争鸣的 worktree 里塞它的依赖。
+- `docs/design/**` 的测试**零依赖**，`node xxx.test.mjs` 直接能跑——三个模块的主战场在这里，**worktree 不需要任何依赖**。
+- `web/` 是 Vite 工程，**需要 `node_modules`**（主工作区已从 runi 复制了一份，约 116 MB）。三个 worktree 建立时 `web/` 还不存在，所以它们没有这份依赖。
+  某分支要在 worktree 里跑 `web/` 测试时，`git merge main` 后在 worktree 的 `web/` 下再复制/联接一份依赖即可；或者干脆回主工作区跑（`web/` 的改动按 §13.1 本就不该在模块分支上做）。
 
 **（2）检出后仍是 CRLF。** 本机 `core.autocrlf=true` 且无 `.gitattributes`，所以 worktree 里的原型文件依旧是 CRLF 换行——**§2.7 那条"跨行正则必须写 `\r?\n`"在 worktree 里同样适用**。

@@ -8,10 +8,11 @@ import { fileURLToPath } from "node:url";
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.join(DIR, "map.json");
-/* 跨仓写入：生成的数据模块落在 runi 桌面端（争鸣的桌面端两图仍在那里）。
- * 默认按「zhengming 与 runi 同级」推导，可用 RUNI_DESKTOP_DATA 覆盖。 */
-const OUT = process.env.RUNI_DESKTOP_DATA
-  ?? path.resolve(DIR, "../../../../runi/runi-desktop/src/data/controversyMap.ts");
+/* 输出落点：消费方是同仓库的 web/ 前端工程（桌面三视图只依赖它）。
+ * 2026-09-13 之前这里指向 runi 仓库，桌面视图迁入本仓后已改为仓内路径，
+ * 因此本管线不再有任何跨仓写入。可用 ZHENGMING_WEB_DATA 覆盖。 */
+const OUT = process.env.ZHENGMING_WEB_DATA
+  ?? path.resolve(DIR, "../../../web/src/data/controversyMap.ts");
 
 const raw = JSON.parse(fs.readFileSync(SRC, "utf8"));
 
