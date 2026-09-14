@@ -12,6 +12,21 @@
 /** 席位标识：正 / 反 */
 export type SeatId = "pro" | "con";
 
+/** 开局方式：真人候选池或明确选择的 AI 对辩 */
+export type MatchMode = "human" | "ai";
+
+/** 撮合状态由服务端维护，前端不得据本地计时伪造已匹配 */
+export type MatchStatus = "waiting" | "matched";
+
+export interface MatchInfo {
+  mode: MatchMode;
+  status: MatchStatus;
+  /** 面向用户的撮合依据，不含虚构在线人数 */
+  reason: string;
+  requestedAt: string;
+  matchedAt?: string;
+}
+
 /** 证据七档（PRD §5） */
 export type EvidenceStatus =
   | "已提供来源"
@@ -239,6 +254,8 @@ export interface HostStatus {
 export interface RoomState {
   roomId: string;
   topic: DebateTopic;
+  /** 服务端权威的撮合方式与进度 */
+  match: MatchInfo;
   phase: RoomPhase;
   seats: Record<SeatId, SeatInfo | null>;
   /** 双方立论结构（对局中互不可见；报告阶段公开） */
@@ -329,6 +346,25 @@ export interface PlayableTopic {
 export interface RankedCandidate extends Candidate {
   /** 画像相近度 0-1；无画像为 null（排在有画像之后） */
   score: number | null;
+}
+
+/** `POST /api/matches` 的请求与响应契约 */
+export interface MatchRequest {
+  topicId: string;
+  side: SeatId;
+  mode: MatchMode;
+  name: string;
+  profile?: number[] | null;
+}
+
+export interface MatchResponse {
+  ok: true;
+  roomId: string;
+  side: SeatId;
+  seatToken: string;
+  mode: MatchMode;
+  status: MatchStatus;
+  reason: string;
 }
 
 /** 段位表（PRD §7：鸣声值 MP） */

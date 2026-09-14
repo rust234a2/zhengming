@@ -50,11 +50,12 @@ export const STEPFUN = Object.freeze({
 export const MAX_PAYLOAD_BYTES = 256 * 1024;
 export const REQUEST_TIMEOUT_MS = 30_000;
 
-/** 七个能力机器名（与 IMPLEMENTATION-PATH.md 卡 0-1 能力表一致） */
+/** Host 能力机器名；opponentTurn 专用于明确选择的 AI 对辩席位。 */
 export const CAPABILITIES = Object.freeze([
   "structureHint",
   "makeQuestion",
   "evaluate",
+  "opponentTurn",
   "terminalProbes",
   "actAdvance",
   "replayEnding",
@@ -64,6 +65,7 @@ export const CAPABILITIES = Object.freeze([
 /** 需要 response_format: json_object 的能力（契约 §0.3） */
 export const STRUCTURED_CAPABILITIES = Object.freeze([
   "evaluate",
+  "opponentTurn",
   "terminalProbes",
   "actAdvance",
   "replayEnding",

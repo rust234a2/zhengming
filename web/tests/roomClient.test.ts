@@ -17,6 +17,7 @@ import {
   buildJoinMessage,
   buildActionMessage,
   describeSocketError,
+  forgetSeatToken,
   isHostDegraded,
   parseServerMessage,
   readSeatToken,
@@ -33,6 +34,12 @@ import { createRoomState } from "../src/domain/debateRoom";
 function makeState(overrides: Partial<RoomState> = {}): RoomState {
   const base = createRoomState({
     roomId: "room-t",
+    match: {
+      mode: "human",
+      status: "matched",
+      reason: "测试真人已就绪",
+      requestedAt: "2026-09-14T00:00:00.000Z",
+    },
     topic: {
       questionId: "q1",
       title: "测试议题",
@@ -118,6 +125,17 @@ describe("席位令牌存取", () => {
     expect(readSeatToken("room-nope")).toBeNull();
     writeSeatToken("room-1", "tok-a");
     expect(readSeatToken("room-2")).toBeNull();
+  });
+
+  it("失效时同时清掉当前窗口和旧版跨窗口 token，不影响其他房间", () => {
+    window.sessionStorage.setItem(`${SEAT_TOKEN_PREFIX}room-1`, "tok-window");
+    window.localStorage.setItem(`${SEAT_TOKEN_PREFIX}room-1`, "tok-legacy");
+    window.sessionStorage.setItem(`${SEAT_TOKEN_PREFIX}room-2`, "tok-other");
+
+    forgetSeatToken("room-1");
+
+    expect(readSeatToken("room-1")).toBeNull();
+    expect(readSeatToken("room-2")).toBe("tok-other");
   });
 
   it("存储不可用（隐私模式抛错）时不崩，返回 null", () => {
@@ -206,6 +224,8 @@ describe("错误码文案", () => {
     expect(describeSocketError("NOT_IN_ROOM")).toContain("房间");
     expect(describeSocketError("NOT_YOUR_TURN")).toContain("轮到");
     expect(describeSocketError("PRESS_LIMIT")).toContain("追问");
+    expect(describeSocketError("SIDE_TAKEN")).toContain("预留");
+    expect(describeSocketError("INVALID_SEAT_TOKEN")).toContain("失效");
   });
 
   it("未知错误码回落为原码，不吞掉信息", () => {
@@ -221,6 +241,8 @@ describe("错误码文案", () => {
   it("所有内置错误文案都不含判输赢词族（红线）", () => {
     const codes = [
       "ROOM_FULL",
+      "SIDE_TAKEN",
+      "INVALID_SEAT_TOKEN",
       "NOT_IN_ROOM",
       "NOT_YOUR_TURN",
       "WRONG_PHASE",
@@ -231,8 +253,18 @@ describe("错误码文案", () => {
       "MULTIPLE_QUESTIONS",
       "CONTENT_REJECTED",
       "ROOM_SETTLED",
+      "ROOM_NOT_FOUND",
+      "PAYLOAD_TOO_LARGE",
+      "TIMEOUT",
+      "UPSTREAM",
+      "VALIDATION",
+      "DOMAIN_MODULE_MISSING",
+      "CONNECT_FAILED",
+      "DISCONNECTED",
       "INTERNAL",
       "UNKNOWN",
+      // 未知错误码会走回落文案——先前漏测的就是这一条，结果兜底文案里藏着禁用词
+      "SOMETHING_THE_SERVER_MIGHT_INVENT",
     ];
     for (const code of codes) {
       const text = describeSocketError(code);

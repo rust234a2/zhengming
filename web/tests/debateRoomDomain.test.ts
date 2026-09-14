@@ -66,6 +66,12 @@ function freshState(overrides: Partial<RoomState> = {}): RoomState {
   return {
     roomId: "room-test",
     topic: TOPIC,
+    match: {
+      mode: "human",
+      status: "matched",
+      reason: "测试真人已就绪",
+      requestedAt: "2026-09-14T00:00:00.000Z",
+    },
     phase: "opening",
     seats: {
       pro: { name: "甲方", connected: true, isBot: false },

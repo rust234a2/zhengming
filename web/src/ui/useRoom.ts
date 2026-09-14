@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { RoomClient, describeSocketError, readSeatToken, writeSeatToken } from "../domain/roomClient";
-import type { HostTopic, PlayableTopic, RoomAction, RoomState, SeatId } from "../types/debateRoom";
+import type { HostTopic, MatchMode, MatchResponse, PlayableTopic, RoomAction, RoomState, SeatId } from "../types/debateRoom";
 import { aggregateTopics, parseTopicsResponse } from "./debateRoomUi";
 
 /* ═══════════════ 房间连接 ═══════════════ */
@@ -32,6 +32,7 @@ export interface UseRoomResult {
   mySide: SeatId | null;
   connection: ConnectionState;
   error: string | null;
+  errorCode: string | null;
   /** 是否为重连回到原席位 */
   resumed: boolean;
   send: (action: RoomAction) => void;
@@ -51,6 +52,7 @@ export function useRoom({ roomId, side, name, enabled = true }: UseRoomOptions):
   const [mySide, setMySide] = useState<SeatId | null>(side);
   const [connection, setConnection] = useState<ConnectionState>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [resumed, setResumed] = useState(false);
   const clientRef = useRef<RoomClient | null>(null);
 
@@ -66,6 +68,7 @@ export function useRoom({ roomId, side, name, enabled = true }: UseRoomOptions):
     }
     setConnection("connecting");
     setError(null);
+    setErrorCode(null);
 
     const client = new RoomClient({
       url: roomSocketUrl(roomId),
@@ -75,7 +78,10 @@ export function useRoom({ roomId, side, name, enabled = true }: UseRoomOptions):
         setMySide(info.side);
         setResumed(info.resumed);
       },
-      onError: (message) => setError(message),
+      onError: (message, code) => {
+        setError(message);
+        setErrorCode(code);
+      },
       onClose: () => setConnection("closed"),
     });
     clientRef.current = client;
@@ -97,11 +103,14 @@ export function useRoom({ roomId, side, name, enabled = true }: UseRoomOptions):
     clientRef.current?.sendAction({ kind: "leave" });
   }, []);
 
-  const clearError = useCallback(() => setError(null), []);
+  const clearError = useCallback(() => {
+    setError(null);
+    setErrorCode(null);
+  }, []);
 
   return useMemo(
-    () => ({ state, mySide, connection, error, resumed, send, leave, clearError }),
-    [state, mySide, connection, error, resumed, send, leave, clearError],
+    () => ({ state, mySide, connection, error, errorCode, resumed, send, leave, clearError }),
+    [state, mySide, connection, error, errorCode, resumed, send, leave, clearError],
   );
 }
 
@@ -191,6 +200,44 @@ export async function createRoom(topicId?: string): Promise<CreateRoomResult> {
     throw new Error(describeSocketError("INTERNAL"));
   }
   return { roomId: payload.roomId, topic: payload.room };
+}
+
+/**
+ * 进入服务端权威撮合：真人模式加入候选池，AI 模式立即预留 Bot 对手。
+ * seatToken 在 WS 建连前写入 sessionStorage，避免 HTTP→WS 之间被其它窗口抢席。
+ */
+export async function createMatch({
+  topicId,
+  side,
+  mode,
+  name,
+  profile = null,
+}: {
+  topicId: string;
+  side: SeatId;
+  mode: MatchMode;
+  name: string;
+  profile?: number[] | null;
+}): Promise<MatchResponse> {
+  const response = await fetch("/api/matches", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ topicId, side, mode, name, profile }),
+  });
+  const payload = await response.json().catch(() => null);
+  const validPayload =
+    payload?.ok === true &&
+    typeof payload.roomId === "string" &&
+    typeof payload.seatToken === "string" &&
+    (payload.side === "pro" || payload.side === "con") &&
+    (payload.mode === "human" || payload.mode === "ai") &&
+    (payload.status === "waiting" || payload.status === "matched") &&
+    typeof payload.reason === "string";
+  if (!response.ok || !validPayload) {
+    throw new Error(payload?.error?.message || describeSocketError("CONNECT_FAILED"));
+  }
+  writeSeatToken(payload.roomId, payload.seatToken);
+  return payload as MatchResponse;
 }
 
 export { readSeatToken, writeSeatToken };

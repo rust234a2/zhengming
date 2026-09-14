@@ -24,6 +24,8 @@ import {
   canSubmitAction,
   parseTopicsResponse,
   aggregateTopics,
+  isDebatableQuestionTitle,
+  matchUiFor,
 } from "../src/ui/debateRoomUi";
 import type { DebateTopic, RoomReport, RoomState, SeatId } from "../src/types/debateRoom";
 import type { HostTopic } from "../src/types/debateRoom";
@@ -210,6 +212,36 @@ describe("stageProgress：五阶段进度条", () => {
   });
 });
 
+describe("matchUiFor：双轨撮合必须显式区分", () => {
+  it("真人等待只显示候选池状态，并保留邀请入口", () => {
+    const ui = matchUiFor(stateAt());
+    expect(ui).toMatchObject({
+      isAi: false,
+      modeLabel: "真人匹配",
+      statusLabel: "候选池等待中",
+      showInvite: true,
+      notice: null,
+    });
+  });
+
+  it("AI 对辩明确标注 Bot，且不显示真人邀请入口", () => {
+    const ui = matchUiFor(stateAt({
+      match: {
+        mode: "ai",
+        status: "matched",
+        reason: "已创建 AI 对手。",
+        requestedAt: "2026-09-14T00:00:00.000Z",
+        matchedAt: "2026-09-14T00:00:01.000Z",
+      },
+    }));
+    expect(ui.modeLabel).toBe("AI 对辩");
+    expect(ui.statusLabel).toBe("已就绪");
+    expect(ui.showInvite).toBe(false);
+    expect(ui.notice).toContain("AI / Bot");
+    expect(ui.notice).toContain("模拟");
+  });
+});
+
 /* ═══════════════ 议题与配对标注 ═══════════════ */
 
 describe("topicBadges：跨议题配对必须显式标注", () => {
@@ -252,7 +284,7 @@ describe("aggregateTopics：把服务端 /api/topics 响应变成可开局议题
   const hostTopics: HostTopic[] = [
     {
       questionId: "q1",
-      title: "议题一",
+      title: "AI 会不会取代程序员？",
       url: "https://www.zhihu.com/question/1",
       paired: true,
       crossPaired: false,
@@ -261,7 +293,7 @@ describe("aggregateTopics：把服务端 /api/topics 响应变成可开局议题
     },
     {
       questionId: "q2",
-      title: "议题二",
+      title: "AI 是提高效率，还是抢普通人的饭碗？",
       url: "https://www.zhihu.com/question/2",
       paired: false,
       crossPaired: true,
@@ -292,6 +324,34 @@ describe("aggregateTopics：把服务端 /api/topics 响应变成可开局议题
   it("缺失 url 的议题保留但标记来源不可溯源", () => {
     const noUrl: HostTopic[] = [{ ...hostTopics[0], url: "" }];
     expect(aggregateTopics(noUrl)[0].traceable).toBe(false);
+  });
+
+  it("预设结论后只追问原因的开放解释题不进入可开局列表", () => {
+    const explanatory: HostTopic[] = [{
+      ...hostTopics[0],
+      questionId: "zh-1972252087044796716",
+      title: "AI写程序的能力毋庸置疑很强大，为何没有取代程序员，是哪个环节的原因？",
+    }];
+    expect(isDebatableQuestionTitle(explanatory[0].title)).toBe(false);
+    expect(aggregateTopics(explanatory)).toEqual([]);
+  });
+
+  it.each([
+    "AI 会不会取代程序员？",
+    "计算机专业是否仍然值得报考？",
+    "AI 是提高效率，还是抢普通人的饭碗？",
+    "艺术工作者会被 AI 取代吗？",
+  ])("保留有明确站队结构的题干：%s", (title) => {
+    expect(isDebatableQuestionTitle(title)).toBe(true);
+  });
+
+  it.each([
+    "AI 为何没有取代程序员？",
+    "AI 对程序员群体影响有多大？",
+    "人的核心竞争力是什么？",
+    "计算机专业现在的就业前景怎么样？",
+  ])("排除没有对立命题的开放题：%s", (title) => {
+    expect(isDebatableQuestionTitle(title)).toBe(false);
   });
 });
 

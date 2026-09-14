@@ -962,7 +962,7 @@ textarea {
 .dt-balance-bar { height: 8px; display: flex; overflow: hidden; border-radius: 4px; background: #eeeeee; }
 .dt-balance-bar i { display: block; height: 100%; }
 .dt-balance-bar .pro { background: var(--dt-blue); }
-.dt-balance-bar .neu { background: #c3c8d4; }
+.dt-balance-bar .neutral { background: #c3c8d4; }
 .dt-balance-bar .con { background: var(--dt-ink); }
 
 .dt-legend {
@@ -977,7 +977,7 @@ textarea {
 .dt-legend > span { white-space: nowrap; }
 .dt-legend i { width: 8px; height: 8px; display: inline-block; margin-right: 5px; border-radius: 2px; }
 .dt-legend i.pro { background: var(--dt-blue); }
-.dt-legend i.neu { background: var(--dt-neutral); }
+.dt-legend i.neutral { background: var(--dt-neutral); }
 .dt-legend i.con { background: var(--dt-ink); }
 .dt-legend .warning { margin-left: auto; color: var(--dt-warn); white-space: normal; text-align: right; }
 
@@ -1031,7 +1031,7 @@ textarea {
 
 .dt-tag.pro { background: var(--dt-blue); }
 .dt-tag.con { background: var(--dt-ink); }
-.dt-tag.neu { background: var(--dt-neutral); }
+.dt-tag.neutral { background: var(--dt-neutral); }
 .dt-tag.question { border: 1px dashed var(--dt-blue); background: #ffffff; color: var(--dt-blue); }
 .dt-node.root .dt-tag { background: rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.8); }
 .dt-root-tag { margin-left: 8px; background: rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.8); }
@@ -2855,6 +2855,60 @@ textarea {
   line-height: 1.6;
 }
 
+.dr-match-choice {
+  padding: 12px;
+  border-top: 1px solid #e8edf4;
+  background: #f8fafc;
+}
+
+.dr-match-choice-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+}
+
+.dr-match-choice-head b { color: var(--dr-ink); font-size: 13px; }
+.dr-match-choice-head span { color: var(--dr-muted); font-size: 11.5px; }
+
+.dr-match-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.dr-match-option {
+  position: relative;
+  min-height: 108px;
+  padding: 13px 14px 30px;
+  border: 1px solid #dfe6ef;
+  border-radius: 7px;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dr-match-option:hover { border-color: #a9c9ed; background: #fafdff; }
+.dr-match-option:disabled { opacity: 0.62; cursor: wait; }
+.dr-match-option.ai { border-left: 3px solid #202938; }
+.dr-match-option.human { border-left: 3px solid var(--dr-blue); }
+.dr-match-option strong { display: block; margin-bottom: 6px; color: var(--dr-ink); font-size: 13px; }
+.dr-match-option span { display: block; color: #5f6b7c; font-size: 11.5px; line-height: 1.6; }
+.dr-match-option em {
+  position: absolute;
+  right: 12px;
+  bottom: 9px;
+  color: var(--dr-blue);
+  font-size: 10.5px;
+  font-style: normal;
+}
+
+.dr-match-status-line { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.dr-match-status-line b { color: var(--dr-ink); font-size: 12.5px; }
+.dr-tag.ai { background: #edf0f4; color: #202938; }
+.dr-tag.human { background: #eaf3ff; color: var(--dr-blue); }
+
 .dr-lobby-side {
   display: flex;
   flex-direction: column;
@@ -2877,6 +2931,10 @@ textarea {
   display: flex;
   gap: 6px;
   margin: 9px 0 0;
+}
+
+@media (max-width: 720px) {
+  .dr-match-options { grid-template-columns: 1fr; }
 }
 
 /* ── 对局报告弹层 ── */
@@ -3101,4 +3159,92 @@ textarea {
   .dr-grid { grid-template-columns: 1fr; }
   .dr-col-left,
   .dr-col-right { display: none; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   辩论树 · 真实议题灌入（2026-09-14）
+   顶栏议题切换器、议题库抽屉、来源与平台票分离、语料分布
+   ══════════════════════════════════════════════════════════ */
+
+/* ── 顶栏：议题名即切换入口 ── */
+.dt-crumb {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  max-width: 420px;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dt-muted);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dt-crumb:hover { border-color: var(--dt-line); background: #f6f7f9; }
+.dt-crumb:focus-visible { border-color: var(--dt-blue); outline: none; }
+.dt-crumb-label { flex: none; color: var(--dt-muted); }
+.dt-crumb b { min-width: 0; overflow: hidden; color: var(--dt-ink); font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.dt-crumb-caret { flex: none; color: var(--dt-muted); font-size: 10px; font-style: normal; }
+.dt-crumb-count { flex: none; padding: 1px 6px; border-radius: 99px; background: var(--dt-blue-soft); color: var(--dt-blue); font-size: 11px; font-style: normal; }
+
+/* ── 议题库抽屉 ── */
+.dt-library-mask { position: fixed; inset: 0; z-index: 60; display: flex; justify-content: flex-start; background: rgba(18, 18, 18, 0.36); }
+.dt-library { width: min(560px, 100vw); height: 100%; display: flex; flex-direction: column; background: #ffffff; box-shadow: 8px 0 32px rgba(18, 18, 18, 0.16); }
+.dt-library-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 20px 0; }
+.dt-library-head h2 { margin: 0 0 4px; font-size: 17px; }
+.dt-library-head p { margin: 0; color: var(--dt-muted); font-size: 12px; line-height: 1.7; }
+.dt-library-src { display: block; margin-top: 3px; color: #a2abba; font-size: 11px; }
+.dt-library-search { margin: 14px 20px 0; padding: 9px 12px; border: 1px solid var(--dt-line); border-radius: 8px; font: inherit; font-size: 13px; }
+.dt-library-search:focus { border-color: var(--dt-blue); outline: none; }
+.dt-library-list { flex: 1; overflow-y: auto; padding: 12px 20px 28px; }
+.dt-library-group + .dt-library-group { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--dt-line); }
+.dt-library-group h3 { margin: 0; font-size: 13px; }
+.dt-library-group h3 b { margin-left: 4px; color: var(--dt-muted); font-weight: 500; }
+.dt-library-hint { margin: 4px 0 10px; color: var(--dt-muted); font-size: 11px; line-height: 1.7; }
+
+.dt-library-item { width: 100%; display: block; margin-bottom: 6px; padding: 9px 11px; border: 1px solid var(--dt-line); border-radius: 8px; background: #ffffff; color: var(--dt-ink); font: inherit; text-align: left; cursor: pointer; }
+.dt-library-item:hover { border-color: #c9dcfa; background: var(--dt-blue-soft); }
+.dt-library-item.on { border-color: var(--dt-blue); background: var(--dt-blue-soft); }
+.dt-library-item strong { display: block; font-size: 13px; font-weight: 500; line-height: 1.55; }
+
+.dt-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.dt-badge { padding: 1px 7px; border-radius: 99px; background: #f1f3f6; color: var(--dt-muted); font-size: 11px; font-style: normal; }
+.dt-badge.claims { background: var(--dt-blue-bg); color: var(--dt-blue); }
+.dt-badge.answers { background: #eaf6ef; color: #2b7a4b; }
+.dt-badge.clusters { background: #fdf3e6; color: var(--dt-warn); }
+
+/* ── 来源与平台票分离：知乎赞同数单独一枚标签，绝不混进 ▲▼ ── */
+.dt-author { color: inherit; }
+.dt-badge-chip { padding: 1px 6px; border-radius: 3px; background: #eef0f4; color: #6b7484; font-size: 11px; }
+.dt-src-votes { padding: 1px 6px; border-radius: 3px; background: #fdf3e6; color: var(--dt-warn); font-size: 11px; cursor: help; }
+.dt-node.root .dt-badge-chip,
+.dt-node.root .dt-src-votes { background: rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.9); }
+.dt-votes button.on { background: var(--dt-blue-bg); color: var(--dt-blue); font-weight: 700; }
+.dt-node.root .dt-votes button.on { background: rgba(255, 255, 255, 0.26); color: #ffffff; }
+
+/* ── 根节点详情：语料来源与真实分布 ── */
+.dt-seed-note { margin: 0 0 14px; padding: 8px 10px; border-radius: 6px; background: var(--dt-page); color: var(--dt-muted); font-size: 12px; line-height: 1.7; }
+.dt-clusters { margin-bottom: 14px; }
+.dt-clusters-note { margin: 0 0 8px; color: var(--dt-muted); font-size: 12px; line-height: 1.7; }
+.dt-cluster-row { display: grid; grid-template-columns: 96px 1fr 26px; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 12px; }
+.dt-cluster-row span { overflow: hidden; color: #6b7484; text-overflow: ellipsis; white-space: nowrap; }
+.dt-cluster-row i { height: 8px; border-radius: 4px; background: var(--dt-neutral); }
+.dt-cluster-row b { color: var(--dt-muted); font-weight: 500; text-align: right; }
+
+.dt-answers { margin-bottom: 14px; }
+.dt-answers ul { margin: 0; padding-left: 16px; }
+.dt-answers li { margin-bottom: 6px; font-size: 12px; line-height: 1.7; }
+.dt-answers a { color: var(--dt-blue); text-decoration: none; }
+.dt-answers a:hover { text-decoration: underline; }
+
+/* 详情区把 <a> 当按钮用（开实时辩论间） */
+.dt-detail-actions a.dt-button { display: block; box-sizing: border-box; text-align: center; text-decoration: none; line-height: 1.4; }
+
+@media (max-width: 940px) {
+  .dt-crumb { max-width: none; }
+  .dt-crumb-count { display: none; }
+  .dt-library { width: 100vw; }
 }

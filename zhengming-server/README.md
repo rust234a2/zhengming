@@ -1,10 +1,10 @@
 # zhengming-server
 
-争鸣的服务端：**Host（LLM 七能力）** 与 **辩论间实时房间（WebSocket）** 两件事，单进程单端口。
+争鸣的服务端：**Host（LLM 八能力）** 与 **辩论间实时房间（WebSocket）** 两件事，单进程单端口。
 
 对应设计文档：
 
-- `docs/design/host-contract.md`（v1.2，七能力契约 · 已确认）
+- `docs/design/host-contract.md`（v1.3，八能力契约 · 已确认）
 - `docs/design/debate-room-ROLLOUT.md`（落地计划 S1–S6）
 - `docs/design/debate-room-PRD.md`（v0.7，产品规则）
 
@@ -39,7 +39,7 @@ curl http://127.0.0.1:5300/api/health
 跑测试：
 
 ```bash
-node --test test/host.test.mjs test/server.test.mjs   # 41 项单测（含 HTTP/WS 集成）
+node --test test/host.test.mjs test/server.test.mjs   # Host 契约与 HTTP/WS 集成测试
 node --test test/env.test.mjs                         # 5 项：.env 加载 + 真实 StepFun 连通性
 # 或
 npm test
@@ -69,18 +69,19 @@ node test/e2e-room.mjs --real-host
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | `GET` | `/api/health` | 健康检查。**只报有没有配 key，绝不下发 key** |
-| `POST` | `/api/host/:capability` | Host 七能力，统一信封。能力名见下 |
+| `POST` | `/api/host/:capability` | Host 八能力，统一信封。能力名见下 |
 | `GET` | `/api/topics` | 真实议题与论点对（`?paired=1` 只看成对议题） |
 | `GET` | `/api/rooms` | 房间列表 |
 | `POST` | `/api/rooms` | 新建房间（可带 `{topicId}` 绑定议题） |
+| `POST` | `/api/matches` | 进入真人候选池，或立即创建明确标注的 AI 对手 |
 | `GET` | `/api/rooms/:id` | 房间快照（内存优先，退回 `rooms/<id>.json`） |
 | `WS` | `/ws/room?roomId=<id>` | 房间实时通道 |
 
-### Host 七能力
+### Host 八能力
 
-`structureHint` · `makeQuestion` · `evaluate` · `terminalProbes` · `actAdvance` · `replayEnding` · `replayCanon`
+`structureHint` · `makeQuestion` · `evaluate` · `opponentTurn` · `terminalProbes` · `actAdvance` · `replayEnding` · `replayCanon`
 
-辩论间只消费前三个 + 事件推演的三个；`replayCanon` 是独立通道（终局可选揭示，推演期间绝不调用）。
+辩论间消费 `structureHint`、`makeQuestion`、`evaluate` 与 `opponentTurn`。`opponentTurn` 仅驱动明确标注的 AI 席位，每次返回一个房间动作；动作仍须通过共享 `transition()`，失败时降级并在状态和报告中明示。其余能力供事件推演；`replayCanon` 是独立通道。
 
 ```bash
 curl -X POST http://127.0.0.1:5300/api/host/structureHint \
@@ -157,7 +158,7 @@ npm run build:domain
 |---|---|
 | **不判输赢** | `lib/contract.mjs` 的 `BANNED_WORDS`（`错误/谬误/偷换/输赢/对错/你错了/赢了`），对**模型输出**与**用户发言**双向扫描，命中即拒 |
 | **追问权替代验证权** | `lib/host.mjs` 的 `RESULT_CHECKS.makeQuestion` —— 返回值必须**恰好一个问号**，打包追问直接 `CONTENT_REJECTED` |
-| **模拟与事实分离** | `lib/host.mjs` 的 `assertIsolation()` —— 能力 5/6 入参出现 `canon`/`realChoice`/`realPath` 等键即 `VALIDATION`；`replayCanon` 丢弃一切非 https 来源条目，不编造 |
+| **模拟与事实分离** | `lib/host.mjs` 的 `assertIsolation()` —— 能力 6/7 入参出现 `canon`/`realChoice`/`realPath` 等键即 `VALIDATION`；`replayCanon` 丢弃一切非 https 来源条目，不编造 |
 | **不代写** | `lib/prompts.mjs` 的 `structureHint` 提示词显式禁止给出可粘贴内容；降级实现只按关键词判断缺失要素，天然无法代写 |
 | **provenance** | `/api/topics` 直接读 `research/controversy-map/claims.json`，保留真实 `author` / `voteUp` / 知乎 `url` |
 
@@ -193,5 +194,5 @@ npm run build:domain
 - 房间只在内存，无持久化恢复（报告落盘可回读，进行中的对局重启即丢）。
 - 不做鉴权：本地开发定位，任何人都能连 `ws://127.0.0.1:5300/ws/room`。
 - WS 不支持分片消息（控制帧除外），客户端一次发送完整 JSON。
-- 流式（`stream: true`）当前**未转发**：能力 5/6 按一次性完整响应处理。契约 §0.4 的 SSE/NDJSON 转发留待事件推演模块落地时补。
+- 流式（`stream: true`）当前**未转发**：能力 6/7 按一次性完整响应处理。契约 §0.4 的 SSE/NDJSON 转发留待事件推演模块落地时补。
 - `replayCanon` 依赖上游给出可访问 https 来源；给不出时返回空数组而非编造，所以这条通道常常是空的——这是设计意图，不是缺陷。

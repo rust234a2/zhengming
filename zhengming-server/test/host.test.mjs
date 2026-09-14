@@ -6,7 +6,7 @@
  *  - 禁用词表命中 → CONTENT_REJECTED（含重试 1 次）
  *  - 幂等：同 requestId 不二次调用模型
  *  - 降级：无 key 时 degraded:true，且绝不静默假装真实输出
- *  - 能力 5/6 的隔离硬约束（canon / realChoice 不得入参）
+ *  - 能力 6/7 的隔离硬约束（canon / realChoice 不得入参）
  *  - 结构校验：moves 必须 2-3 张、makeQuestion 只能一个问题、terminalProbes 恰好两条
  */
 
@@ -125,6 +125,27 @@ test("无 key 时降级：结构提示只提要素、不代写，且带 degraded
   assert.equal(findBannedWords(res.result).length, 0);
   // 不代写：不得出现成段的论证内容（判断依据：长度受控且不含引号包裹的示例句）
   assert.ok(charCount(res.result) <= 60);
+});
+
+test("无 key 时 opponentTurn 返回单个合法 Bot 动作并明确降级", async () => {
+  const res = await invokeHost(
+    "opponentTurn",
+    {
+      phase: "opening",
+      side: "con",
+      topic: { title: "AI 会改变程序员职业吗？", con: { claim: "职业形态会改变" } },
+      presetClaim: "职业形态会改变",
+      ownBrief: null,
+      opponentBrief: null,
+      transcript: [],
+      crossRecords: [],
+    },
+    { apiKey: null, requestId: "opponent-fallback-1" },
+  );
+  assert.equal(res.ok, true);
+  assert.equal(res.degraded, true);
+  assert.equal(res.result.action.kind, "submitBrief");
+  assert.equal(findBannedWords(res.result).length, 0);
 });
 
 test("无 key 降级：evaluate 返回契约同形六维载荷", async () => {

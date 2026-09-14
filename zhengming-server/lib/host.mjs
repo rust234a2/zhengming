@@ -1,5 +1,5 @@
 /**
- * 争鸣 · Host 七能力实现（StepFun 上游）
+ * 争鸣 · Host 八能力实现（StepFun 上游）
  *
  * 职责（对齐 host-contract.md v1.2）：
  *  1. 参数 schema 校验（不过即 VALIDATION）
@@ -29,6 +29,7 @@ import {
   heuristicActAdvance,
   heuristicEvaluate,
   heuristicMakeQuestion,
+  heuristicOpponentTurn,
   heuristicReplayCanon,
   heuristicReplayEnding,
   heuristicStructureHint,
@@ -52,7 +53,7 @@ function requireArray(value, field) {
 }
 
 /**
- * 契约 §8 隔离硬约束：能力 5/6 的调用参数序列化后不得含 canon / realChoice / 真实人物真名。
+ * 契约 §9 隔离硬约束：能力 6/7 的调用参数序列化后不得含 canon / realChoice / 真实人物真名。
  * 这里用递归键名扫描实现——键名命中即拒（值里出现史实关键词同理）。
  */
 const ISOLATION_KEYS = ["canon", "realchoice", "realpath", "truehistory", "史实", "真实历史", "真实结局"];
@@ -89,6 +90,22 @@ export function assertIsolation(payload) {
 
 /** 各能力的入参校验器：返回规格化后的入参 */
 const VALIDATORS = {
+  opponentTurn(params) {
+    const phase = requireString(params.phase, "phase");
+    if (!["opening", "crossAsk", "crossAnswer", "crossReact", "free", "closing"].includes(phase)) {
+      throw new HostError(ERROR_CODES.VALIDATION, "phase is not actionable by an AI seat");
+    }
+    return {
+      phase,
+      side: params.side === "con" ? "con" : "pro",
+      topic: params.topic ?? {},
+      presetClaim: typeof params.presetClaim === "string" ? params.presetClaim : "",
+      ownBrief: params.ownBrief ?? null,
+      opponentBrief: params.opponentBrief ?? null,
+      transcript: requireArray(params.transcript ?? [], "transcript"),
+      crossRecords: requireArray(params.crossRecords ?? [], "crossRecords"),
+    };
+  },
   structureHint(params) {
     return { statement: requireString(params.statement, "statement") };
   },
@@ -170,6 +187,18 @@ const DIM_NAMES = ["立论", "论据", "逻辑", "回应", "表达", "规范"];
 
 /** 各能力的返回结构校验器：不合规即抛 CONTENT_REJECTED（触发重试） */
 const RESULT_CHECKS = {
+  opponentTurn(result) {
+    const obj = typeof result === "string" ? parseJsonOrFail(result) : result;
+    const action = obj?.action;
+    const allowed = ["submitBrief", "submitOpening", "ask", "answer", "react", "freeSpeak", "submitClosing"];
+    if (!action || typeof action !== "object" || !allowed.includes(action.kind)) {
+      throw new HostError(ERROR_CODES.CONTENT_REJECTED, "opponentTurn must contain one allowed action");
+    }
+    if (action.kind === "ask" && !isSingleQuestion(action.question)) {
+      throw new HostError(ERROR_CODES.CONTENT_REJECTED, "opponentTurn ask must contain exactly one question");
+    }
+    return { action };
+  },
   structureHint(result) {
     const text = String(result ?? "").trim();
     if (!text) throw new HostError(ERROR_CODES.CONTENT_REJECTED, "structureHint returned empty text");
@@ -363,6 +392,10 @@ async function callStepFun({ system, user, temperature }, { capability, fetchImp
 
 /** 按能力生成 prompt + 降级实现 */
 const IMPLEMENTATIONS = {
+  opponentTurn: {
+    prompt: (p) => PROMPTS.opponentTurn(p),
+    fallback: (p) => heuristicOpponentTurn(p),
+  },
   structureHint: {
     prompt: (p) => PROMPTS.structureHint(p.statement),
     fallback: (p) => heuristicStructureHint(p.statement),

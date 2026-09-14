@@ -11,10 +11,11 @@
 ## 现状盘点
 
 - `web/src/App.tsx` 已将 `?view=debate` 路由到 `DebateTreePrototype.tsx`，相关样式集中在 `web/src/styles.css`。
-- React 组件内嵌 `INITIAL_TREE`，刷新即丢失；模型只有 `root/support/oppose`、单一赞同数，没有 `neutral`、`question`、来源、时间、双向投票和约束校验。AI 观察与在线人数均为固定文案，缩放按钮没有行为，且没有对应组件测试。
+- **2026-09-14 更新**：组件内嵌的 `INITIAL_TREE` 已删除，改为 `web/src/data/debateTreeSeed.ts`（生成物，122 个真实知乎议题）。节点模型移到 `web/src/types/debateTree.ts`，遍历/统计/成树/投票语义抽到纯函数层 `web/src/ui/debateTreeUi.ts`（59 项单测），本地记忆在 `web/src/ui/debateTreeStorage.ts`（12 项单测）。**仍未做**：文档层（`DebateTreeDocument` + revision）、`debateTreeRepository.ts`、`debateTreeState.ts` 的 reducer——树的增删改还不落盘，刷新即回种子态。
+- 规则迁移（深度 ≤4、单节点子 ≤8、追问 ≤3、纯表态拦截）**仍未迁入**；`submitNode` 只校验非空。追问已改为「我自己追问」并由用户署名，禁用了本地伪造 `agentHint` 的那条路径（原实现会把模板字符串回写成「Agent 建议」，属伪造 Agent 输出）。
 - `prototypes/debate-tree-v2.html` 已验证添加论点/追问、回应继承立场、深度 4、子节点 8、追问 3、投票、三派统计和失衡判定；`node prototypes/debate-tree-v2.test.mjs` 当前为 **40/40 通过**。它是规则迁移基线，不是生产数据源。
 - `web/src/data/debateGraph.ts` 使用另一套 `topic/side/argument/evidence/...` 图模型，原仅服务 `?view=force`（**该视图已于 2026-09-13 随 D3 拍板下线，文件已移除**），且本就不能直接作为辩论树 schema。
-- `docs/design/host-contract.md` 与 `zhengming-server/` 尚不存在，真实 Host 接入受阶段 0（Host 契约与最小通道）阻塞。
+- `docs/design/host-contract.md` 与 `zhengming-server/` 均已落地；树侧尚未接 Host（卡 2-2）。
 
 ## 数据与状态模型
 
@@ -40,6 +41,8 @@ interface DebateTreeDocument {
 ## 分阶段实施
 
 ### 1. Schema、规则与迁移（卡 2-1）
+
+> 状态（2026-09-14）：第 2 条**已部分落地**——`INITIAL_TREE` 移出组件后由生成器负责产出（`data/debateTreeSeed.ts`），字段按 PRD 补齐到 `types/debateTree.ts`；但 `migrateLegacyTree()` 未写（旧的嵌套 mock 已在本次一并删除，没有需要迁移的存量），第 1、3 条（document / repository / reducer / 规则校验）仍未动。
 
 1. 新增 `web/src/types/debateTree.ts`、`web/src/ui/debateTreeState.ts` 和 `web/src/data/debateTreeRepository.ts`；将 v2 原型中的限制与统计函数迁成无 DOM 的纯函数。
 2. 把当前 `INITIAL_TREE` 移到 `web/src/data/debateTreeSeed.ts`，补齐 PRD 字段；提供 `migrateLegacyTree()`，同时接受当前 React mock 和 v2 原型导出的嵌套数据，规范化为节点表。
@@ -67,7 +70,8 @@ interface DebateTreeDocument {
 ### 4. 上游导入（卡 2-3、2-4）
 
 - 辩论间通过 `importSettlement(treeId, settlement)` 接入，不直接写 repository。这里存在决策门：PRD 限定三类节点，而实施路径要求 `settlement` 节点；开始卡 2-3 前必须在 Host 契约中决定“扩展第四类节点”或“作为 root 级归档附件”，并补迁移版本与验收样例。
-- 知乎冷启动在 `research/debate-tree/` 建立可复现管线：复用现有语料，使用 `search zhihu`，按 question id 聚合，再由 Host 两步归纳；产物经 `web/src/data/debateTreeImport.ts` 校验后导入。第一层 claim 尽量保留 `source.url/quote`，来源缺失不得伪造。
+- 知乎冷启动**已于 2026-09-14 落地数据侧**：生成器在 `research/debate-tree/gen-tree-seeds.mjs`，产物 `web/src/data/debateTreeSeed.ts`。与原计划的三处偏差（不新采集、不重复做立场抽取、产物名为 seed 而非 import）已记在 `IMPLEMENTATION-PATH.md` 卡 2-4 的进展块里。三条溯源通道：`claims`（真实论点 + 答主 + 赞同数 + 原文链接）、`answers`（真实回答摘要，立场未标注，**不冒充论点**）、`question`（仅题干）。
+- 两条随冷启动新立的硬规则：**知乎赞同数 ≠ 平台投票**（分开两个字段，UI 也分开展示）；**真实原文节选同样要过禁用词表**（命中即整段省略节选，保留论点与链接）。
 - 地图/力导向联动只新增显式 schema adapter；不让 d3 的可变节点污染 `DebateTreeDocument`。
 
 完成标准：一局终局可进入指定树且内容一致；一份真实知乎输入可生成两级、可溯源、可持久化的三派树，并正确显示失衡状态。
