@@ -4,7 +4,7 @@ import {
   applyLedger,
   applyRelations,
   assertNoCanonLeak,
-  assertWithinVisible,
+  filterWithinVisible,
   normalizeLedgerKey,
   relationGate,
   resolveRelationTarget,
@@ -76,11 +76,25 @@ describe("事件推演领域校验", () => {
     expect(validateActAdvanceResult(unknown, 0, 2).ok).toBe(true);
   });
 
-  it("按角色 visible 精确拦截越界信息", () => {
-    expect(assertWithinVisible(result, event.positions[0]).ok).toBe(true);
+  it("atEnding 由前端按幕数归一化：模型置错不产生错误，直接被纠正", () => {
+    // 第 1 幕（共 2 幕）：模型谎报终局 → 归一化为 false，且不算校验失败
+    const earlyEnding = structuredClone(result);
+    earlyEnding.atEnding = true;
+    expect(validateActAdvanceResult(earlyEnding, 0, 2).ok).toBe(true);
+    expect(earlyEnding.atEnding).toBe(false);
+    // 最后一幕：模型忘了置位 → 归一化为 true
+    const missedEnding = structuredClone(result);
+    missedEnding.atEnding = false;
+    expect(validateActAdvanceResult(missedEnding, 1, 2).ok).toBe(true);
+    expect(missedEnding.atEnding).toBe(true);
+  });
+
+  it("越界 visibleFacts 被丢弃不展示（泄露内容不进「知道」列表），不再废整幕", () => {
     const leaked = structuredClone(result);
-    leaked.nextScene.visibleFacts.push("孩子近况");
-    expect(assertWithinVisible(leaked, event.positions[0]).ok).toBe(false);
+    leaked.nextScene.visibleFacts = ["聘用条件", "孩子近况"];
+    const dropped = filterWithinVisible(leaked, event.positions[0]);
+    expect(dropped).toEqual(["孩子近况"]);
+    expect(leaked.nextScene.visibleFacts).toEqual(["聘用条件"]);
   });
 
   it("检测原作关键词且结算函数不修改输入", () => {
@@ -153,23 +167,23 @@ describe("Host 契约 §0.7 · 形状与归一化", () => {
     expect(rels).toEqual({ partner: 10 });
   });
 
-  it("角色位按契约序列化：visible 是数组，越界判定不再猜分隔符", () => {
-    // 「孩子近况」只属于 partner 的可见范围，在 teacher 位置上必须判越界
+  it("角色位按契约序列化：visible 是数组，越界条目直接过滤掉", () => {
+    // 「孩子近况」只属于 partner 的可见范围，在 teacher 位置上必须被丢弃
     const leaked = structuredClone(result);
     leaked.nextScene.visibleFacts = ["孩子近况"];
-    const checked = assertWithinVisible(leaked, event.positions[0]);
-    expect(checked.ok).toBe(false);
-    expect(checked.errors[0].message).toContain("信息越界");
+    const dropped = filterWithinVisible(leaked, event.positions[0]);
+    expect(dropped).toEqual(["孩子近况"]);
+    expect(leaked.nextScene.visibleFacts).toEqual([]);
   });
 
-  it("越界判定容忍标点差异与适度精简，只拦范围外的内容", () => {
+  it("越界判定容忍标点差异与适度精简，只丢范围外的内容", () => {
     // teacher 的 visible 是 ["聘用条件", "家庭安排"]
     const tolerated = structuredClone(result);
     tolerated.nextScene.visibleFacts = ["聘用条件。", "家庭安排（含收支）", "家庭安排"];
-    expect(assertWithinVisible(tolerated, event.positions[0]).ok).toBe(true);
+    expect(filterWithinVisible(tolerated, event.positions[0])).toEqual([]);
 
     const outOfRange = structuredClone(result);
     outOfRange.nextScene.visibleFacts = ["配偶的内心活动"];
-    expect(assertWithinVisible(outOfRange, event.positions[0]).ok).toBe(false);
+    expect(filterWithinVisible(outOfRange, event.positions[0])).toEqual(["配偶的内心活动"]);
   });
 });

@@ -29,8 +29,12 @@
 ```
 POST /api/host/:capability        # capability ∈ 能力 1..8 的机器名
 Content-Type: application/json    # 请求体上限 256KB，超限拒收
-超时：30s
+超时：30s；生成式长文本能力（6 actAdvance / 7 replayEnding）90s
 ```
+
+> **超时分级（2026-09-14 补记）**：真机实测 actAdvance 单幕生成 P50 ≈ 26s，带 history 的
+> 中后幕普遍越过 30s——30s 阈值下 TIMEOUT 是高频事件而非兜底，前端表现为
+> 「这一步暂时无法推进/模型响应超时」频发。故能力 6/7 放宽到 90s，其余能力维持 30s。
 
 ```jsonc
 // 成功
@@ -63,7 +67,7 @@ Content-Type: application/json    # 请求体上限 256KB，超限拒收
 - 服务端以 SSE（`text/event-stream`）或 NDJSON 分块转发模型增量。
 - 客户端解析规则（与 `event-replay-PLAN.md` §3.3 一致）：
   1. 叙事字段（`outcome`、`nextScene.text`）边到边渲染；
-  2. 结构字段（`moves[]` 等）必须等完整 JSON 到齐并过 `validateActAdvanceResult` + `assertWithinVisible` + `assertNoCanonLeak` 后才可交互；
+  2. 结构字段（`moves[]` 等）必须等完整 JSON 到齐并过 `validateActAdvanceResult`（含 `atEnding` 前端归一化）+ `filterWithinVisible`（越界事实丢弃不展示）+ `assertNoCanonLeak` 后才可交互；
   3. 流中断即失败态，重试**整幕重新生成**；
   4. 禁用词过滤在**流结束后**对完整文本执行。
 
@@ -151,10 +155,11 @@ interface SceneLog {                  // 已锁定的一幕（既成事实，不
 
 同批提示词硬要求（与本节配套）：`moves` 必须 2-3 张；`relationDeltas[].target` 必须**照抄**其他角色位的名字；`ledgerDeltas[].key` 只能取五维之一，本幕无代价时返回空数组。
 
-**两处「宽容」的取舍**（都要有测试守着）：
+**三处「宽容」的取舍**（都要有测试守着；2026-09-14 由两处扩为三处）：
 
 - `ledgerDeltas[].key` 归一化不了 → **丢弃该条**，不得塞进别的维度（否则会伪造出一条玩家没付过的代价）；
-- `relationDeltas[].target` 解析不到任何角色位 → **丢弃该条，不阻断整幕**。契约 §6 的硬拒收清单只含 `moves` 数量、`visibleFacts` 越界与 `canon` 泄漏；为一处称谓不精确就废掉整幕（玩家只能干等重试），代价远高于少看一条态度变化。解析用三级匹配：id → 角色名 → 互相包含。
+- `relationDeltas[].target` 解析不到任何角色位 → **丢弃该条，不阻断整幕**。为一处称谓不精确就废掉整幕（玩家只能干等重试），代价远高于少看一条态度变化。解析用三级匹配：id → 角色名 → 互相包含；
+- `nextScene.visibleFacts` 越界条目 → **丢弃不展示**（越界内容不进「知道」列表即无泄露，过滤本身就是完整防护），不再整幕拒收。真机实测模型偶尔会补一句范围外事实，把随机性变成整幕失败不可接受。判定规则：归一化（去空白标点、统一小写）后互相包含。`atEnding` 同理**由前端按幕数归一化**，不作为校验对象——终局节奏是 `endingCondition.actCount` 定的硬规则。
 
 **形状方向（最易混，写死）**
 
@@ -339,7 +344,7 @@ actAdvance(
 **硬约束**
 
 - `moves.length ∈ [2,3]`，越界即脏数据拒收；
-- `nextScene.visibleFacts` ⊆ `position.visible` 所允许的信息范围，越界拒收（`assertWithinVisible`）；
+- `nextScene.visibleFacts` ⊆ `position.visible` 所允许的信息范围，越界条目**丢弃不展示**（2026-09-14 起由整幕拒收放宽，见 §0.7 宽容取舍；`filterWithinVisible`）；
 - 入参序列化后**不得含 `canon` / `realChoice` / 真实人物真名**（见 §9）；
 - 已生成的 `outcome` 作为锁定条件注入后续调用，不得改写 `history` 里的既成事实。
 

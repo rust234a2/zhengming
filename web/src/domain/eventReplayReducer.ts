@@ -4,7 +4,7 @@
  * 设计要点（对齐 event-replay-PLAN.md §3.2）：
  *  - 只有一条前进轴：**没有 REWIND**——代价不可撤销是本版的核心体验。
  *  - 结构字段与叙事字段分离：流式增量只进 `streamingOutcome`，只有完整结果
- *    （已过 `validateActAdvanceResult` + `assertWithinVisible` + `assertNoCanonLeak`）
+ *    （已过 `validateActAdvanceResult` + `filterWithinVisible` + `assertNoCanonLeak`）
  *    才能把 `currentScene` / `currentMoves` 换掉。**绝不允许玩家点到半成品动作**。
  *  - 失败即失败：`ADVANCE_FAILED` 丢弃半截输出、不落 `history`，重试是整幕重来。
  *  - 原作（canon）默认恒为 null，只有终局 `REVEAL_CANON` 才可能非空——

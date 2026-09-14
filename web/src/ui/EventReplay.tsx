@@ -7,8 +7,9 @@
  *    原作只在终局由玩家主动展开时、经**独立通道** `replayCanon` 请求，且渲染在终局对照表的
  *    「史实」列里（`er-tag-real`），与模拟层视觉分离。
  * 2. **结构字段必须等完整结果**：`moves[]` 只有在完整结果过了
- *    `validateActAdvanceResult` + `assertWithinVisible` + `assertNoCanonLeak` 之后才可交互；
- *    任一校验不过就转入失败态，绝不允许玩家点到半成品动作。
+ *    `validateActAdvanceResult`（含 atEnding 归一化）+ `filterWithinVisible`（越界事实
+ *    丢弃不展示）+ `assertNoCanonLeak` 之后才可交互；
+ *    结构或黑名单不过就转入失败态，绝不允许玩家点到半成品动作。
  * 3. **不判输赢**：只有「代价账本」与关系变化，没有分数、没有成败、没有排名。
  *
  * 版式：v0.2 起按交互原型 `prototypes/event-replay-prototype.html` 的视觉系统落地 ——
@@ -27,7 +28,7 @@ import {
   LEDGER_KEYS,
   LEDGER_KEY_LABELS,
   assertNoCanonLeak,
-  assertWithinVisible,
+  filterWithinVisible,
   normalizeLedgerKey,
   resolveRelationTarget,
   validateActAdvanceResult,
@@ -174,19 +175,28 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
       if (response.degraded) setDegraded(true);
 
       const result = response.result;
-      // 结构字段的三道闸门：结构 → 角色位信息范围 → 原作关键词黑名单
+      // 结构字段的三道闸门：结构（atEnding 由前端归一化）→ 越界事实丢弃 → 原作关键词黑名单
       const structural = validateActAdvanceResult(
         result,
         base.actIndex,
         currentEvent.header.endingCondition.actCount,
       );
-      const visible = assertWithinVisible(result, currentPosition);
+      const droppedFacts = filterWithinVisible(result, currentPosition);
+      if (droppedFacts.length > 0) {
+        // 越界事实不进「知道」列表即无泄露；丢弃留痕，不再废整幕
+        console.warn("[event-replay] 丢弃越界 visibleFacts:", droppedFacts);
+      }
       const leaked = assertNoCanonLeak(
         [result.outcome, result.nextScene.text, ...result.moves.map((move) => move.text)].join(" "),
         currentEvent.canon,
       );
-      if (!structural.ok || !visible.ok || leaked.length > 0) {
-        apply({ type: "ADVANCE_FAILED", message: "这一步暂时无法推进" });
+      if (!structural.ok || leaked.length > 0) {
+        apply({
+          type: "ADVANCE_FAILED",
+          message: structural.ok
+            ? "生成内容未通过推演校验，请重试"
+            : "这一步暂时无法推进",
+        });
         return;
       }
 

@@ -49,6 +49,14 @@ export const STEPFUN = Object.freeze({
 /** 契约 §0.1 请求体上限 / 超时 */
 export const MAX_PAYLOAD_BYTES = 256 * 1024;
 export const REQUEST_TIMEOUT_MS = 30_000;
+/**
+ * 生成式长文本能力的超时（契约 §0.1 分级）。
+ *
+ * 真机实测（2026-09-14）：actAdvance 单幕生成 P50 ≈ 26s，带 history 的中后幕
+ * 普遍越过 30s——30s 阈值下 TIMEOUT 是高频事件而不是兜底。事件推演的
+ * actAdvance / replayEnding 按生成类放宽到 90s，其余能力维持 30s。
+ */
+export const GENERATION_TIMEOUT_MS = 90_000;
 
 /** Host 能力机器名；opponentTurn 专用于明确选择的 AI 对辩席位。 */
 export const CAPABILITIES = Object.freeze([

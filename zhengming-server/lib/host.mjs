@@ -15,6 +15,7 @@ import {
   CAPABILITIES,
   ERROR_CODES,
   ERROR_MESSAGES,
+  GENERATION_TIMEOUT_MS,
   HostError,
   MAX_PAYLOAD_BYTES,
   REQUEST_TIMEOUT_MS,
@@ -519,10 +520,14 @@ export async function invokeHost(capability, params = {}, options = {}) {
 
   // 有 key → 真实调用，禁用词/结构不合规时重试 1 次（契约 §0.5）
   const MAX_ATTEMPTS = 2;
+  // 契约 §0.1 超时分级：生成式长文本能力（事件推演）放宽到 90s
+  const timeoutMs = capability === "actAdvance" || capability === "replayEnding"
+    ? GENERATION_TIMEOUT_MS
+    : REQUEST_TIMEOUT_MS;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     try {
       const prompt = impl.prompt(normalized);
-      const raw = await callStepFun(prompt, { ...options, capability, apiKey: key });
+      const raw = await callStepFun(prompt, { ...options, capability, apiKey: key, timeoutMs });
       const result = RESULT_CHECKS[capability](raw);
 
       const hits = findBannedWords(result);

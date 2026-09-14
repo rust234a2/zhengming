@@ -164,6 +164,10 @@ export function validateActAdvanceResult(
   endingActCount: number,
 ): ValidationResult {
   const errors: ValidationResult["errors"] = [];
+  // 结局标记由**前端按幕数归一化**（2026-09-14）：走到第几幕、何时终局是
+  // endingCondition.actCount 定的硬节奏，不依赖模型自觉。实测模型会提前或
+  // 滞后置位 atEnding，把它当校验对象只会把随机性变成整幕失败。
+  result.atEnding = actIndex + 1 >= endingActCount;
   if (!result.outcome.trim()) errors.push(error("outcome", "后果不能为空"));
   if (!result.nextScene.month.trim()) errors.push(error("nextScene.month", "下一幕时间不能为空"));
   if (!result.nextScene.text.trim()) errors.push(error("nextScene.text", "下一幕处境不能为空"));
@@ -172,8 +176,6 @@ export function validateActAdvanceResult(
   // 自由给出（真机实测会给「林女士」这类简称）。解析不了的条目由 applyRelations 丢弃——
   // 少一条态度变化，远好过因为一个称谓就废掉整幕（玩家只能干等重试）。
   if (hasCanonField(result)) errors.push(error("$", "幕推进结果不得包含 canon"));
-  const shouldEnd = actIndex + 1 >= endingActCount;
-  if (result.atEnding !== shouldEnd) errors.push(error("atEnding", "结局标记与幕数不一致"));
   return { ok: errors.length === 0, errors };
 }
 
@@ -206,18 +208,18 @@ const MIN_REVERSE_MATCH_LENGTH = 4;
 /**
  * 角色位信息范围校验（契约 §6 硬约束、§0.7 形状）。
  *
- * `visibleFacts` 的每一条都必须落在 `position.visible` 内，判定规则：
- * 归一化后**互相包含**——模型照抄、带标点差异、或适度精简都算通过；
- * 只有范围外的内容才判越界。判宽一点是对的：这是「防越界剧透」的闸门，
- * 不是字符串复读机，而整幕失败的代价远高于放行一句标点略有差异的合法事实。
+ * `visibleFacts` 里**落在 `position.visible` 之外**的条目被**丢弃**（2026-09-14 起）：
+ * 越界内容不进「知道」列表即无泄露——过滤本身就是完整的防护，再把整幕废掉
+ * 只是惩罚玩家（真机实测模型偶尔会补一句范围外事实，废幕率不可接受）。
+ *
+ * 判定规则：归一化后**互相包含**——模型照抄、带标点差异、或适度精简都算通过。
+ *
+ * @returns 被丢弃的越界条目（调用方据此 console.warn 留痕）
  */
-export function assertWithinVisible(
-  result: ActAdvanceResult,
-  position: Position,
-): ValidationResult {
+export function filterWithinVisible(result: ActAdvanceResult, position: Position): string[] {
   const allowed = position.visible.map(normalizeFact).filter(Boolean);
-  const errors: ValidationResult["errors"] = [];
-  result.nextScene.visibleFacts.forEach((fact, index) => {
+  const dropped: string[] = [];
+  result.nextScene.visibleFacts = result.nextScene.visibleFacts.filter((fact) => {
     const needle = normalizeFact(fact);
     const hit =
       needle.length > 0 &&
@@ -226,9 +228,10 @@ export function assertWithinVisible(
           needle.includes(item) ||
           (needle.length >= MIN_REVERSE_MATCH_LENGTH && item.includes(needle)),
       );
-    if (!hit) errors.push(error(`nextScene.visibleFacts[${index}]`, `信息越界: ${fact}`));
+    if (!hit) dropped.push(fact);
+    return hit;
   });
-  return { ok: errors.length === 0, errors };
+  return dropped;
 }
 
 /** 应用本幕账本增量。key 先归一到五维，归一化不了的条目按契约 §0.7 丢弃。 */
