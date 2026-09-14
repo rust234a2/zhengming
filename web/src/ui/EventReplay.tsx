@@ -437,7 +437,7 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
             </div>
             <p className="er-note">
               {composedActive
-                ? "本事件由 AI 依据你提供的材料生成：人物为虚构位置（化名 · 机构模糊 · 时间到月），没有史实对照层。"
+                ? "本事件由 AI 依据你提供的材料生成：人物为虚构位置（化名 · 机构模糊 · 时间到月），没有原作对照层。"
                 : EVENT_LIBRARY_REVIEW_NOTE}
             </p>
           </div>
@@ -529,7 +529,7 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
                   </button>
                   <p className="er-note">
                     生成的人物一律为虚构位置（化名 · 机构模糊 · 时间到月）；涉及灾难或伤亡的事件会被拒绝；
-                    生成事件没有「史实对照」层。
+                    生成事件不提供原作对照层。
                   </p>
                   {composeStatus === "error" && composeError ? (
                     <div role="alert" className="er-error">

@@ -119,6 +119,9 @@ const ADVANCE: ActAdvanceResult[] = [
 ];
 
 const client: EventReplayClient = {
+  async compose() {
+    throw new Error("visual-check 夹具不提供事件生成");
+  },
   async advance() {
     const result = ADVANCE[Math.min(call, ADVANCE.length - 1)];
     call += 1;

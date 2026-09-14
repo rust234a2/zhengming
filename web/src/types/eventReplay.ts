@@ -8,8 +8,9 @@ export interface EventHeader {
     timeGranularity: "month";
   };
   admission: {
-    publiclyDiscussed: true;
-    disasterOrCasualty: false;
+    /** 种子事件恒为 true/false（准入闸门在 validateEventReplay）；生成事件按模型申报 */
+    publiclyDiscussed: boolean;
+    disasterOrCasualty: boolean;
     reviewedAt: string;
   };
   endingCondition: { kind: "actCount"; actCount: number };

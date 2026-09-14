@@ -194,12 +194,13 @@ describe("辩论树 · 参与行为", () => {
     const nav = document.querySelector(".dt-nav") as HTMLElement;
     expect(nav).toBeTruthy();
 
-    // 一排里：辩论树 / 争议地图是页内视图切换按钮（辩论树在最前），辩论间是模块跳转链接
+    // 一排里：辩论树 / 争议地图是页内视图切换按钮（辩论树在最前），辩论间与事件推演是模块跳转链接
     const buttons = Array.from(nav.querySelectorAll("button")).map((b) => b.textContent?.trim());
     const links = Array.from(nav.querySelectorAll("a")).map((a) => a.textContent?.trim());
     expect(buttons).toEqual(["辩论树", "争议地图"]);
-    expect(links).toEqual(["辩论间"]);
+    expect(links).toEqual(["辩论间", "事件推演"]);
     expect(screen.getByRole("link", { name: "辩论间" })).toHaveAttribute("href", "?view=room");
+    expect(screen.getByRole("link", { name: "事件推演" })).toHaveAttribute("href", "?view=event");
 
     // 旧的「缩进树」标签与独立的视图切换组（.dt-vbtns）已删除
     expect(document.querySelector(".dt-vbtns")).toBeNull();

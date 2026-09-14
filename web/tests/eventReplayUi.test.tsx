@@ -18,6 +18,7 @@ import { EventReplay } from "../src/ui/EventReplay";
 import type {
   ActAdvanceResult,
   CanonEntry,
+  ComposedEventScaffold,
   EndingCard,
   EventReplay as EventReplayData,
   ReplayState,
@@ -105,8 +106,9 @@ function mockClient() {
   const advance = vi.fn<(params: unknown, handlers?: { onDelta?: (t: string) => void }) => Promise<HostCallResult<ActAdvanceResult>>>();
   const ending = vi.fn<(params: unknown, handlers?: { onDelta?: (t: string) => void }) => Promise<HostCallResult<EndingCard>>>();
   const canon = vi.fn<(eventId: string) => Promise<HostCallResult<CanonEntry[]>>>();
-  const client: EventReplayClient = { advance, ending, canon };
-  return { client, advance, ending, canon };
+  const compose = vi.fn<(params: unknown) => Promise<HostCallResult<ComposedEventScaffold>>>();
+  const client: EventReplayClient = { advance, ending, canon, compose };
+  return { client, advance, ending, canon, compose };
 }
 
 /** 断言整份 DOM 里搜不到原作文本文案（红线 3）。 */
