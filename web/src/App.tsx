@@ -18,7 +18,12 @@ import { EventReplay } from "./ui/EventReplay";
 
 function readView(): string | null {
   if (typeof window === "undefined") return null;
-  return new URLSearchParams(window.location.search).get("view");
+  const search = new URLSearchParams(window.location.search).get("view");
+  if (search) return search;
+  // 兜底：部分内嵌预览/分享场景会丢查询参数，同时支持 #event 或 #view=event 形式
+  const hash = window.location.hash.replace(/^#\/?/, "");
+  if (!hash) return null;
+  return new URLSearchParams(hash).get("view") ?? hash;
 }
 
 /** 全屏视图的外层容器 —— 与原 App.tsx 的包裹方式一致。 */
