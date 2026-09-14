@@ -408,7 +408,7 @@ desktop ──POST /v1/sessions/{session_id}/turns──▶ core（持有 key，
 
 ### 卡 4-3 · 角色扮演推演引擎走真 Host
 
-> **进度（2026-09-14，分支 `feat/event-simulation`）**：前端层已落地——`web/src/domain/eventReplayReducer.ts`（无回溯单轴 reducer）、`web/src/ui/event-replay/eventReplayClient.ts`（白名单请求体 + 流式读取 + 降级透传）、`web/src/ui/EventReplay.tsx` + `eventReplay.css`（`?view=event` 全流程界面）。测试三份：reducer 契约 9 项、事件库 5 项、client 隔离断言（`findCanonKeys` spy）+ UI 红线（推演期间 DOM 搜不到 canon、replayCanon 仅终局触发、无胜负措辞）。**剩余：`zhengming-server` 侧实现能力 5/6/7（含 D4 流式 SSE），真模型联调后本卡才可关。**
+> **进度（2026-09-14，分支 `feat/event-simulation`）**：前端层已落地——`web/src/domain/eventReplayReducer.ts`（无回溯单轴 reducer）、`web/src/ui/event-replay/eventReplayClient.ts`（白名单请求体 + 流式读取 + 降级透传）、`web/src/ui/EventReplay.tsx` + `eventReplay.css`（`?view=event` 全流程界面）。**界面在 v0.6 按 `prototypes/event-replay-prototype.html` 重做壳体**（三栏 + 原型同源配色 + 终局遮罩对照表；只借壳不借语义——占比/多数人/重走/开辩论均不实现，PRD §8 有逐项处置表），并附 dev-only 版式夹具 `web/visual-check.html?auto=play|ending`（不进 `vite build` 产物）。测试三份：reducer 契约 9 项、事件库 5 项、client 隔离断言（`findCanonKeys` spy）+ UI 红线（推演期间 DOM 搜不到 canon、replayCanon 仅终局触发、无胜负措辞）。**剩余：`zhengming-server` 侧实现能力 5/6/7（含 D4 流式 SSE），真模型联调后本卡才可关。**
 
 - 三个新能力：`actAdvance`（幕推进：处境 + 动作 + 后果 + 账本/关系增量）/ `replayEnding`（终局叙述）/ `replayCanon`（原作揭示，独立通道，仅终局调用）
 - **必须实现的机制**
