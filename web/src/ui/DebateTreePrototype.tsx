@@ -385,6 +385,7 @@ export function DebateTreePrototype() {
           <a className="on" href="?view=debate" aria-current="page">辩论树</a>
           <a href="?view=map">争议地图</a>
           <a href="?view=room">辩论间</a>
+          <a href="?view=event">事件推演</a>
         </nav>
         <div className="dt-vbtns" role="group" aria-label="视图切换">
           <button type="button" className={view === "tree" ? "on" : ""} aria-pressed={view === "tree"} onClick={() => setView("tree")}>缩进树</button>

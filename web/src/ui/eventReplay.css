@@ -66,6 +66,27 @@
   color: var(--er-muted);
 }
 
+/* 模块切换（与辩论树顶栏 .dt-nav 同形制，靠 ?view= 跳转） */
+.er-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.er-nav a {
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--er-muted);
+  text-decoration: none;
+}
+
+.er-nav a:hover {
+  background: var(--er-chip, rgba(0, 0, 0, 0.05));
+  color: var(--er-ink);
+}
+
 .er-event-picker select {
   font: inherit;
   padding: 5px 8px;

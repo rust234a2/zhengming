@@ -238,6 +238,11 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
           <h1>事件推演</h1>
           <p className="er-subtitle">单人扮演 · 没有对手 · 不判输赢，只记代价</p>
         </div>
+        <nav className="er-nav" aria-label="模块切换">
+          <a href="?view=debate">辩论树</a>
+          <a href="?view=map">争议地图</a>
+          <a href="?view=room">辩论间</a>
+        </nav>
         {events.length > 1 && state.history.length === 0 && !state.pending ? (
           <label className="er-event-picker">
             <span>选择事件</span>
