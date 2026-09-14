@@ -1536,3 +1536,202 @@ textarea {
   .controversy-map-hint span { display: none; }
   .controversy-map-legend { gap: 9px; font-size: 11px; }
 }
+
+/* 力导向辩论树（React + D3 + SVG） */
+.debate-force-tree {
+  --force-line: #9db2cb;
+  --force-accent: #0f6fe5;
+  --force-positive: #0f6fe5;
+  --force-negative: #d9574d;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+  background: #f7f9fc;
+  border: 1px solid var(--debate-line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.debate-force-toolbar {
+  flex: 0 0 auto;
+  height: 44px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--debate-line);
+}
+
+.debate-force-hint {
+  font-size: 12px;
+  color: var(--debate-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.debate-force-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.debate-force-actions button {
+  height: 26px;
+  min-width: 26px;
+  padding: 0 8px;
+  font-size: 13px;
+  color: var(--debate-ink);
+  background: #ffffff;
+  border: 1px solid var(--debate-line);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.debate-force-actions button:hover {
+  color: var(--force-accent);
+  border-color: var(--force-accent);
+  background: #f4f8ff;
+}
+
+.debate-force-actions .fit-button {
+  font-size: 12px;
+}
+
+.debate-force-svg {
+  flex: 1 1 auto;
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.debate-force-svg:active {
+  cursor: grabbing;
+}
+
+.debate-force-node {
+  transition: opacity 0.15s ease;
+}
+
+.debate-force-node circle {
+  transition: r 0.12s ease, stroke-width 0.12s ease;
+}
+
+.debate-force-node.is-selected circle {
+  stroke-width: 3;
+}
+
+.debate-force-label {
+  fill: #334155;
+  font-family: "Noto Sans SC", "Source Han Sans SC", sans-serif;
+  font-weight: 500;
+  paint-order: stroke;
+  stroke: #f7f9fc;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.debate-force-node.type-topic .debate-force-label {
+  fill: #0f172a;
+  font-weight: 700;
+}
+
+.debate-force-node.type-side .debate-force-label {
+  fill: #1e293b;
+  font-weight: 600;
+}
+
+.debate-force-links line {
+  transition: stroke-opacity 0.15s ease, stroke-width 0.15s ease;
+}
+
+.debate-force-toggle {
+  cursor: pointer;
+}
+
+.debate-force-toggle-ring {
+  fill: #ffffff;
+  stroke: var(--debate-line);
+  stroke-width: 1;
+}
+
+.debate-force-toggle text {
+  fill: var(--debate-muted);
+  font-size: 11px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.debate-force-toggle:hover .debate-force-toggle-ring {
+  stroke: var(--force-accent);
+}
+
+.debate-force-toggle:hover text {
+  fill: var(--force-accent);
+}
+
+.debate-force-toggle.is-expanded .debate-force-toggle-ring {
+  fill: #f4f8ff;
+  stroke: var(--force-accent);
+}
+
+.debate-force-toggle.is-expanded text {
+  fill: var(--force-accent);
+}
+
+:root[data-theme="dark"] .debate-force-tree {
+  background: #0f172a;
+  border-color: #1e293b;
+}
+
+:root[data-theme="dark"] .debate-force-toolbar {
+  background: #111c33;
+  border-bottom-color: #1e293b;
+}
+
+:root[data-theme="dark"] .debate-force-actions button {
+  color: #e2e8f0;
+  background: #16233c;
+  border-color: #26364f;
+}
+
+:root[data-theme="dark"] .debate-force-actions button:hover {
+  color: #93b8f5;
+  border-color: #3b5b8a;
+  background: #1b2b47;
+}
+
+:root[data-theme="dark"] .debate-force-label {
+  fill: #cbd5f5;
+  stroke: #0f172a;
+}
+
+:root[data-theme="dark"] .debate-force-node.type-topic .debate-force-label,
+:root[data-theme="dark"] .debate-force-node.type-side .debate-force-label {
+  fill: #e8eefc;
+}
+
+:root[data-theme="dark"] .debate-force-toggle-ring {
+  fill: #16233c;
+  stroke: #26364f;
+}
+
+:root[data-theme="dark"] .debate-force-toggle text {
+  fill: #94a3b8;
+}
+
+@media (max-width: 640px) {
+  .debate-force-hint { display: none; }
+  .debate-force-toolbar { justify-content: flex-end; }
+}
