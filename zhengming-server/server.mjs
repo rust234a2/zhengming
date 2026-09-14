@@ -35,6 +35,83 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 export const DEFAULT_PORT = Number(process.env.PORT || 5300);
 
+const EVALUATION_SEATS = ["pro", "con"];
+const EVALUATION_DIMS = ["立论", "论据", "逻辑", "回应", "表达", "规范"];
+
+/**
+ * 终局分别评价两个席位。Host 契约把被评估者固定标为 user，
+ * 因此这里只改 authorId 视角，保留原始顺序、kind 与问答文本。
+ */
+export async function evaluateSettledRoom(state, hostInvoker = invokeHost) {
+  if (state?.phase !== "settled" || !state.report || !state.transcript?.length) return state;
+
+  const evaluations = await Promise.all(
+    EVALUATION_SEATS.map(async (seat) => {
+      const transcript = state.transcript.map((turn) => ({
+        ...turn,
+        authorId: turn.authorId === seat ? "user" : turn.authorId === "host" ? "host" : "bot",
+      }));
+      try {
+        const envelope = await hostInvoker(
+          "evaluate",
+          { transcript },
+          { requestId: `${state.roomId}-evaluate-${seat}` },
+        );
+        return { seat, transcript, envelope };
+      } catch (error) {
+        return { seat, transcript, envelope: null, error };
+      }
+    }),
+  );
+
+  const profiles = { ...state.report.profiles };
+  const grounds = [];
+  const verdicts = [];
+  const degradedReasons = [];
+
+  for (const { seat, transcript, envelope, error } of evaluations) {
+    let resolved = envelope;
+    if (!resolved?.ok) {
+      degradedReasons.push(`${seat}: ${error?.message || resolved?.error?.message || "evaluate failed"}`);
+      resolved = await invokeHost(
+        "evaluate",
+        { transcript },
+        { requestId: `${state.roomId}-evaluate-${seat}-fallback`, apiKey: null },
+      );
+    }
+    if (!resolved.ok) {
+      degradedReasons.push(`${seat}: fallback ${resolved.error?.message || "failed"}`);
+      continue;
+    }
+    profiles[seat] = EVALUATION_DIMS.map((dim) => Math.round(Number(resolved.result?.dims?.[dim]) || 0));
+    for (const ground of resolved.result?.grounds ?? []) {
+      grounds.push({ ...ground, seat });
+    }
+    if (resolved.result?.verdict) {
+      verdicts.push(`${seat === "pro" ? "正方" : "反方"}：${resolved.result.verdict}`);
+    }
+    if (resolved.degraded && envelope?.ok) {
+      degradedReasons.push(resolved.degradedReason || `${seat}: heuristic fallback`);
+    }
+  }
+
+  const degraded = degradedReasons.length > 0;
+  return {
+    ...state,
+    host: {
+      degraded,
+      ...(degraded ? { reason: [...new Set(degradedReasons)].join("；") } : {}),
+    },
+    report: {
+      ...state.report,
+      profiles,
+      grounds,
+      verdict: verdicts.join("\n"),
+      hostDegraded: degraded,
+    },
+  };
+}
+
 /* ═══════════════════ 领域内核加载 ═══════════════════
    ROLLOUT §2 明确：服务端 **import 同一份 domain 纯函数**，不重写。
    前端是 TS，这里读它的构建产物：web/src/domain/debateRoom.js（由 tsc 产出）
@@ -227,7 +304,7 @@ function readBody(req, limit = MAX_PAYLOAD_BYTES) {
  * 创建服务端（返回 { server, registry, store, topics, domainSource }）。
  * 导出成函数便于测试里用随机端口启动。
  */
-export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOverride } = {}) {
+export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOverride, hostInvoker = invokeHost } = {}) {
   const store = new Store(storeDir ? { dir: storeDir } : {});
   await store.ensureDir();
 
@@ -245,11 +322,13 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
     withSeat: domain.withSeat,
     createTopic: () => topics[0] || { title: "未命名议题", paired: false },
     onReport: async (state) => {
+      const finalState = await evaluateSettledRoom(state, hostInvoker);
       try {
-        await store.save(state.roomId, state);
+        await store.save(finalState.roomId, finalState);
       } catch (error) {
-        console.error(`[zhengming] failed to persist room ${state.roomId}: ${error.message}`);
+        console.error(`[zhengming] failed to persist room ${finalState.roomId}: ${error.message}`);
       }
+      return finalState;
     },
   });
 
@@ -297,7 +376,7 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
         return;
       }
       const requestId = typeof params.requestId === "string" ? params.requestId : url.searchParams.get("requestId") || undefined;
-      const envelope = await invokeHost(capability, params, { requestId });
+      const envelope = await hostInvoker(capability, params, { requestId });
       const status = envelope.ok
         ? 200
         : envelope.error.code === ERROR_CODES.CAPABILITY_NOT_FOUND

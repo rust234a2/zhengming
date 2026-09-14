@@ -48,7 +48,8 @@ const V = new Function('document','window','console','setTimeout','clearTimeout'
     startMatch, pickSide, enterRoom, rankCandidates, renderBrief, submitBrief, submitOpening, submitAnswer,
     submitCrossQuestion, submitFree, submitClosing, showEnd, resetRoom, botBriefItems,
     evaluate, showEndcard, closeEndcard, createHostCoordinator,
-    state:()=>state, mp:()=>mp, records:()=>records, evasions:()=>evasions,
+    state:()=>state, mp:()=>mp, records:()=>records,
+    pressedOnce:()=>pressedOnce, botQuestionCount:()=>botQuestionCount,
     mpLog:()=>mpLog, revised:()=>revised, admitted:()=>admitted, transcript:()=>transcript,
     mySide:()=>mySide, oppSide:()=>oppSide };
 `)(documentStub, windowStub, console, setTimeoutStub, ()=>{}, ()=>1, ()=>{});
@@ -132,13 +133,19 @@ ok(V.state() === 'cross-answer', '立论 → 对方质询到来');
 console.log('场景5 质询轮');
 V.submitAnswer('短');
 ok(V.state() === 'cross-answer', '过短回答被拦截');
-V.submitAnswer('因为调动政策对高级职称教师放宽了年龄限制，有公开文件可查');
-ok(V.state() === 'cross-ask', '正面回答 → 轮到我质询');
+const firstAnswer=V.submitAnswer('因为调动政策对高级职称教师放宽了年龄限制，有公开文件可查');
+await settle();await firstAnswer;
+ok(V.state() === 'cross-answer' && V.botQuestionCount() === 2, '首次回答后对方可继续追问一次');
+V.submitAnswer('我的标准是优先避免不可逆的机会损失，家庭成本可以通过提前安顿缓冲');
+ok(V.state() === 'cross-ask', '达到两问上限 → 自动轮到我质询');
 V.submitCrossQuestion(0, 0, '你的「高风险动作」定义排除了什么？');
 await settle();
-ok(V.state() === 'cross-react', '质询对方定义条目 → 对方回答 → 三选一');
-makeEl('rc-acc').onclick();
-ok(V.state() === 'free', '接受 → 自由对辩');
+ok(V.state() === 'cross-react', '质询对方定义条目 → 对方回答 → 可接受或继续追问');
+ok(makeEl('composer').innerHTML.includes('接受这个回答') && !makeEl('composer').innerHTML.includes('指出回避'), '反应区只有接受与继续追问');
+makeEl('rc-press').onclick();
+makeEl('pr-t').value='这个依据能直接支持你的结论吗？';
+const followUp=makeEl('pr-go').onclick();await settle();await followUp;
+ok(V.pressedOnce() && V.state() === 'free', '继续追问达到上限后自动进入自由对辩');
 
 /* ---------- 场景6: 自由对辩（承认入报告） ---------- */
 console.log('场景6 自由对辩');
@@ -162,7 +169,7 @@ ok(makeEl('mp-list').innerHTML.includes('完成完整对局'), '段位结算含 
 console.log('场景8 段位结算');
 V.showEnd();
 const total = V.mpLog().reduce((s,x)=>s+x[1],0);
-ok(V.mp() === total && V.mp() >= 12, `鸣声值合计 ${V.mp()} ≥ 12`);
+ok(V.mp() === total && V.mp() >= 10, `鸣声值合计 ${V.mp()} ≥ 10`);
 ok(!V.mpLog().some(x => /承认|荣誉|授予|被对手|概念对齐/.test(x[0])), 'MP 明细无「对手承认 / 荣誉授予 / 概念对齐」条目');
 ok(V.mpLog().every(x => x[1] >= 0), 'MP 明细无负向条目（本场未离席）');
 ok(makeEl('tier-steps').innerHTML.includes('启鸣'), '段位进度渲染');
@@ -203,7 +210,7 @@ console.log('场景9 重置');
 makeEl('mask').classList.remove('show');
 V.resetRoom();
 ok(V.state() === 'idle' && V.mp() === 0 && V.records() === 0, '重置清空全部对局状态');
-ok(V.admitted().length === 0 && V.evasions() === 0, '重置清空承认与回避记录');
+ok(V.admitted().length === 0 && V.botQuestionCount() === 0, '重置清空承认记录与质询次数');
 ok(V.mySide() === null && makeEl('m-claims').innerHTML.includes('正方'), '重置回到选边态（论点对重新可点）');
 
 /* ---------- 场景10: v0.6 静态守卫（源码不得残留打分撮合 / 对齐 / 树 / 互认构件） ---------- */
@@ -215,6 +222,7 @@ ok(!/CONCEPTS|pickConcept|conceptPicks|conceptTries|conceptAgreed|renderConcept|
 ok(!/acknowledg|myTree|BOT_TREE|submitPreTree|ackedIdx|newNodes|crossClaim/.test(script), '脚本无 v0.3 树 / 互认残留符号');
 ok(!/争议档案|上树|金点|共享画板|预提交/.test(html), '原型文案已无「争议档案 / 上树 / 金点 / 共享画板 / 预提交」');
 ok(!/被对手承认|获对方授予|最强证据|最佳修正/.test(html), '原型已无「对手承认 / 荣誉授予」文案');
+ok(!/指出回避|rc-evade|evasive/.test(script), '质询反应不再包含人工回避判定');
 ok(!html.includes('btn-settle') && !html.includes('沉淀到辩论树'), '已移除「沉淀到辩论树」出口');
 ok(!/id="e-go"/.test(html), '已移除「进入辩论树 →」出口');
 ok(!/addToBoard/.test(script) && /addRecord/.test(script), '登记动作统一走 addRecord（无上板语义）');

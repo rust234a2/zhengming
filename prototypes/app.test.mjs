@@ -98,12 +98,15 @@ ok(W.Room._debug.records() >= 9, '双方立论结构（含定义）已登记（�
 W.Room._debug.submitOpening('我的开篇陈述', '公开数据');
 await settle();
 ok(W.Room._debug.state() === 'cross-answer', '立论 → 对方质询');
-W.Room._debug.submitAnswer('因为调动政策放宽了年龄限制，有公开文件');
-ok(W.Room._debug.state() === 'cross-ask', '回答 → 轮到我质询');
+const firstAnswer=W.Room._debug.submitAnswer('因为调动政策放宽了年龄限制，有公开文件');
+await settle();await firstAnswer;
+ok(W.Room._debug.state() === 'cross-answer' && W.Room._debug.botQuestionCount() === 2, '首次回答 → 对方继续追问一次');
+W.Room._debug.submitAnswer('我的标准是优先避免不可逆的机会损失，家庭成本可以提前缓冲');
+ok(W.Room._debug.state() === 'cross-ask', '质询次数达到上限 → 自动轮到我质询');
 ok(W.Room._debug.botBriefItems().length === 5, '质询靶点 = 定义 / 结论 / 理由1 / 理由2 / 依据');
 W.Room._debug.submitCrossQuestion(0, 0, '你的「高风险动作」定义排除了什么？');
 await settle();
-ok(W.Room._debug.state() === 'cross-react', '质询对方定义条目 → 三选一');
+ok(W.Room._debug.state() === 'cross-react', '质询对方定义条目 → 可接受或继续追问');
 makeEl('rc-acc').onclick();
 ok(W.Room._debug.state() === 'free', '接受 → 自由对辩');
 W.Room._debug.submitFree('承认', '我方承认对方的中考风险判断');

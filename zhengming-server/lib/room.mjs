@@ -39,7 +39,7 @@ export function generateSeatToken() {
  * @param {Function} [options.createRoomState] 领域工厂
  * @param {Function} [options.openRoom] waiting → opening 跃迁
  * @param {Function} [options.withSeat] 席位写入
- * @param {Function} [options.onReport] 对局结束时的落盘回调 (state) => Promise<void>
+ * @param {Function} [options.onReport] 对局结束时的评分/落盘回调，可返回最终 state
  */
 export class Room {
   constructor({ id, topic, transition, createRoomState, openRoom, withSeat, onReport }) {
@@ -172,7 +172,8 @@ export class Room {
     if (this.closed) return;
     this.closed = true;
     if (typeof this.onReport === "function") {
-      await this.onReport(this.state);
+      const finalState = await this.onReport(this.state);
+      if (finalState) this.state = finalState;
     }
   }
 }

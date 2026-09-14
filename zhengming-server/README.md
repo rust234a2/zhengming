@@ -6,7 +6,7 @@
 
 - `docs/design/host-contract.md`（v1.2，七能力契约 · 已确认）
 - `docs/design/debate-room-ROLLOUT.md`（落地计划 S1–S6）
-- `docs/design/debate-room-PRD.md`（v0.6，产品规则）
+- `docs/design/debate-room-PRD.md`（v0.7，产品规则）
 
 ---
 
@@ -51,6 +51,13 @@ npm test
 
 ```bash
 node test/e2e-room.mjs
+```
+
+该脚本默认注入确定性评分器，稳定验证双 WebSocket 客户端、自动换轮、双方画像合并与报告落盘。要额外 smoke 真实 StepFun 终局评分：
+
+```bash
+node test/e2e-room.mjs --real-host
+# 也可用环境变量：ZHENGMING_E2E_REAL_HOST=1 node test/e2e-room.mjs
 ```
 
 > 跑之前先确保领域模块已编译：`cd ../web && npm run build:domain`
@@ -112,6 +119,8 @@ curl -X POST http://127.0.0.1:5300/api/host/structureHint \
 ```
 
 **规则**：所有动作先过 `transition()`；不合法则回 `error` 且**不动状态**。
+
+进入 `settled` 后，服务端会分别从正方、反方视角调用 `evaluate`，合并两边六维画像与引用依据，再落盘并广播最终报告。「接受回答」只结束当前质询，不作为评分或 MP 依据；是否切题由 Host 对照 question/answer 原文判断。真实上游超时或失败时，两侧会自动改用启发式评分并明确标记 `hostDegraded: true`，不会留下空画像或伪装成真实模型结果。
 
 ---
 

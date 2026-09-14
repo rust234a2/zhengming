@@ -4,7 +4,7 @@
  * 红线落点：
  *   - 「不判输赢」：报告里**物理上没有胜负槽位**；顶部副标题常驻说明「不构成胜负判定」。
  *   - 「不排名」：六维画像并排展示，**不给名次、不给谁高谁低**。
- *   - 段位只展示**参与度结算明细**（完成对局 / 回答被接受 / 离席扣分），没有胜负奖励。
+ *   - 段位只展示**参与度结算明细**（完成对局 / 离席扣分），没有胜负奖励。
  *
  * 可随时退出：点 ✕ 或遮罩空白关闭，回到辩论间回看本场记录（PRD §8）。
  */
@@ -150,7 +150,7 @@ export function RoomReportCard({
                 <ul>
                   {report.grounds.map((ground, index) => (
                     <li key={`ground-${index}`}>
-                      <span className="dr-end-meta">{ground.dim}</span>
+                      <span className="dr-end-meta">{ground.seat ? `${label(ground.seat)} · ` : ""}{ground.dim}</span>
                       <span>「{ground.quote}」——{ground.reason}</span>
                     </li>
                   ))}

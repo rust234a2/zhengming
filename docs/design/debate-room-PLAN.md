@@ -1,12 +1,12 @@
 # 辩论间实施计划
 
-对齐 PRD 版本：**v0.6**（选边制 · 画像驱动撮合） · 2026-09-13 · 基线原型 `prototypes/debate-room-prototype.html`
+对齐 PRD 版本：**v0.7**（选边制 · 有限质询） · 2026-09-14 · 基线原型 `prototypes/debate-room-prototype.html`
 
 > **v0.7 同步说明（2026-09-14，真实多人 + 真实 LLM 落地）**
 >
 > - **变更动因**：用户要求把辩论间接入桌面端，且**「双方可以真的进入辩论间按五阶段流程把一场辩论打完」**（达到可用程度）、**Host 接真实 LLM**。这触发了 PLAN §6 里明确记为「须单独决策」的**真实多人实时房间**——原计划把它排除在 MVP 之外。同时 Host 通道从 DeepSeek 换为 **StepFun（阶跃星辰）**，其 API 为 OpenAI 兼容格式（`https://api.stepfun.com/v1/chat/completions`，模型 `step-3.7-flash`，支持 `response_format:{type:"json_object"}`）。
-> - **本次改动**：① 新增决策点 **D8：真实多人房间**（房间生命周期、服务端权威状态、消息契约、断线/离席）；② 新增决策点 **D9：Host 上游改为 StepFun**（`DEEPSEEK_API_KEY` → `STEPFUN_API_KEY`，契约 §0.3 参数基线同步改）；③ 阶段 A 的「待用户确认契约」闸口**已通过**（2026-09-14 用户拍板接真实 LLM），可以开卡 0-2；④ 阶段 C 的 `opponent.*`（模型对手）**降级为 Bot 兜底路径**，真人对手走房间通道；⑤ 阶段 D 第 5 步的「可选 React 落地」**升级为本期必做**（`web/src/ui/DebateRoom.tsx` + `?view=room` + 顶栏标签）。
-> - **保留不动**：五阶段流程、立论结构（含可选关键定义）、质询三选一、发言类型、证据七档、六维画像、段位、`RoomReport`（无胜负字段）、四条产品红线、D1/D5/D6/D7 四项已拍板决策。
+> - **本次改动**：① 新增决策点 **D8：真实多人房间**（房间生命周期、服务端权威状态、消息契约、断线/离席）；② 新增决策点 **D9：Host 上游改为 StepFun**（`DEEPSEEK_API_KEY` → `STEPFUN_API_KEY`，契约 §0.3 参数基线同步改）；③ 阶段 A 的「待用户确认契约」闸口**已通过**（2026-09-14 用户拍板接真实 LLM），可以开卡 0-2；④ 阶段 C 的 `opponent.*`（模型对手）**降级为 Bot 兜底路径**，真人对手走房间通道；⑤ 阶段 D 第 5 步的「可选 React 落地」**升级为本期必做**（`web/src/ui/DebateRoom.tsx` + `?view=room` + 顶栏标签）；⑥ 质询反应收敛为「接受并结束 / 继续追问」，每方最多 2 问，达到上限后自动推进，人工「指出回避」删除。
+> - **保留不动**：五阶段流程、立论结构（含可选关键定义）、发言类型、证据七档、六维画像、段位、`RoomReport`（无胜负字段）、四条产品红线、D1/D5/D6/D7 四项已拍板决策。
 > - **本条作废**：§1「不做什么」中「不把模型对手包装成真人实时对局」与「真正的多人实时房间……须单独决策后再承诺」——D8 已拍板做真实多人，该排除项作废；§6 中「若后续做完整真人实时房间……另立决策」作废（已立为 D8）。
 >
 > **v0.6 同步说明**：撮合从打分制改为**选边制**——系统按议题给出预设论点对（来自争议地图管线），用户选边；对手**真人优先**（守另一边的候选，按**六维结构画像相近度**排序）、**Bot 兜底**。本计划相应改动：① 旧公式 `base*0.35 + debate*0.45 + style*0.20` 退役（§4 阶段 D 改为画像相近度纯函数）；② `DebateRoomState` 增加 `sidePicks`（双方所选预设论点）；③ **决策点 D2 作废**——`style` 信号不再需要知乎收藏/关注，OAuth 安心留在阶段 5；④ 原型 `startMatch()` 固定单局脚本待改（见 PRD §13 v0.6 待同步）。
@@ -61,9 +61,9 @@ interface DebateRoomState {
 }
 ```
 
-与 v0.4 的差别：删 `"concept"` phase；删 `definitions: DefinitionChoice[]` 字段（关键定义并入 `OpeningBrief` 可选字段，可被质询定位）；与 v0.3 的差别：删 `"pretree" | "acknowledgement"` 两个 phase；删 `trees`（`MiniArgumentTree`）与 `acknowledgements` 两个字段；`Settlement` → `RoomReport`。
+与 v0.4 的差别：删 `"concept"` phase；删 `definitions: DefinitionChoice[]` 字段（关键定义并入 `OpeningBrief` 可选字段，可被质询定位）；与 v0.3 的差别：删 `"pretree" | "acknowledgement"` 两个 phase；删 `trees`（`MiniArgumentTree`）与 `acknowledgements` 两个字段；`Settlement` → `RoomReport`。v0.7 进一步删除人工 `evade` 反应：回答后可 `accept` 提前结束或 `press` 一次，第二次回答完成即自动推进。
 
-状态迁移的接口统一为 `transition(state, event) -> Result<state, DomainError>`；它负责**“理由至少一条、追问最多一次、每方自由发言一次、轮次走满即结算”**等不变量。每条 `Turn` 使用稳定 id、`authorId`、`kind`、`targetBriefItem`（指向对方立论结构的条目，含可选的关键定义条目）、`evidenceStatus` 与时间戳，禁止再从已转义 HTML 反推业务数据。
+状态迁移的接口统一为 `transition(state, event) -> Result<state, DomainError>`；它负责**“理由至少一条、每方最多两问、第二次回答后自动推进、每方自由发言一次、轮次走满即结算”**等不变量。每条 `Turn` 使用稳定 id、`authorId`、`kind`、`targetBriefItem`（指向对方立论结构的条目，含可选的关键定义条目）、`evidenceStatus` 与时间戳，禁止再从已转义 HTML 反推业务数据。
 
 外部能力放在三个 seam：`HostClient`、`MatchRepository`、`RoomReportSink`。生产 Adapter 分别调用服务端 Host、候选池和报告存储；测试 Adapter 返回确定结果。Host 接口至少包含 `structureHint`、`makeQuestion`、`opponent.opening/answer/question`、`evaluate`（`alignConcepts` 已于 2026-09-13 从 Host 能力表彻底移除；`checkRestatement` 已随 **D6 拍板不落闸门** 同步移除）。异步请求携带 `roomId + turnId + requestId`，重复响应必须幂等，失败时保留草稿并允许重试。
 
@@ -108,7 +108,7 @@ interface DebateRoomState {
 1. 定义 `PresetClaim`（预设论点对：正方论点 / 反方论点，来源争议地图管线）与纯函数 `rankCandidates()`：输入守另一边的候选列表，按**六维画像相近度**排序——`score = 1 − mean(|dim_i − dim_i'|)/100`（六维取自历史 `RoomReport`）；无画像候选排在其后、并列随机。同输入必须同输出，并返回排序依据供 UI 解释。（原型已落参考实现：`prototypes/debate-room-prototype.html`，2026-09-13）
 2. **D2 已作废（2026-09-13 随选边制）**：撮合不再消费 `style`/知乎收藏关注信号；OAuth 安心留在阶段 5，无需提前。
 3. **对手来源（已拍板 2026-09-13）**：真人优先、Bot 兜底——候选池空或等待超时（建议 90s），由 Bot 持预设对方论点开局；Bot 路径不伪造"真人在线"提示。
-4. 从最终状态纯函数生成 `RoomReport`，包含双方关键定义（如有，含定义分歧）、双方立论结构、证据状态、质询记录、共识、分歧、未决、回避、修正、六维画像与评估总结；**不含**任何互认 / 荣誉字段。落点见 §6 W1。**六维画像同时写入用户撮合档案**，作为下次撮合的排序信号（闭环：对局 → 画像 → 撮合）。
+4. 从最终状态纯函数生成 `RoomReport`，包含双方关键定义（如有，含定义分歧）、双方立论结构、证据状态、完整质询问答、共识、分歧、未决、修正、六维画像与评估总结；**不含**人工回避裁决或任何互认 / 荣誉字段。终局 AI 对照问题与回答原文，在「回应」维度评价是否触及问题。落点见 §6 W1。**六维画像同时写入用户撮合档案**，作为下次撮合的排序信号（闭环：对局 → 画像 → 撮合）。
 5. 修改原型后在 `main` 更新 `prototypes/build-app.mjs` / `prototypes/app.test.mjs` 并重建 `prototypes/zhengming-app.html`。若选择产品路线 B，再新增 `web/src/ui/DebateRoom.tsx`、`web/src/types/room.ts` 和对应测试，并在 `web/src/App.tsx` 增加 `?view=room`；这些共享改动不得直接落在模块 worktree。
 
 ## 5. 测试与验收
@@ -119,7 +119,7 @@ interface DebateRoomState {
 - 服务端：用 stub 上游验证 schema、超时、限流、非法 JSON、禁用词和密钥不泄露；再用真实 key 各 smoke 一次。
 - 若落 React：在 `web/` 运行 `npm test` 与 `npm run build`。
 
-业务验收以 PRD v0.6 清单为准，并补充：选边与撮合理由可解释；模型失败不丢草稿；`RoomReport` 可读回且与终局卡一致；**全局无 winner/rank/胜负判定，也无"由对方授予"的结果字段**。
+业务验收以 PRD v0.7 清单为准，并补充：选边与撮合理由可解释；模型失败不丢草稿；`RoomReport` 可读回且与终局卡一致；「接受回答」只结束质询、不参与评分或 MP；**全局无 winner/rank/胜负判定，也无"由对方授予"的结果字段**。
 
 ## 6. 风险与待决策
 

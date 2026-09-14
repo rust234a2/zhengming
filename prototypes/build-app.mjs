@@ -100,7 +100,8 @@ window.Room = {
     submitCrossQuestion, submitFree, submitClosing, showEnd, resetRoom,
     evaluate, BOT_SIDES, CLAIM_PAIR, TIERS, botBriefItems,
     pickSide, rankCandidates, mySide:()=>mySide, oppSide:()=>oppSide,
-    state:()=>state, mp:()=>mp, records:()=>records, evasions:()=>evasions,
+    state:()=>state, mp:()=>mp, records:()=>records,
+    pressedOnce:()=>pressedOnce, botQuestionCount:()=>botQuestionCount,
     admitted:()=>admitted, transcript:()=>transcript }
 };
 })();`;

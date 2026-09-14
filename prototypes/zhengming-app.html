@@ -1386,11 +1386,11 @@ const BOT_SIDES={
   question:'你刚在开篇立论里说「窗口期不等人」——这个窗口期是客观存在的调动机制，还是被焦虑放大的心理感受？请正面回答。',
   closing:'但风险大小和该不该走是两回事。按我的标准（孩子教育连续性优先），今年不该走。不过你今天有几个回答让我重新想了想「窗口期」的定义。',
   answers:{
-   c0:{ans:'我方定义就写在立论结构里：「高风险动作」指教育路径的重大且难逆的变动——不接受把它偷换成「一切搬家风险」。',evasive:false},
-   c1:{ans:'我的结论落在「中考节点不可逆」上：青春期重大迁移与学业滑坡显著相关，这是可查的研究结论。',evasive:false},
-   c2:{ans:'中考这一年的状态波动，我引用的是发展心理学关于青春期迁移的研究，样本与结论都公开可查。',evasive:false},
-   c3:{ans:'我说「外调收益不确定」有依据：近年外调资深教师多先被安排非毕业班——这是可以查证的公开报道。',evasive:false},
-   c4:{ans:'头部校的水平本来就是动态的嘛，谁说得准呢，反正去了就知道了。',evasive:true}}},
+   c0:{ans:'我方定义就写在立论结构里：「高风险动作」指教育路径的重大且难逆的变动——不接受把它偷换成「一切搬家风险」。'},
+   c1:{ans:'我的结论落在「中考节点不可逆」上：青春期重大迁移与学业滑坡显著相关，这是可查的研究结论。'},
+   c2:{ans:'中考这一年的状态波动，我引用的是发展心理学关于青春期迁移的研究，样本与结论都公开可查。'},
+   c3:{ans:'我说「外调收益不确定」有依据：近年外调资深教师多先被安排非毕业班——这是可以查证的公开报道。'},
+   c4:{ans:'头部校的水平本来就是动态的嘛，谁说得准呢，反正去了就知道了。'}}},
  pro:{ava:'王',name:'邻市调来的王老师',
   brief:{def:'「窗口期」＝体制内跨市调动政策对 40+ 教师仍开放的时期',
    concl:'43 岁该辞职去苏州——不可逆的机会损失优先于可缓解的家庭波动',
@@ -1401,11 +1401,11 @@ const BOT_SIDES={
   question:'你刚把「这一年搬家」定性为「高风险动作」——这个风险是教育路径本身的不可逆，还是可以靠提前安顿缓解的过程性困难？请正面回答。',
   closing:'但缓冲做得再好，也是拿孩子的中考年在换。按我的标准（不可逆优先于可缓解），今年该去。不过你把「高风险动作」的口径咬得这么紧，让我重新掂了掂「收窄」的证据。',
   answers:{
-   c0:{ans:'我方定义写在立论结构里：「高风险动作」指教育路径的重大且难逆的变动——孩子中考年的状态波动正落在这个口径里。',evasive:false},
-   c1:{ans:'我的结论落在「家庭稳定优先」上：中考这一年的迁移冲击，风险主体是孩子，缓冲方案只能缓解、不能撤销。',evasive:false},
-   c2:{ans:'「窗口收窄」有公开依据：近年面向 40+ 教师的跨市调动公告逐年减少，这是可以查证的。',evasive:false},
-   c3:{ans:'「学期初集中办理转学」是公开的学籍管理规定，各地教育局官网都能查到。',evasive:false},
-   c4:{ans:'政策的事谁说得准呢，走一步看一步呗。',evasive:true}}}};
+   c0:{ans:'我方定义写在立论结构里：「高风险动作」指教育路径的重大且难逆的变动——孩子中考年的状态波动正落在这个口径里。'},
+   c1:{ans:'我的结论落在「家庭稳定优先」上：中考这一年的迁移冲击，风险主体是孩子，缓冲方案只能缓解、不能撤销。'},
+   c2:{ans:'「窗口收窄」有公开依据：近年面向 40+ 教师的跨市调动公告逐年减少，这是可以查证的。'},
+   c3:{ans:'「学期初集中办理转学」是公开的学籍管理规定，各地教育局官网都能查到。'},
+   c4:{ans:'政策的事谁说得准呢，走一步看一步呗。'}}}};
 /* 立论结构的条目即质询靶点：定义 / 结论 / 理由 1 / 理由 2 / 依据（无树、无跨发言父子关系）
    v0.5：定义不再是前置对齐的产物——它是本方立论的一部分，对方可直接选中发问 */
 function botBriefItems(){
@@ -1427,12 +1427,13 @@ const TIERS=[['启鸣',0],['锋鸣',30],['争鸣',80],['共鸣',180],['和鸣',3
 
 
 /* ═══════════ 状态 ═══════════ */
-let state='idle', mp=0, mpLog=[], records=0, evasions=0, botAccepts=0;
+let state='idle', mp=0, mpLog=[], records=0;
 /* v0.6 选边制：mySide=用户所选边（允许选自己不信的一边）· oppSide=对手所守边
    isBot=Bot 兜底路径（不伪造真人在线）· myProfile=我的六维画像（历史对局产出；冷启动为 null） */
 let mySide=null, oppSide='con', isBot=true, myProfile=null;
 let transcript=[];   /* 全场发言记录：AI 中立评估的数据源 */
-let myBrief=null, crossTarget=null, pressedOnce=false, revised=false;
+let myBrief=null, crossTarget=null, pressedOnce=false, botQuestionCount=0, revised=false;
+const MAX_CROSS_QUESTIONS=2;
 let admitted=[];     /* 我方在自由对辩中标「承认」的条目 → 对局报告「已被承认的论证」 */
 const flow=document.getElementById('stage'), composer=document.getElementById('composer');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -1666,21 +1667,35 @@ function submitOpening(t,e){
 /* ═══════════ ② 质询轮 ═══════════ */
 async function startCross(){
   setStage(1);state='cross-answer';
+  botQuestionCount=1;
   composer.innerHTML='<div class="c-head"><span class="wait">质询轮 · 对方向你提问</span></div>';
   await sleep(700);typing('bot');
   await sleep(1300);untype();
   msg('bot','<b>【质询】</b>'+BOT_SIDES[oppSide].question,null,'质询');
   addRecord('q','对你方「立论结构」的质询：'+BOT_SIDES[oppSide].question);
+  renderAnswerComposer('回答对方',`第 ${botQuestionCount}/${MAX_CROSS_QUESTIONS} 问 · 对方接受即可提前结束；达到上限自动进入下一轮`);
+}
+function renderAnswerComposer(title,hint){
   composer.innerHTML=`
-    <div class="c-head"><span class="ph">② 质询轮 · 回答对方</span><span class="c-count">正面回答——回避会被对方指出并记入对局报告</span></div>
+    <div class="c-head"><span class="ph">② 质询轮 · ${title}</span><span class="c-count">${hint}</span></div>
     <div class="field"><textarea id="cr-a" rows="3" placeholder="正面回答这个问题…"></textarea></div>
     <div class="c-foot"><span></span><button class="btn btn-primary" id="cr-go">回答</button></div>`;
   document.getElementById('cr-go').onclick=()=>submitAnswer(document.getElementById('cr-a').value.trim());
 }
-function submitAnswer(a){
+async function submitAnswer(a){
   if(a.length<6){sys('Host：回答太短——质询的意义在于正面交锋。');return;}
   msg('me','<b>【回答】</b>'+esc(a),null,'回答');
-  sys('对方表示：接受 ✓（过程动作，+2 MP 将计入结算·非结果判定）');botAccepts++;
+  if(botQuestionCount<MAX_CROSS_QUESTIONS){
+    botQuestionCount++;
+    composer.innerHTML='<div class="c-head"><span class="wait">对方继续追问中…</span></div>';
+    await sleep(650);typing('bot');await sleep(950);untype();
+    const q='你给出了政策依据，但它如何覆盖家庭迁移的实际成本？请直接说明你的取舍标准。';
+    msg('bot','<b>【追问】</b>'+q,null,'质询');
+    addRecord('q','对你方回答的继续追问：'+q);
+    renderAnswerComposer('回答追问',`第 ${botQuestionCount}/${MAX_CROSS_QUESTIONS} 问 · 本次回答后自动进入你的质询轮`);
+    return;
+  }
+  sys(`Host：对方已用满 ${MAX_CROSS_QUESTIONS} 次质询，自动进入你的质询轮。`);
   crossMine();
 }
 function crossMine(){
@@ -1713,18 +1728,22 @@ async function submitCrossQuestion(picked,qtype,q){
     await sleep(800);typing('bot');await sleep(1200);untype();
     const A=BOT_SIDES[oppSide].answers['c'+crossTarget]||BOT_ANSWER_FALLBACK;
     msg('bot','<b>【回答】</b>'+A.ans,null,'回答');
-    renderReaction(A.evasive);
+    renderReaction();
 }
-function renderReaction(evasive){
+function renderReaction(){
   state='cross-react';
+  if(pressedOnce){
+    sys(`Host：你已用满 ${MAX_CROSS_QUESTIONS} 次质询，本轮自动结束。回答是否回避由终局 AI 依据完整问答评分。`);
+    toFree();
+    return;
+  }
   composer.innerHTML=`
-    <div class="c-head"><span class="ph">② 质询轮 · 对方的回答，你怎么处理？</span><span class="c-count">接受 / 继续追问（限 1 次） / 指出回避</span></div>
+    <div class="c-head"><span class="ph">② 质询轮 · 对方的回答，你怎么处理？</span><span class="c-count">接受即可提前结束；否则可继续追问 1 次</span></div>
     <div class="react-row">
       <button class="btn btn-primary" id="rc-acc">接受这个回答</button>
-      <button class="btn" id="rc-press" ${pressedOnce?'disabled':''}>继续追问${pressedOnce?'（已用）':''}</button>
-      <button class="btn" id="rc-evade">指出回避</button>
+      <button class="btn" id="rc-press">继续追问（剩 1 次）</button>
     </div>`;
-  document.getElementById('rc-acc').onclick=()=>{sys('你表示：接受 ✓');toFree();};
+  document.getElementById('rc-acc').onclick=()=>{sys('你表示：接受回答，本轮质询结束。');toFree();};
   document.getElementById('rc-press').onclick=()=>{
     pressedOnce=true;
     composer.innerHTML=`<div class="c-head"><span class="ph">继续追问（仅此一次）</span></div>
@@ -1735,14 +1754,9 @@ function renderReaction(evasive){
       msg('me',`<b>【追问】</b>${esc(q)}`,null,'质询');
       composer.innerHTML='<div class="c-head"><span class="wait">对方补充回答中…</span></div>';
       await sleep(800);typing('bot');await sleep(1100);untype();
-      msg('bot','<b>【补充】</b>这是我目前能给出的全部——如果你觉得还不够，对局报告会记下来。',null,'回答');
-      renderReaction(false);
+      msg('bot','<b>【补充】</b>这是我目前能给出的全部说明。',null,'回答');
+      renderReaction();
     };
-  };
-  document.getElementById('rc-evade').onclick=()=>{
-    evasions++;
-    sys(`Host：已记录「指出回避」×${evasions}——写入对局报告（描述式记录，不扣分）。`);
-    toFree();
   };
 }
 
@@ -1839,16 +1853,16 @@ function evaluate(){
   if(revised)r3+='；主动修正过本方表述，前后自洽';
   const s3=Math.min(96,58+(myBrief&&myBrief.def?14:4)+(myBrief&&myBrief.r2?10:0)+(revised?10:0));
   /* ④ 反驳与回应：准确理解对方 · 回应核心攻击 · 反驳有效 */
-  const s4=Math.min(96,56+botAccepts*14+(close?12:0));
-  const r4=`质询回答被对方接受 ×${botAccepts}；${close?'结辩做了比较收束':'未提交结辩'}`
-    +(evasions>0?`；你指出对方回避 ×${evasions}（描述式记录，不扣分）`:'');
+  const answerCount=mine.filter(x=>x.type==='回答').length;
+  const s4=Math.min(96,56+Math.min(answerCount,2)*10+(close?12:0));
+  const r4=`完成质询回答 ×${answerCount}；是否正面回应由 AI 对照问题与回答全文判断；${close?'结辩做了比较收束':'未提交结辩'}`;
   /* ⑤ 表达与组织：清楚 · 连贯 · 结构完整 */
   const avg=mine.length?Math.round(mine.reduce((s,x)=>s+x.text.length,0)/mine.length):0;
   const s5=Math.min(96,(avg>=45?76:avg>=25?64:50)+(myBrief&&myBrief.r2?10:0)+(close?8:0));
   const r5=`场均发言 ${avg} 字，${myBrief&&myBrief.r2?'结构完整（结论→双理由→依据）':'结构基本完整'}，发言类型标注清晰`;
   /* ⑥ 辩论规范：尊重对手 · 无攻击/打断/捏造/回避 */
-  const s6=Math.min(96,80+(revised?8:0)+(botAccepts?8:0));
-  const r6='无回避、无人身攻击'+(botAccepts?'，正面回答每次质询':'')+(revised?'；主动修正本方观点（诚信表现）':'');
+  const s6=Math.min(96,80+(revised?8:0));
+  const r6='未出现人身攻击；回答是否回避由 AI 根据质询与回答原文评估'+(revised?'；主动修正本方观点（诚信表现）':'');
   const dims=[
     {k:AI_DIMS[0],v:s1,r:r1},{k:AI_DIMS[1],v:s2,r:r2},{k:AI_DIMS[2],v:s3,r:r3},
     {k:AI_DIMS[3],v:s4,r:r4},{k:AI_DIMS[4],v:s5,r:r5},{k:AI_DIMS[5],v:s6,r:r6}];
@@ -1860,7 +1874,7 @@ function evaluate(){
 function calcRadar(){return evaluate().dims.map(x=>x.v);}
 function radarSVG(){
   const dims=AI_DIMS;   /* 每个维度 2 个字 */
-  const me=calcRadar(), bot=[72,58,66,evasions>0?50:62,70,88];
+  const me=calcRadar(), bot=[72,58,66,62,70,88];
   const cx=115,cy=112,R=76,n=6;
   const pt=(i,v)=>{const a=-Math.PI/2+i*2*Math.PI/n;return [cx+Math.cos(a)*R*v/100,cy+Math.sin(a)*R*v/100];};
   let g='';[25,50,75,100].forEach(l=>{
@@ -1875,7 +1889,6 @@ function showEnd(){
   state='end';
   composer.innerHTML='<div class="c-head"><span class="wait">轮次走满 · 对局完成 · AI 中立评估生成中…</span></div>';
   mpLog=[['完成完整对局（五阶段走满）',10]];
-  if(botAccepts)mpLog.push(['质询回答被对方接受',2*botAccepts]);
   mp=mpLog.reduce((s,x)=>s+x[1],0);
   document.getElementById('e-cons').innerHTML=
     `<li>双方都承认「迁移对孩子的教育有风险」</li><li>双方都认同 43 岁处于教师调动的敏感年龄窗口</li>`;
@@ -1883,8 +1896,8 @@ function showEnd(){
     `<li>「窗口期」是客观机制还是主观感受（定义随双方立论给出，分歧在质询中显式交锋）</li>
      <li>职业机会收益与家庭稳定风险的权重</li>`;
   document.getElementById('e-cross').innerHTML=
-    `<li>你质询对方${botBriefItems()[crossTarget??0].k}——${evasions>0?`对方被指出回避 ×${evasions}，已记录`:'对方回答被你接受'}</li>
-     <li>对方质询你的「窗口期」断言——你的回答被对方接受</li>`;
+    `<li>你质询对方${botBriefItems()[crossTarget??0].k}——${pressedOnce?`达到 ${MAX_CROSS_QUESTIONS} 问上限后自动结束`:'你接受回答后结束'}</li>
+     <li>对方质询你的「窗口期」断言——达到 ${MAX_CROSS_QUESTIONS} 问上限后自动进入下一轮</li>`;
   document.getElementById('e-ack').innerHTML= admitted.length
     ? admitted.map(x=>`<li>${esc(x)}</li>`).join('')
     : '<li>本场未标「承认」类型发言（承认只是语义标注，不影响任何结算）</li>';
@@ -1967,6 +1980,12 @@ async function demoScript(){
   document.getElementById('cr-a').value='「窗口期」指体制内跨市调动政策对 40+ 教师仍开放的这段时期——有公开文件支撑，不是主观感受。';
   await pause(400);
   tap(document.getElementById('cr-go'));
+  /* 对方继续追问一次；达到两问上限后自动进入我的质询轮 */
+  await waitFor(()=>document.getElementById('cr-a'));
+  await pause(900);
+  document.getElementById('cr-a').value='我的取舍标准是不可逆性：政策窗口关闭难以恢复，家庭迁移成本则可通过住房和转学准备缓冲。';
+  await pause(400);
+  tap(document.getElementById('cr-go'));
   /* ② 质询轮 · 轮到我提问：选对方立论结构条目（含定义）→ 选类型（自动填模板）→ 提交 */
   await waitFor(()=>document.getElementById('cq-go'));
   await pause(900);
@@ -1975,7 +1994,7 @@ async function demoScript(){
   tap(composer.querySelector('.qtype[data-i="0"]'));
   await pause(500);
   tap(document.getElementById('cq-go'));
-  /* 反应三选一：接受对方的回答 */
+  /* 接受对方回答，提前结束我方质询 */
   await waitFor(()=>document.getElementById('rc-acc'));
   await pause(1000);
   tap(document.getElementById('rc-acc'));
@@ -1998,8 +2017,8 @@ async function demoScript(){
 
 /* 重置 */
 function resetRoom(){
-  state='idle';mp=0;mpLog=[];records=0;evasions=0;botAccepts=0;transcript=[];
-  myBrief=null;crossTarget=null;pressedOnce=false;revised=false;admitted=[];
+  state='idle';mp=0;mpLog=[];records=0;transcript=[];
+  myBrief=null;crossTarget=null;pressedOnce=false;botQuestionCount=0;revised=false;admitted=[];
   flow.innerHTML='';composer.innerHTML='';
   document.getElementById('board').querySelectorAll('.bucket').forEach(b=>b.remove());
   document.getElementById('rec-count').textContent='0 条已登记';
@@ -2034,7 +2053,8 @@ window.Room = {
     submitCrossQuestion, submitFree, submitClosing, showEnd, resetRoom,
     evaluate, BOT_SIDES, CLAIM_PAIR, TIERS, botBriefItems,
     pickSide, rankCandidates, mySide:()=>mySide, oppSide:()=>oppSide,
-    state:()=>state, mp:()=>mp, records:()=>records, evasions:()=>evasions,
+    state:()=>state, mp:()=>mp, records:()=>records,
+    pressedOnce:()=>pressedOnce, botQuestionCount:()=>botQuestionCount,
     admitted:()=>admitted, transcript:()=>transcript }
 };
 })();

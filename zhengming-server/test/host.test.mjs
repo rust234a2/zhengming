@@ -150,6 +150,23 @@ test("无 key 降级：evaluate 返回契约同形六维载荷", async () => {
   assert.equal(findBannedWords(res.result).length, 0);
 });
 
+test("无 key 降级：接受只是流程动作，不会提高回应分", async () => {
+  const base = [
+    { turnId: "t1", authorId: "bot", kind: "question", text: "你的数据覆盖哪个时间段？" },
+    { turnId: "t2", authorId: "user", kind: "answer", text: "数据覆盖最近三个完整年度。" },
+  ];
+  const withoutAccept = await invokeHost("evaluate", { transcript: base }, { apiKey: null, requestId: "r-6a" });
+  const withAccept = await invokeHost(
+    "evaluate",
+    { transcript: [...base, { turnId: "t3", authorId: "bot", kind: "reaction", text: "接受回答" }] },
+    { apiKey: null, requestId: "r-6b" },
+  );
+
+  assert.equal(withoutAccept.ok, true);
+  assert.equal(withAccept.ok, true);
+  assert.equal(withAccept.result.dims.回应, withoutAccept.result.dims.回应);
+});
+
 test("无 key 降级：actAdvance 的 moves 落在 2-3 张", async () => {
   const res = await invokeHost(
     "actAdvance",
