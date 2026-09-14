@@ -60,6 +60,42 @@ export interface EventReplay {
   canon: CanonEntry[];
 }
 
+/**
+ * Host 契约 §0.8 · 能力 9 `replayCompose` 入参。
+ *
+ * `timeline` 是用户提供的明确时间节点（每条一句，可为空数组——让模型自行
+ * 从事件材料里提炼节拍）；`actCount` 是要生成的幕数（2-5）。
+ */
+export interface ComposeParams {
+  topic: string;
+  timeline: string[];
+  actCount: number;
+}
+
+/**
+ * Host 契约 §0.8 · 能力 9 出参：一份**待归一化**的事件脚本。
+ *
+ * 字段由模型给出，只保证"字符串/数组"级别的形状；id 规范、关系指向、
+ * 幕序号等归一化全部在前端 `normalizeComposedEvent` 内完成，
+ * 产出标准的 `EventReplay`（canon 恒为空数组）。
+ */
+export interface ComposedEventScaffold {
+  title: string;
+  background: string;
+  admission: { publiclyDiscussed: boolean; disasterOrCasualty: boolean };
+  positions: {
+    id: string;
+    name: string;
+    role: string;
+    stake: string;
+    visible: string[];
+    resources: string;
+    canDo: string[];
+    relations: { to: string; attitude: number }[];
+  }[];
+  acts: { index: number; month: string; text: string }[];
+}
+
 export interface Move {
   id: string;
   text: string;

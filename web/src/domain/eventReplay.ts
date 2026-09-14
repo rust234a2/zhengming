@@ -1,6 +1,8 @@
 import type {
+  Act,
   ActAdvanceResult,
   CanonEntry,
+  ComposedEventScaffold,
   EventReplay,
   Ledger,
   LedgerDelta,
@@ -268,4 +270,78 @@ export function applyRelations(
 export function relationGate(move: Move, relations: Record<string, number>): boolean {
   if (!move.relationGate) return true;
   return (relations[move.relationGate.positionId] ?? -100) >= move.relationGate.minimum;
+}
+
+/* ═══════════════════ 能力 9 · replayCompose（契约 §0.8） ═══════════════════ */
+
+/** 组合事件 id 前缀——前端据此禁用「史实对照」揭示（生成事件没有已核实的 canon）。 */
+export const COMPOSED_EVENT_PREFIX = "compose-";
+
+export function isComposedEventId(eventId: string): boolean {
+  return eventId.startsWith(COMPOSED_EVENT_PREFIX);
+}
+
+/**
+ * 把能力 9 的模型出参归一化成标准 `EventReplay`。
+ *
+ * 模型输出只保证"字段存在"级别（服务端 RESULT_CHECKS 已把过硬的不合规拦下，
+ * 但 id 卫生、关系指向、幕序号等细节仍不可信），所以这里做全部容错处理：
+ *
+ * - 事件 id 由前端生成（`compose-<毫秒>`），不信任模型给的名字；
+ * - 幕序号重排为 0..n-1 连续递增，幕数即结局条件（模型无权决定何时终局）；
+ * - 关系只保留指向**已知角色位**且非自身的条目，态度钳制 -100..100；
+ * - visible / canDo 逐条去空；空条目直接丢弃；
+ * - canon 恒为 `[]`——史实对照必须有人工核实的来源，生成事件一律没有；
+ * - adaptation 三项与 admission.reviewedAt 由前端填死，不采信模型。
+ *
+ * 归一化之后必须再过一遍 `validateEventReplay`（准入底线在那一层统一执行），
+ * 本函数只负责"形状合法"，不负责"内容合规"。
+ */
+export function normalizeComposedEvent(scaffold: ComposedEventScaffold): EventReplay {
+  const clamp = (value: number) => Math.max(-100, Math.min(100, Math.round(Number(value) || 0)));
+  const cleanList = (list: unknown): string[] =>
+    (Array.isArray(list) ? list : [])
+      .map((item) => String(item ?? "").trim())
+      .filter(Boolean);
+
+  const positions: Position[] = scaffold.positions.map((raw) => ({
+    id: String(raw.id ?? "").trim(),
+    name: String(raw.name ?? "").trim(),
+    role: String(raw.role ?? "").trim(),
+    stake: String(raw.stake ?? "").trim() || String(raw.name ?? "").trim(),
+    visible: cleanList(raw.visible),
+    resources: String(raw.resources ?? "").trim(),
+    canDo: cleanList(raw.canDo),
+    relations: (Array.isArray(raw.relations) ? raw.relations : [])
+      .map((item) => ({ to: String(item?.to ?? "").trim(), attitude: clamp(item?.attitude) }))
+      .filter((item) => item.to),
+  }));
+  const positionIds = new Set(positions.map((item) => item.id));
+  positions.forEach((item) => {
+    item.relations = item.relations.filter((relation) => positionIds.has(relation.to) && relation.to !== item.id);
+  });
+
+  const acts: Act[] = (scaffold.acts ?? []).map((raw, index) => ({
+    index,
+    month: String(raw?.month ?? "").trim(),
+    text: String(raw?.text ?? "").trim(),
+  }));
+
+  return {
+    header: {
+      id: `${COMPOSED_EVENT_PREFIX}${Date.now()}`,
+      title: String(scaffold.title ?? "").trim(),
+      background: String(scaffold.background ?? "").trim(),
+      adaptation: { peopleAliased: true, organizationsObscured: true, timeGranularity: "month" },
+      admission: {
+        publiclyDiscussed: scaffold.admission?.publiclyDiscussed !== false,
+        disasterOrCasualty: false,
+        reviewedAt: new Date().toISOString().slice(0, 10),
+      },
+      endingCondition: { kind: "actCount", actCount: acts.length },
+    },
+    positions,
+    acts,
+    canon: [],
+  };
 }

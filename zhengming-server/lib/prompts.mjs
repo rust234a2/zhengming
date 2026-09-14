@@ -302,6 +302,53 @@ ${historyText || "（无）"}
       temperature: 0.3,
     };
   },
+
+  /**
+   * 能力 9 · 事件生成 replayCompose（契约 §0.8）
+   * 用途：把一段有明显时间线的社会事件，改写成一份可直接推演的事件脚本。
+   * 生成物只有「壳」：角色位 / 幕节拍 / 信息范围。不生成 canon——史实对照
+   * 必须有人工核实的来源，生成事件一律 canon: []。
+   */
+  replayCompose(topic, timeline, actCount) {
+    const timelineText = (timeline || []).length
+      ? `用户给的时间线节点（按此排幕，允许合理归并）：\n${timeline.map((t, i) => `${i + 1}. ${t}`).join("\n")}\n`
+      : "";
+    return {
+      system: BASE_SYSTEM,
+      user: `请把下面这段社会事件，改写成一份「事件推演」脚本。推演是**架空模拟**：玩家扮演其中一个处境，一步一步做决定，看路径如何展开。
+
+事件材料：
+"""
+${topic}
+"""
+${timelineText}
+要求生成 ${actCount} 幕。
+
+严格输出 JSON（不要代码块包裹）：
+{
+  "title": "事件短题，≤20字，不含真实人名机构名",
+  "background": "80-180字的处境背景，时间粒度到月，人物一律化名",
+  "admission": {"publiclyDiscussed": true, "disasterOrCasualty": false},
+  "positions": [
+    {"id": "英文短横线id", "name": "身份 · 某某（化名）", "role": "一句话身份",
+     "stake": "这个处境里他最在意什么",
+     "visible": ["该角色位只能知道的事实，4-6条，逐条一项"],
+     "resources": "能动用的资源或杠杆",
+     "canDo": ["能做的动作类型，2-4条"],
+     "relations": [{"to": "另一角色位的id", "attitude": -30到30的整数}]}
+  ],
+  "acts": [{"index": 0, "month": "YYYY-MM", "text": "本幕发生的外部事件，40-90字"}]
+}
+
+硬要求：
+- 2-4 个角色位，全部是**虚构位置**，绝不扮演可识别的真实个人；人物一律化名，机构模糊化。
+- visible 是信息范围：每个角色位**只能**知道哪些事实，逐条一项、可直接摘引；不同角色位的范围必须有实质差异。
+- acts 覆盖 ${actCount} 幕，month 用 YYYY-MM，节拍沿时间线推进；最后一幕要形成"必须做决定"的压力。
+- 若事件涉及灾难、伤亡，或并非公开讨论的事件：把 admission 对应项如实置为 true/false 并照常输出，服务端会拒收——不要为此编造或美化。
+- 不使用禁用词（错误/谬误/偷换/输赢/对错/你错了/赢了）。`,
+      temperature: 0.4,
+    };
+  },
 };
 
 /* ═══════════════════ 降级启发式（无 key 时） ═══════════════════ */
@@ -509,4 +556,15 @@ export function heuristicReplayEnding(position, history, ledger) {
 /** 启发式原作揭示：无可靠来源时不编造，返回空数组 */
 export function heuristicReplayCanon() {
   return { canon: [], degraded: true };
+}
+
+/**
+ * 启发式事件生成（无 key 降级）。
+ *
+ * 降级**不可能**真的改写用户给的事件——硬凑角色位只会产出廉价的假结构。
+ * 所以直接返回结构化失败标记，由调用方看 `ok:false` 走「无法生成」路径，
+ * 不假装这是一份可推演的事件。
+ */
+export function heuristicReplayCompose() {
+  throw new Error("replayCompose has no heuristic fallback: composing an event requires the real model");
 }

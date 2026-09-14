@@ -29,9 +29,12 @@ import {
   LEDGER_KEY_LABELS,
   assertNoCanonLeak,
   filterWithinVisible,
+  isComposedEventId,
+  normalizeComposedEvent,
   normalizeLedgerKey,
   resolveRelationTarget,
   validateActAdvanceResult,
+  validateEventReplay,
 } from "../domain/eventReplay";
 import {
   canChooseMove,
@@ -81,8 +84,14 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
   const firstEvent = events[0] ?? eventReplays[0];
   const [eventId, setEventId] = useState<string>(() => initialEventId ?? firstEvent?.header.id ?? "");
   const eventRef = useRef<EventReplayData>(firstEvent);
+  /**
+   * 组合事件（能力 9 生成）与种子事件同池：组合的排前面（最新生成的最常用），
+   * 查找、切换、下拉列表都走同一份 `allEvents`，运行时逻辑完全复用。
+   */
+  const [customEvents, setCustomEvents] = useState<EventReplayData[]>([]);
+  const allEvents = useMemo(() => [...customEvents, ...events], [customEvents, events]);
   const activeEvent =
-    events.find((item) => item.header.id === eventId) ?? firstEvent;
+    allEvents.find((item) => item.header.id === eventId) ?? firstEvent;
 
   const [state, setState] = useState<ReplayState>(() => createInitialReplayState(firstEvent));
   const stateRef = useRef(state);
@@ -241,14 +250,14 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
   }, [apply, injectedClient]);
 
   const switchEvent = useCallback((id: string) => {
-    const next = events.find((item) => item.header.id === id);
+    const next = allEvents.find((item) => item.header.id === id);
     if (!next) return;
     eventRef.current = next;
     setEventId(id);
     const fresh = createInitialReplayState(next);
     stateRef.current = fresh;
     setState(fresh);
-  }, [events]);
+  }, [allEvents]);
 
   const restart = useCallback(() => {
     apply({ type: "RESTART" });
@@ -258,6 +267,50 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
     setCanonStatus("idle");
     setCanonError(null);
   }, [apply]);
+
+  /* ── 能力 9 · 自定义事件生成（契约 §0.8） ── */
+
+  const [composeTopic, setComposeTopic] = useState("");
+  const [composeTimeline, setComposeTimeline] = useState("");
+  const [composeActCount, setComposeActCount] = useState(3);
+  const [composeStatus, setComposeStatus] = useState<"idle" | "pending" | "error">("idle");
+  const [composeError, setComposeError] = useState<string | null>(null);
+
+  /**
+   * 生成自定义事件：能力 9 拿到脚本 → 归一化 → 过与种子事件**同一份**
+   * `validateEventReplay` 准入校验 → 入池并切换。
+   *
+   * 校验不通过绝不进入推演（准入底线不是摆设）；服务端 CONTENT_REJECTED 的
+   * 中文原因（如「涉及灾难或伤亡的事件不入推演」）直接透出给用户。
+   */
+  const submitCompose = useCallback(async () => {
+    const topic = composeTopic.trim();
+    if (!topic || composeStatus === "pending") return;
+    setComposeStatus("pending");
+    setComposeError(null);
+    const timeline = composeTimeline
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const response = await injectedClient.compose({ topic, timeline, actCount: composeActCount });
+    if (!response.ok || !response.result) {
+      setComposeStatus("error");
+      setComposeError(response.error ?? "事件暂时无法生成，请稍后重试");
+      return;
+    }
+    const event = normalizeComposedEvent(response.result);
+    const checked = validateEventReplay(event);
+    if (!checked.ok) {
+      setComposeStatus("error");
+      setComposeError(`生成的事件未通过准入校验：${checked.errors[0]?.message ?? "结构不完整"}`);
+      return;
+    }
+    setComposeStatus("idle");
+    setComposeTopic("");
+    setComposeTimeline("");
+    setCustomEvents((prev) => [event, ...prev]);
+    switchEvent(event.header.id);
+  }, [composeActCount, composeStatus, composeTimeline, composeTopic, injectedClient, switchEvent]);
 
   if (!activeEvent) {
     return (
@@ -285,6 +338,8 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
     (item) => item.ledgerDeltas.length > 0 || item.relationDeltas.length > 0,
   ).length;
   const lastPlayed = state.history[state.history.length - 1] ?? null;
+  /** 组合事件没有已核实的 canon：终局不提供「史实对照」揭示入口（契约 §0.8）。 */
+  const composedActive = isComposedEventId(activeEvent.header.id);
 
   return (
     <section className="event-replay" aria-label="事件推演">
@@ -295,11 +350,11 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
         </span>
         <span className="er-spacer" />
         <ModuleLinks />
-        {events.length > 1 && state.history.length === 0 && !state.pending ? (
+        {allEvents.length > 1 && state.history.length === 0 && !state.pending ? (
           <label className="er-event-picker">
             <span>选择事件</span>
             <select value={eventId} onChange={(event) => switchEvent(event.target.value)}>
-              {events.map((item) => (
+              {allEvents.map((item) => (
                 <option key={item.header.id} value={item.header.id}>
                   {item.header.title}
                 </option>
@@ -380,7 +435,11 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
                 已走过的幕
               </span>
             </div>
-            <p className="er-note">{EVENT_LIBRARY_REVIEW_NOTE}</p>
+            <p className="er-note">
+              {composedActive
+                ? "本事件由 AI 依据你提供的材料生成：人物为虚构位置（化名 · 机构模糊 · 时间到月），没有史实对照层。"
+                : EVENT_LIBRARY_REVIEW_NOTE}
+            </p>
           </div>
         </div>
 
@@ -417,6 +476,75 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
                   </li>
                 ))}
               </ul>
+
+              {/* ── 能力 9：自定义事件生成入口（契约 §0.8） ── */}
+              <details className="er-compose" data-status={composeStatus}>
+                <summary>没有合适的事件？用 AI 生成一个自定义推演</summary>
+                <div className="er-compose-body">
+                  <label className="er-compose-field">
+                    <span>事件主题与背景（有明显时间线的社会事件、公共争议、组织两难…）</span>
+                    <textarea
+                      value={composeTopic}
+                      onChange={(event) => setComposeTopic(event.target.value)}
+                      rows={4}
+                      maxLength={2000}
+                      placeholder="例：一家 30 人的创业公司资金只能撑四个月，创始人收到一份低估值但到账快的收购意向，核心团队对此分歧很大……"
+                      disabled={composeStatus === "pending"}
+                    />
+                  </label>
+                  <label className="er-compose-field">
+                    <span>
+                      时间线节点（可选，每行一条；不填则由 AI 依材料自行提炼节拍）
+                    </span>
+                    <textarea
+                      value={composeTimeline}
+                      onChange={(event) => setComposeTimeline(event.target.value)}
+                      rows={3}
+                      maxLength={2000}
+                      placeholder={"2024-01 收购意向首次接触\n2024-03 核心工程师提出离职\n2024-04 投资人给出最后期限"}
+                      disabled={composeStatus === "pending"}
+                    />
+                  </label>
+                  <label className="er-compose-field er-compose-acts">
+                    <span>幕数</span>
+                    <select
+                      value={composeActCount}
+                      onChange={(event) => setComposeActCount(Number(event.target.value))}
+                      disabled={composeStatus === "pending"}
+                    >
+                      {[2, 3, 4, 5].map((count) => (
+                        <option key={count} value={count}>
+                          {count} 幕
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    className="er-btn er-btn-primary"
+                    onClick={() => void submitCompose()}
+                    disabled={composeStatus === "pending" || !composeTopic.trim()}
+                  >
+                    {composeStatus === "pending" ? "正在生成事件…" : "生成推演事件"}
+                  </button>
+                  <p className="er-note">
+                    生成的人物一律为虚构位置（化名 · 机构模糊 · 时间到月）；涉及灾难或伤亡的事件会被拒绝；
+                    生成事件没有「史实对照」层。
+                  </p>
+                  {composeStatus === "error" && composeError ? (
+                    <div role="alert" className="er-error">
+                      <p>{composeError}</p>
+                      <button
+                        type="button"
+                        className="er-btn"
+                        onClick={() => void submitCompose()}
+                      >
+                        重试生成
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              </details>
             </div>
           ) : (
             <div className="er-stage">
@@ -737,7 +865,7 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
               </tbody>
             </table>
 
-            {!state.canonRevealed ? (
+            {!state.canonRevealed && !composedActive ? (
               <div className="er-canon-entry">
                 <button
                   type="button"

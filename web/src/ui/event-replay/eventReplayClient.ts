@@ -19,6 +19,8 @@ import type {
   Act,
   ActAdvanceResult,
   CanonEntry,
+  ComposedEventScaffold,
+  ComposeParams,
   EndingCard,
   EventHeader,
   Ledger,
@@ -74,6 +76,8 @@ export interface EventReplayClient {
   ending(params: EndingParams, handlers?: StreamHandlers): Promise<HostCallResult<EndingCard>>;
   /** 独立通道：推演期间绝不调用，只有终局玩家主动展开时才请求 */
   canon(eventId: string): Promise<HostCallResult<CanonEntry[]>>;
+  /** 能力 9：把主题/时间线改写成事件脚本（契约 §0.8）。一次性 JSON，不走流。 */
+  compose(params: ComposeParams): Promise<HostCallResult<ComposedEventScaffold>>;
 }
 
 /* ────────── 累加态 → 契约 §0.7 的条目列表 ────────── */
@@ -161,6 +165,17 @@ export function buildEndingPayload(params: EndingParams): Record<string, unknown
   };
 }
 
+/** 构造 `replayCompose` 请求体（同为白名单；契约 §0.8）。 */
+export function buildComposePayload(params: ComposeParams): Record<string, unknown> {
+  return {
+    topic: String(params.topic ?? "").trim(),
+    timeline: (Array.isArray(params.timeline) ? params.timeline : [])
+      .map((item) => String(item ?? "").trim())
+      .filter(Boolean),
+    actCount: Math.max(2, Math.min(5, Math.round(Number(params.actCount) || 3))),
+  };
+}
+
 /** 递归找出请求体里所有 canon 相关的键——隔离断言的实现。 */
 export function findCanonKeys(value: unknown, hits: string[] = []): string[] {
   if (Array.isArray(value)) {
@@ -184,19 +199,21 @@ export interface HttpClientOptions {
 }
 
 function describeError(code: string | undefined, message: string | undefined): string {
+  // 服务端会为领域性拒收写**中文**原因（如 compose 的准入底线）；优先透出
+  const cjkMessage = typeof message === "string" && /[\u4e00-\u9fff]/.test(message) ? message.trim() : "";
   switch (code) {
     case "TIMEOUT":
-      return "模型响应超时";
+      return cjkMessage || "模型响应超时";
     case "UPSTREAM":
-      return "模型服务暂时不可用";
+      return cjkMessage || "模型服务暂时不可用";
     case "CONTENT_REJECTED":
-      return "生成内容未通过合规校验";
+      return cjkMessage || "生成内容未通过合规校验";
     case "PAYLOAD_TOO_LARGE":
-      return "请求内容过大";
+      return cjkMessage || "请求内容过大";
     case "VALIDATION":
-      return "请求参数不合法";
+      return cjkMessage || "请求参数不合法";
     default:
-      return message || "这一步暂时无法推进";
+      return cjkMessage || message || "这一步暂时无法推进";
   }
 }
 
@@ -257,6 +274,7 @@ export function createHttpEventReplayClient(options: HttpClientOptions = {}): Ev
     advance: (params, handlers) => call<ActAdvanceResult>("actAdvance", buildAdvancePayload(params), handlers),
     ending: (params, handlers) => call<EndingCard>("replayEnding", buildEndingPayload(params), handlers),
     canon: (eventId) => call<CanonEntry[]>("replayCanon", { eventId }),
+    compose: (params) => call<ComposedEventScaffold>("replayCompose", buildComposePayload(params)),
   };
 }
 

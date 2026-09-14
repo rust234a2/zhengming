@@ -889,3 +889,67 @@
   color: var(--er-blue);
   background: var(--er-blue-soft);
 }
+
+/* ── 能力 9 · 自定义事件生成 ── */
+
+.er-compose {
+  margin-top: 18px;
+  border: 1px dashed var(--er-border, #c9d4e3);
+  border-radius: 10px;
+  background: rgba(247, 251, 255, 0.6);
+}
+
+.er-compose > summary {
+  padding: 10px 14px;
+  cursor: pointer;
+  color: var(--er-blue);
+  font-size: 13px;
+  user-select: none;
+}
+
+.er-compose > summary:hover {
+  text-decoration: underline;
+}
+
+.er-compose-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 14px 14px;
+}
+
+.er-compose-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--er-sub);
+}
+
+.er-compose-field textarea,
+.er-compose-field select {
+  font: inherit;
+  font-size: 13px;
+  color: var(--er-ink);
+  background: #fff;
+  border: 1px solid var(--er-border, #c9d4e3);
+  border-radius: 8px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.er-compose-field textarea:focus,
+.er-compose-field select:focus {
+  outline: 2px solid var(--er-blue-soft);
+  border-color: var(--er-blue);
+}
+
+.er-compose-acts {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.er-compose-acts select {
+  width: auto;
+}

@@ -32,6 +32,7 @@ import {
   heuristicMakeQuestion,
   heuristicOpponentTurn,
   heuristicReplayCanon,
+  heuristicReplayCompose,
   heuristicReplayEnding,
   heuristicStructureHint,
   heuristicTerminalProbes,
@@ -164,6 +165,33 @@ const VALIDATORS = {
   },
   replayCanon(params) {
     return { eventId: requireString(params.eventId, "eventId") };
+  },
+  /** 能力 9 · replayCompose：主题 + 可选时间线 + 可选幕数（契约 §0.8）。 */
+  replayCompose(params) {
+    const topic = requireString(params.topic, "topic");
+    if (charCount(topic) > 2000) {
+      throw new HostError(ERROR_CODES.VALIDATION, "topic exceeds 2000 chars");
+    }
+    let timeline = [];
+    if (params.timeline !== undefined && params.timeline !== null) {
+      timeline = requireArray(params.timeline, "timeline").map((item, index) => {
+        const line = String(item ?? "").trim();
+        if (!line) throw new HostError(ERROR_CODES.VALIDATION, `timeline[${index}] must be a non-empty string`);
+        if (charCount(line) > 200) throw new HostError(ERROR_CODES.VALIDATION, `timeline[${index}] exceeds 200 chars`);
+        return line;
+      });
+      if (timeline.length > 8) {
+        throw new HostError(ERROR_CODES.VALIDATION, "timeline must contain at most 8 items");
+      }
+    }
+    let actCount = 3;
+    if (params.actCount !== undefined && params.actCount !== null) {
+      if (!Number.isInteger(params.actCount) || params.actCount < 2 || params.actCount > 5) {
+        throw new HostError(ERROR_CODES.VALIDATION, "actCount must be an integer within [2,5]");
+      }
+      actCount = params.actCount;
+    }
+    return { topic, timeline, actCount };
   },
 };
 
@@ -324,6 +352,95 @@ const RESULT_CHECKS = {
       .filter((c) => c.sources.length > 0);
     return { canon };
   },
+  /**
+   * 能力 9 · replayCompose：把模型输出规格化为事件脚本（契约 §0.8）。
+   *
+   * 准入底线在这里硬性执行：涉及灾难/伤亡 → CONTENT_REJECTED（提示词也要求模型
+   * 自行申报 admission.disasterOrCasualty，这里是第二道闸）。其余结构问题重试后
+   * 仍不合规按 CONTENT_REJECTED 处理。
+   */
+  replayCompose(result) {
+    const obj = typeof result === "string" ? parseJsonOrFail(result) : result;
+    if (!obj || typeof obj !== "object") {
+      throw new HostError(ERROR_CODES.CONTENT_REJECTED, "replayCompose result must be an object");
+    }
+
+    const admission = obj.admission && typeof obj.admission === "object" ? obj.admission : {};
+    if (admission.disasterOrCasualty === true) {
+      throw new HostError(
+        ERROR_CODES.CONTENT_REJECTED,
+        "涉及灾难或伤亡的事件不入推演（准入底线 2）",
+      );
+    }
+
+    const title = String(obj.title ?? "").trim();
+    const background = String(obj.background ?? "").trim();
+    if (!title || !background) {
+      throw new HostError(ERROR_CODES.CONTENT_REJECTED, "replayCompose requires title and background");
+    }
+    if (charCount(title) > 30) {
+      throw new HostError(ERROR_CODES.CONTENT_REJECTED, "replayCompose.title exceeds 30 chars");
+    }
+
+    const rawPositions = Array.isArray(obj.positions) ? obj.positions : [];
+    if (rawPositions.length < 2 || rawPositions.length > 4) {
+      throw new HostError(ERROR_CODES.CONTENT_REJECTED, "replayCompose.positions must contain 2 to 4 items");
+    }
+    const positions = rawPositions.map((p) => {
+      const id = String(p?.id ?? "").trim();
+      const name = String(p?.name ?? "").trim();
+      if (!/^[a-z][a-z0-9-]{0,23}$/.test(id) || !name) {
+        throw new HostError(ERROR_CODES.CONTENT_REJECTED, "replayCompose position needs a slug id and a name");
+      }
+      const visible = (Array.isArray(p?.visible) ? p.visible : []).map((v) => String(v ?? "").trim()).filter(Boolean);
+      const canDo = (Array.isArray(p?.canDo) ? p.canDo : []).map((v) => String(v ?? "").trim()).filter(Boolean);
+      if (visible.length < 2 || canDo.length < 2) {
+        throw new HostError(
+          ERROR_CODES.CONTENT_REJECTED,
+          `replayCompose position "${id}" needs >=2 visible facts and >=2 canDo items`,
+        );
+      }
+      return {
+        id,
+        name,
+        role: String(p?.role ?? "").trim(),
+        stake: String(p?.stake ?? "").trim() || name,
+        visible,
+        resources: String(p?.resources ?? "").trim(),
+        relations: (Array.isArray(p?.relations) ? p.relations : [])
+          .map((r) => ({ to: String(r?.to ?? "").trim(), attitude: Number(r?.attitude) || 0 }))
+          .filter((r) => r.to),
+      };
+    });
+    const positionIds = new Set(positions.map((p) => p.id));
+    for (const p of positions) {
+      p.relations = p.relations.filter((r) => positionIds.has(r.to) && r.to !== p.id);
+    }
+
+    const rawActs = Array.isArray(obj.acts) ? obj.acts : [];
+    if (rawActs.length < 2) {
+      throw new HostError(ERROR_CODES.CONTENT_REJECTED, "replayCompose.acts must contain at least 2 items");
+    }
+    const acts = rawActs.map((a, i) => ({
+      index: i,
+      month: String(a?.month ?? "").trim(),
+      text: String(a?.text ?? "").trim(),
+    }));
+    if (acts.some((a) => !a.month || !a.text)) {
+      throw new HostError(ERROR_CODES.CONTENT_REJECTED, "replayCompose act needs month and text");
+    }
+
+    return {
+      title,
+      background,
+      admission: {
+        publiclyDiscussed: admission.publiclyDiscussed !== false,
+        disasterOrCasualty: false,
+      },
+      positions,
+      acts,
+    };
+  },
 };
 
 /* ═══════════════════ StepFun 调用 ═══════════════════ */
@@ -425,6 +542,10 @@ const IMPLEMENTATIONS = {
     prompt: (p) => PROMPTS.replayCanon(p.eventId),
     fallback: () => heuristicReplayCanon(),
   },
+  replayCompose: {
+    prompt: (p) => PROMPTS.replayCompose(p.topic, p.timeline, p.actCount),
+    fallback: (p) => heuristicReplayCompose(p.topic, p.timeline, p.actCount),
+  },
 };
 
 /** 幂等缓存：requestId → 已完成结果（无 TTL 清理，进程生命周期内有效） */
@@ -521,7 +642,7 @@ export async function invokeHost(capability, params = {}, options = {}) {
   // 有 key → 真实调用，禁用词/结构不合规时重试 1 次（契约 §0.5）
   const MAX_ATTEMPTS = 2;
   // 契约 §0.1 超时分级：生成式长文本能力（事件推演）放宽到 90s
-  const timeoutMs = capability === "actAdvance" || capability === "replayEnding"
+  const timeoutMs = ["actAdvance", "replayEnding", "replayCompose"].includes(capability)
     ? GENERATION_TIMEOUT_MS
     : REQUEST_TIMEOUT_MS;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
