@@ -44,6 +44,14 @@ function safeSet(store: Storage | undefined, key: string, value: string): void {
   }
 }
 
+function safeRemove(store: Storage | undefined, key: string): void {
+  try {
+    store?.removeItem(key);
+  } catch {
+    /* 存储不可用时无需继续恢复；UI 仍会返回匹配页 */
+  }
+}
+
 /**
  * 读席位令牌：**sessionStorage 优先**（本窗口），localStorage 兜底（跨窗口）。
  */
@@ -57,6 +65,14 @@ export function readSeatToken(roomId: string): string | null {
 export function writeSeatToken(roomId: string, token: string): void {
   if (typeof window === "undefined") return;
   safeSet(window.sessionStorage, `${SEAT_TOKEN_PREFIX}${roomId}`, token);
+}
+
+/** 清理失效席位令牌；同时移除旧版本可能遗留在 localStorage 的副本。 */
+export function forgetSeatToken(roomId: string): void {
+  if (typeof window === "undefined") return;
+  const key = `${SEAT_TOKEN_PREFIX}${roomId}`;
+  safeRemove(window.sessionStorage, key);
+  safeRemove(window.localStorage, key);
 }
 
 /* ═══════════════ 上行消息 ═══════════════ */
@@ -149,6 +165,8 @@ export function parseServerMessage(raw: string): ServerMessage {
  */
 const ERROR_TEXT: Record<string, string> = {
   ROOM_FULL: "这个房间的两个席位都满了——另开一间，或让对方发邀请链接给你。",
+  SIDE_TAKEN: "你选择的立场已被预留，请返回后重新选择。",
+  INVALID_SEAT_TOKEN: "席位凭证已失效，请返回后重新进入匹配。",
   NOT_IN_ROOM: "还没进入房间：请先从辩论间入口入席。",
   NOT_YOUR_TURN: "还没轮到你动作——等对方提交后这里会自动解锁。",
   WRONG_PHASE: "当前阶段不接受这个动作。",
@@ -175,7 +193,9 @@ const ERROR_TEXT: Record<string, string> = {
 
 export function describeSocketError(code: string, serverMessage?: string): string {
   if (serverMessage && serverMessage.trim()) return serverMessage.trim();
-  return ERROR_TEXT[code] ?? `${ERROR_TEXT.UNKNOWN}（错误码 ${code}）`;
+  // 回落分支也要过红线：先前写成「（错误码 …）」，而禁用词是**字面**扫描，
+  // 于是这个兜底文案自己就把「错误」二字送到了界面上。
+  return ERROR_TEXT[code] ?? `${ERROR_TEXT.UNKNOWN}（代码 ${code}）`;
 }
 
 /* ═══════════════ 展示辅助 ═══════════════ */

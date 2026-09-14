@@ -20,14 +20,16 @@ import {
 } from "../src/data/debateRoomTopics";
 
 const ZHIHU_URL = /^https:\/\/www\.zhihu\.com\//;
+const PRESET_CONCLUSION_TOPIC_ID = "zh-1972252087044796716";
 
 describe("provenance：真实数据不得被伪造", () => {
-  it("每个可开局议题的双方论点都带真实 author / voteUp / 知乎 https url", () => {
+  it("每个可开局议题至少一侧有论点，已有论点都带真实 provenance", () => {
     expect(PLAYABLE_TOPICS.length).toBeGreaterThan(0);
     for (const topic of PLAYABLE_TOPICS) {
+      expect(Boolean(topic.pro || topic.con), `${topic.questionId} 至少应有一侧真实论点`).toBe(true);
       for (const side of ["pro", "con"] as const) {
         const claim = topic[side];
-        expect(claim, `${topic.questionId} 缺 ${side}`).not.toBeNull();
+        if (!claim) continue;
         expect(claim!.author.trim().length, `${topic.questionId}.${side}.author`).toBeGreaterThan(0);
         expect(typeof claim!.voteUp, `${topic.questionId}.${side}.voteUp`).toBe("number");
         expect(claim!.voteUp).toBeGreaterThanOrEqual(0);
@@ -95,6 +97,10 @@ describe("配对标注：不许假装是同一议题的正反方", () => {
 });
 
 describe("数据实情守卫", () => {
+  it("排除预设结论、只追问原因的开放解释题", () => {
+    expect(PLAYABLE_TOPICS.some((topic) => topic.questionId === PRESET_CONCLUSION_TOPIC_ID)).toBe(false);
+  });
+
   it("统计数字自洽", () => {
     expect(TOPIC_STATS.totalClaims).toBeGreaterThanOrEqual(TOPIC_STATS.totalQuestions);
     expect(TOPIC_STATS.pairedTopics).toBe(DEBATE_TOPICS.length);
@@ -105,8 +111,12 @@ describe("数据实情守卫", () => {
     );
   });
 
-  it("PLAYABLE_TOPICS = 成对 + 跨议题配对", () => {
-    expect(PLAYABLE_TOPICS.length).toBe(DEBATE_TOPICS.length + CROSS_PAIRED_TOPICS.length);
+  it("PLAYABLE_TOPICS = 成对 + 跨议题配对 + 有明确站队结构的单侧议题", () => {
+    expect(PLAYABLE_TOPICS.length).toBe(
+      DEBATE_TOPICS.length +
+        CROSS_PAIRED_TOPICS.length +
+        SINGLE_SIDED_TOPICS.filter((topic) => topic.side !== "neutral").length,
+    );
   });
 
   it("可开局议题数量够撑起演示（至少 8 个）", () => {

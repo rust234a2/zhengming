@@ -2,10 +2,11 @@
  * 争鸣 · 服务端入口（单进程 · 单端口）
  *
  * 路由：
- *   POST /api/host/:capability   → Host 七能力（key 只在服务端读）
+ *   POST /api/host/:capability   → Host 八能力（key 只在服务端读）
  *   GET  /api/health             → 健康检查 + 是否已配 key（不含 key 本身）
  *   GET  /api/rooms              → 房间列表
  *   POST /api/rooms              → 新建房间
+ *   POST /api/matches            → 真人候选池或明确 AI 对辩
  *   GET  /api/rooms/:id          → 房间快照（含报告）
  *   GET  /api/topics             → 真实议题与论点对（辩论间选边用）
  *   WS   /ws/room?roomId=xxx     → 房间实时通道
@@ -32,11 +33,113 @@ import { Store } from "./lib/store.mjs";
 import { OPCODE, FrameParser, acceptKey, encodeClose, encodePong, encodeText } from "./lib/ws.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
+const DEBATE_QUESTION_RULES_PATH = path.resolve(HERE, "..", "web", "src", "data", "debateQuestionRules.json");
+const DEBATE_QUESTION_RULES = JSON.parse(fs.readFileSync(DEBATE_QUESTION_RULES_PATH, "utf8"));
 
 export const DEFAULT_PORT = Number(process.env.PORT || 5300);
 
+/** 只让含明确可站队结构的题干进入辩论间；开放解释题仍保留在研究数据中。 */
+export function isDebatableQuestionTitle(title) {
+  const normalized = String(title ?? "").replace(/\s+/g, "").toLowerCase();
+  return normalized.length > 0 && DEBATE_QUESTION_RULES.stanceMarkers.some((marker) => normalized.includes(marker));
+}
+
 const EVALUATION_SEATS = ["pro", "con"];
 const EVALUATION_DIMS = ["立论", "论据", "逻辑", "回应", "表达", "规范"];
+
+function opponentOf(side) {
+  return side === "pro" ? "con" : "pro";
+}
+
+function hasTurn(state, side, kind) {
+  return state.transcript.some((turn) => turn.authorId === side && turn.kind === kind);
+}
+
+/**
+ * AI 席位 orchestrator：只在 Bot 当前可动作时调用 Host，且每个动作仍过共享 transition。
+ * 真实上游失败时强制走 invokeHost 的确定性 fallback，并把降级原因写进权威快照。
+ */
+export async function driveBotRoom(room, hostInvoker = invokeHost) {
+  const botSide = EVALUATION_SEATS.find((side) => room.state.seats[side]?.isBot);
+  if (!botSide) return room.state;
+
+  for (let guard = 0; guard < 12; guard += 1) {
+    const state = room.state;
+    if (["waiting", "settled"].includes(state.phase)) break;
+
+    const canAct =
+      (state.phase === "opening" && (!state.briefs[botSide] || (state.briefs.pro && state.briefs.con && !hasTurn(state, botSide, "opening")))) ||
+      (["crossAsk", "crossAnswer", "crossReact"].includes(state.phase) && state.turnSeat === botSide) ||
+      (state.phase === "free" && !state.freeSpokenBy.includes(botSide)) ||
+      (state.phase === "closing" && !hasTurn(state, botSide, "closing"));
+    if (!canAct) break;
+
+    const context = {
+      phase: state.phase,
+      side: botSide,
+      topic: state.topic,
+      presetClaim: (botSide === "pro" ? state.topic.pro : state.topic.con)?.claim || "",
+      ownBrief: state.briefs[botSide],
+      opponentBrief: state.briefs[opponentOf(botSide)],
+      transcript: state.transcript,
+      crossRecords: state.crossRecords,
+    };
+    // 立论结构不会写 transcript；把结构提交数等状态位纳入幂等键，
+    // 避免 submitBrief 与紧随其后的 submitOpening 误命中同一缓存动作。
+    const requestId = [
+      state.roomId,
+      "bot",
+      state.phase,
+      state.turnSeat || "none",
+      `briefs-${Object.values(state.briefs).filter(Boolean).length}`,
+      `turns-${state.transcript.length}`,
+      `cross-${state.crossRecords.length}`,
+      `free-${state.freeSpokenBy.length}`,
+    ].join("-");
+    let envelope;
+    try {
+      envelope = await hostInvoker("opponentTurn", context, { requestId });
+    } catch (error) {
+      envelope = { ok: false, error: { code: "UPSTREAM", message: error?.message || "opponentTurn failed" } };
+    }
+    let degradedReason = envelope?.degradedReason;
+    if (!envelope?.ok) {
+      degradedReason = envelope?.error?.message || "AI 对手上游暂时不可用";
+      envelope = await invokeHost("opponentTurn", context, { requestId: `${requestId}-fallback`, apiKey: null });
+    }
+    const action = envelope?.result?.action;
+    const hits = findBannedWords(action);
+    let outcome = !action || hits.length
+      ? { ok: false, code: "CONTENT_REJECTED", message: "AI 对手输出未通过内容校验" }
+      : room.applyAction(botSide, action);
+
+    if (!outcome.ok && !envelope?.degraded) {
+      const fallback = await invokeHost("opponentTurn", context, { requestId: `${requestId}-domain-fallback`, apiKey: null });
+      const fallbackAction = fallback?.result?.action;
+      outcome = fallbackAction && !findBannedWords(fallbackAction).length
+        ? room.applyAction(botSide, fallbackAction)
+        : outcome;
+      degradedReason = `${outcome.message || "AI 动作不符合当前阶段"}`;
+      envelope = fallback;
+    }
+    if (!outcome.ok) {
+      room.state = {
+        ...room.state,
+        host: { degraded: true, reason: degradedReason || outcome.message || "AI 对手降级动作失败" },
+      };
+      break;
+    }
+    if (envelope.degraded || degradedReason) {
+      room.state = {
+        ...room.state,
+        host: { degraded: true, reason: degradedReason || envelope.degradedReason || "AI 对手使用启发式降级" },
+      };
+    }
+    room.broadcastEvent({ kind: "botActed", side: botSide });
+    room.broadcastState();
+  }
+  return room.state;
+}
 
 /**
  * 终局分别评价两个席位。Host 契约把被评估者固定标为 user，
@@ -142,9 +245,15 @@ function fallbackTransition(state, actor, action) {
  * `createRoomState` 必须给出结构完整的 RoomState，否则前端拿到 undefined 字段会崩。
  */
 const fallbackDomain = {
-  createRoomState: ({ roomId, topic, now }) => ({
+  createRoomState: ({ roomId, topic, match, now }) => ({
     roomId,
     topic,
+    match: match || {
+      mode: "human",
+      status: "waiting",
+      reason: "已进入真人候选池，等待持相反立场的用户在线。",
+      requestedAt: now || new Date().toISOString(),
+    },
     phase: "waiting",
     seats: { pro: null, con: null },
     briefs: { pro: null, con: null },
@@ -163,6 +272,7 @@ const fallbackDomain = {
       ? { ...state, phase: "opening", turnSeat: "pro" }
       : state,
   withSeat: (state, side, info) => ({ ...state, seats: { ...state.seats, [side]: info } }),
+  rankCandidates: (_profile, candidates) => candidates,
   transition: fallbackTransition,
 };
 
@@ -177,6 +287,7 @@ async function loadDomain() {
           createRoomState: mod.createRoomState,
           openRoom: typeof mod.openRoom === "function" ? mod.openRoom : fallbackDomain.openRoom,
           withSeat: typeof mod.withSeat === "function" ? mod.withSeat : fallbackDomain.withSeat,
+          rankCandidates: typeof mod.rankCandidates === "function" ? mod.rankCandidates : fallbackDomain.rankCandidates,
           source: candidate,
         };
       }
@@ -218,6 +329,7 @@ function loadClaims() {
 export function buildTopics(claims) {
   const byQuestion = new Map();
   for (const claim of claims) {
+    if (!isDebatableQuestionTitle(claim.questionTitle)) continue;
     if (!byQuestion.has(claim.questionId)) {
       byQuestion.set(claim.questionId, {
         questionId: claim.questionId,
@@ -320,6 +432,8 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
     createRoomState: domain.createRoomState,
     openRoom: domain.openRoom,
     withSeat: domain.withSeat,
+    rankCandidates: domain.rankCandidates,
+    driveBot: (room) => driveBotRoom(room, hostInvoker),
     createTopic: () => topics[0] || { title: "未命名议题", paired: false },
     onReport: async (state) => {
       const finalState = await evaluateSettledRoom(state, hostInvoker);
@@ -401,6 +515,50 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
         paired: topics.filter((t) => t.paired).length,
         topics: pairedOnly ? topics.filter((t) => t.paired) : topics,
         provenance: "research/controversy-map/claims.json · 真实作者/赞同数/知乎原链接",
+      });
+      return;
+    }
+
+    // ── 双入口撮合：真人候选池 / 明确 AI 对辩
+    if (req.method === "POST" && url.pathname === "/api/matches") {
+      let body;
+      try {
+        const raw = await readBody(req);
+        body = raw ? JSON.parse(raw) : {};
+      } catch (error) {
+        sendJson(res, error?.code === ERROR_CODES.PAYLOAD_TOO_LARGE ? 413 : 400, {
+          ok: false,
+          error: { code: error?.code || "VALIDATION", message: "匹配请求不是有效 JSON。" },
+        });
+        return;
+      }
+      const topic = topics.find((item) => item.questionId === body.topicId);
+      if (!topic || !SEAT_SIDES.includes(body.side) || !["human", "ai"].includes(body.mode)) {
+        sendJson(res, 400, {
+          ok: false,
+          error: { code: "VALIDATION", message: "请选择有效议题、立场与匹配方式。" },
+        });
+        return;
+      }
+      const result = registry.requestMatch({
+        topic,
+        side: body.side,
+        mode: body.mode,
+        name: typeof body.name === "string" ? body.name.slice(0, 40) : "辩手",
+        profile: Array.isArray(body.profile) ? body.profile.slice(0, 6) : null,
+      });
+      if (!result.ok) {
+        sendJson(res, 409, { ok: false, error: { code: result.code, message: result.message } });
+        return;
+      }
+      sendJson(res, 201, {
+        ok: true,
+        roomId: result.room.id,
+        side: result.side,
+        seatToken: result.seatToken,
+        mode: result.mode,
+        status: result.status,
+        reason: result.reason,
       });
       return;
     }
@@ -493,6 +651,7 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
         socket.end();
       },
     };
+    let messageRun = Promise.resolve();
 
     if (head && head.length) handleChunk(head);
 
@@ -506,7 +665,7 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
       }
       for (const frame of frames) {
         if (frame.opcode === OPCODE.CLOSE) {
-          void leaveRoom().catch(() => {});
+          messageRun = messageRun.then(() => leaveRoom()).catch(() => {});
           client.close(1000, "bye");
           return;
         }
@@ -523,27 +682,37 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
             client.send(JSON.stringify({ type: "error", code: "VALIDATION", message: "message is not valid JSON" }));
             continue;
           }
-          // 串行处理：保证同一连接上动作的落盘先于下一条消息（同请求幂等的本地保证）
-          handleMessage(message).catch((error) => {
-            client.send(JSON.stringify({ type: "error", code: "INTERNAL", message: error?.message || "internal error" }));
-          });
+          // 串行处理：保证同一连接上的 join / action / leave 不会交错修改房间。
+          messageRun = messageRun
+            .then(() => handleMessage(message))
+            .catch((error) => {
+              client.send(JSON.stringify({ type: "error", code: "INTERNAL", message: error?.message || "internal error" }));
+            });
         }
       }
     }
 
-    async function leaveRoom() {
+    async function leaveRoom({ intentional = false } = {}) {
       if (!client.room) return;
       const { room, side } = client;
-      room.leave(side);
+      // 先解除 client 绑定，避免 error/close 连续触发两次离席流程。
+      client.room = null;
+      client.side = null;
+      const wasWaiting = room.state.phase === "waiting";
+      const removed = room.leave(side, client);
+      if (!removed) return;
       room.broadcastEvent({ kind: "seatLeft", side });
+      // 等待池的传输断开不是中途离席：立即失去在线候选资格，但可持 token 重连。
+      if (wasWaiting && !intentional) {
+        room.broadcastState();
+        return;
+      }
       // 离席惩罚（PRD §7：MP -5）由领域层结算——这里只把 leave 动作交给 transition
       const outcome = room.applyAction(side, { kind: "leave" });
       if (outcome.ok) {
         await room.finish();
       }
       room.broadcastState();
-      client.room = null;
-      client.side = null;
     }
 
     async function handleMessage(message) {
@@ -555,7 +724,8 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
       if (message.type === "join") {
         const room = registry.getOrCreate(message.roomId, {
           topic: message.topicId ? topics.find((t) => t.questionId === message.topicId) : undefined,
-        });        if (client.room && client.room !== room) await leaveRoom();
+        });
+        if (client.room && client.room !== room) await leaveRoom();
         const result = room.join({ socket: client, seatToken: message.seatToken, side: message.side, name: message.name });
         if (!result.ok) {
           client.send(JSON.stringify({ type: "error", code: result.code, message: result.message }));
@@ -574,6 +744,7 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
         );
         room.broadcastEvent({ kind: result.resumed ? "seatResumed" : "seatJoined", side: result.side });
         room.broadcastState();
+        await room.driveBot();
         return;
       }
 
@@ -586,6 +757,10 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
         const action = message.action;
         if (!action || typeof action.kind !== "string") {
           client.send(JSON.stringify({ type: "error", code: "VALIDATION", message: "action.kind is required" }));
+          return;
+        }
+        if (action.kind === "leave") {
+          await leaveRoom({ intentional: true });
           return;
         }
         // 禁用词硬约束：用户输入也不得携带判输赢词族（契约 §0.5 的精神，库层面拦截）
@@ -605,6 +780,7 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
           client.send(JSON.stringify({ type: "error", code: outcome.code, message: outcome.message }));
           return;
         }
+        await client.room.driveBot();
         // 终局时**先落盘再广播**：客户端收到 settled 快照时，报告已经可以从磁盘回读
         if (client.room.state.phase === "settled") {
           await client.room.finish();
@@ -614,7 +790,7 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
       }
 
       if (message.type === "leave") {
-        await leaveRoom();
+        await leaveRoom({ intentional: true });
         return;
       }
 
@@ -623,12 +799,12 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
 
     socket.on("data", handleChunk);
     socket.on("error", () => {
-      void leaveRoom().catch(() => {});
+      messageRun = messageRun.then(() => leaveRoom()).catch(() => {});
       client.close(1011, "socket error");
     });
     socket.on("close", () => {
-      void leaveRoom().catch(() => {});
       client.closed = true;
+      messageRun = messageRun.then(() => leaveRoom()).catch(() => {});
     });
   });
 

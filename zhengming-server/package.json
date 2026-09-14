@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "争鸣服务端：Host（StepFun 七能力）+ 辩论间实时房间（WebSocket）+ 对局报告落盘",
+  "description": "争鸣服务端：Host（StepFun 八能力）+ 辩论间实时房间（WebSocket）+ 对局报告落盘",
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test \"test/*.test.mjs\"",

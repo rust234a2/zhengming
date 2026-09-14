@@ -28,6 +28,7 @@ import {
 } from "../types/debateRoom";
 import { briefItems, opponentOf } from "../domain/debateRoom";
 import { findBannedWords } from "../domain/roomClient";
+import debateQuestionRules from "../data/debateQuestionRules.json";
 
 /* ═══════════════ 阶段与输入区 ═══════════════ */
 
@@ -79,7 +80,7 @@ export interface ComposerSpec {
 
 const FREE_TYPES: FreeType[] = ["反驳", "举证", "承认", "修正", "寻共识"];
 
-const WAITING_NOTE = "等对方入席。把这一页的链接发给他——他打开后会自动坐到另一个席位。";
+const WAITING_NOTE = "已进入真人候选池。这里只等待实际在线、选择同一议题相反立场的用户；也可以分享房间链接邀请真人。";
 const SETTLED_NOTE = "本局已结束。可以查看对局报告，或点「再来一局」开新的一局。";
 
 /**
@@ -199,6 +200,26 @@ export interface StageItem {
   state: StageState;
 }
 
+export interface MatchUiSpec {
+  isAi: boolean;
+  modeLabel: "真人匹配" | "AI 对辩";
+  statusLabel: "候选池等待中" | "已就绪";
+  showInvite: boolean;
+  notice: string | null;
+}
+
+/** 撮合展示只消费服务端权威状态，不根据本地计时或席位数量猜测。 */
+export function matchUiFor(state: RoomState): MatchUiSpec {
+  const isAi = state.match.mode === "ai";
+  return {
+    isAi,
+    modeLabel: isAi ? "AI 对辩" : "真人匹配",
+    statusLabel: state.match.status === "matched" ? "已就绪" : "候选池等待中",
+    showInvite: !isAi,
+    notice: isAi ? "对手席位始终标为 AI / Bot；Host 降级时界面会明确显示“模拟”。" : null,
+  };
+}
+
 const STAGES = ["立论", "质询轮", "自由对辩", "结辩", "终局"] as const;
 
 /** 房间相位 → 五阶段索引（质询三个子相位都归到「质询轮」） */
@@ -268,6 +289,15 @@ export function parseTopicsResponse(payload: unknown): HostTopic[] {
 }
 
 /**
+ * 辩论间只接收能直接形成两种立场的题干。
+ * 开放解释题只有在同时含有“是否 / 会不会 / 还是 / ……吗”等站队结构时才放行。
+ */
+export function isDebatableQuestionTitle(title: string): boolean {
+  const normalized = String(title ?? "").replace(/\s+/g, "").toLowerCase();
+  return normalized.length > 0 && debateQuestionRules.stanceMarkers.some((marker) => normalized.includes(marker));
+}
+
+/**
  * 把服务端议题聚合成可开局列表。
  *
  * - 只要**任一侧有真实论点**就可开局（另一侧由真人守）——数据里单侧议题占多数，
@@ -276,6 +306,7 @@ export function parseTopicsResponse(payload: unknown): HostTopic[] {
  */
 export function aggregateTopics(topics: HostTopic[]): PlayableTopic[] {
   return topics
+    .filter((topic) => isDebatableQuestionTitle(topic.title || ""))
     .map<PlayableTopic>((topic) => {
       const sidesAvailable: SeatId[] = [];
       if (topic.pro?.claim) sidesAvailable.push("pro");

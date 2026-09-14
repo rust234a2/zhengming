@@ -48,17 +48,17 @@
 ```
 zhengming-server/
 ├── server.mjs            # HTTP + WS 入口，单端口
-├── lib/host.mjs          # Host 七能力 → StepFun 调用（含禁用词过滤、幂等、超时）
+├── lib/host.mjs          # Host 八能力 → StepFun 调用（含禁用词过滤、幂等、超时）
 ├── lib/room.mjs          # 房间生命周期（create/join/action/leave/cleanup）
 ├── lib/store.mjs         # rooms/<id>.json 读写（幂等、404）
 ├── lib/deepseek-legacy.mjs  # （不建）DeepSeek 相关配置作废，仅保留注释说明
 └── README.md             # 启动方式、环境变量、限制说明
 ```
 
-### 3.1 Host 能力（对齐 host-contract.md 七个）
+### 3.1 Host 能力（对齐 host-contract.md 八个）
 
-辩论间消费其中四个：`structureHint` / `makeQuestion` / `opponent.*`（Bot 兜底用）/ `evaluate`。
-其余三个（`terminalProbes` / `actAdvance` / `replayEnding`）供事件推演，本期**一并实现**但不在辩论间路径上。
+辩论间消费其中四个：`structureHint` / `makeQuestion` / `opponentTurn` / `evaluate`。`opponentTurn` 只为明确标注的 Bot 席位生成当前一个动作，服务端仍通过共享 `transition()` 推进；调用串行化，真实上游失败时使用明确标记的启发式降级。
+其余四个（`terminalProbes` / `actAdvance` / `replayEnding` / `replayCanon`）供事件推演，不在辩论间路径上。
 
 **统一信封**（契约 §0.1）：`{ok, capability, requestId, result}` / `{ok:false, error:{code,message,requestId}}`。
 **错误码**：`VALIDATION` / `CAPABILITY_NOT_FOUND` / `PAYLOAD_TOO_LARGE` / `TIMEOUT` / `UPSTREAM` / `CONTENT_REJECTED`。
@@ -125,10 +125,10 @@ export function transition(state: RoomState, actor: SeatId, action: RoomAction)
 
 ## 5. 真实业务数据：`web/src/data/debateRoomTopics.ts`
 
-从 `research/controversy-map/claims.json`（27 真实议题 / 37 真实论点 / 真实作者 / 赞同数 / 知乎原文 URL）生成。
+从 `research/controversy-map/claims.json`（27 真实议题 / 37 真实论点 / 真实作者 / 赞同数 / 知乎原文 URL）生成。题干先经过共享站队门禁：必须含“是否 / 会不会 / 能否 / 该不该 / 值不值得 / ……吗 / 还是……”等明确二元结构；开放解释题不进入辩论间。
 
-**数据不足的实情**：只有 **2 个议题**天然同时有正反论点。对策：
-- 以这 2 个真实议题为**首选**（`AI 写程序的能力毋庸置疑很强大,为何没有取代程序员`、`如果人人都可以通过 AI 写代码,程序员还需要存在吗`）；
+**数据不足的实情**：门禁后有 16 个议题，其中只有 **1 个议题**天然同时有正反论点。对策：
+- 以该真实成对议题为**首选**（`如果人人都可以通过 AI 写代码,程序员还需要存在吗`）；
 - 其余议题按 **同一 `reasonType` 跨议题配对**（如「人类特质」正 vs「技术壁垒」反），并在 UI 标注**「跨议题配对」**，不假装是同一议题的正反方；
 - **provenance 红线**：保留真实作者、赞同数、`url`；不做任何数据伪造。
 

@@ -42,23 +42,31 @@ export function generateSeatToken() {
  * @param {Function} [options.onReport] 对局结束时的评分/落盘回调，可返回最终 state
  */
 export class Room {
-  constructor({ id, topic, transition, createRoomState, openRoom, withSeat, onReport }) {
+  constructor({ id, topic, match, transition, createRoomState, openRoom, withSeat, onReport, driveBot }) {
     this.id = id;
     this.topic = topic;
     this.transition = transition;
     this.openRoom = openRoom;
     this.withSeat = withSeat;
     this.onReport = onReport;
-    /** @type {Map<string, {socket:object, side:string, token:string, name:string}>} */
+    this.botDriver = driveBot;
+    this.botRun = null;
+    /** @type {Map<string, {socket:object|null, side:string, token:string|null, name:string, isBot:boolean}>} */
     this.seats = new Map();
-    /** 已签发但未使用的令牌（断线重连时凭它回到原席位） */
+    /** 预留席位或已入席记录；HTTP 匹配先签发，WS join 再激活 */
     this.tokens = new Map();
     this.state = createRoomState
-      ? createRoomState({ roomId: id, topic })
+      ? createRoomState({ roomId: id, topic, match })
       : {
           // 极端兜底：领域工厂缺失时也要有个能跑的结构（启动时已打印显著告警）
           roomId: id,
           topic,
+          match: match || {
+            mode: "human",
+            status: "waiting",
+            reason: "已进入真人候选池，等待持相反立场的用户在线。",
+            requestedAt: new Date().toISOString(),
+          },
           phase: "waiting",
           seats: { pro: null, con: null },
           briefs: { pro: null, con: null },
@@ -82,16 +90,46 @@ export class Room {
 
   /** 找到一个空席位 */
   freeSide(preferred) {
-    if (preferred && SEAT_SIDES.includes(preferred) && !this.seats.has(preferred)) return preferred;
-    return SEAT_SIDES.find((s) => !this.seats.has(s)) || null;
+    const reserved = new Set(Array.from(this.tokens.values()).map((record) => record.side));
+    if (preferred && SEAT_SIDES.includes(preferred) && !this.seats.has(preferred) && !reserved.has(preferred)) return preferred;
+    return SEAT_SIDES.find((s) => !this.seats.has(s) && !reserved.has(s)) || null;
   }
 
   /** 席位信息写入 state（走领域函数，不手写） */
-  #setSeat(side, name, connected) {
-    const info = { name, connected, isBot: false };
+  #setSeat(side, name, connected, { isBot = false, profile = null } = {}) {
+    const info = { name, connected, isBot, profile };
     this.state = this.withSeat
       ? this.withSeat(this.state, side, info)
       : { ...this.state, seats: { ...this.state.seats, [side]: info } };
+  }
+
+  /** HTTP 撮合阶段预留真人席位，返回给该窗口专用的 seatToken。 */
+  reserveHuman({ side, name, profile = null }) {
+    const target = this.freeSide(side);
+    if (!target || target !== side) {
+      return { ok: false, code: "SIDE_TAKEN", message: "requested side is no longer available" };
+    }
+    const token = generateSeatToken();
+    this.tokens.set(token, { side: target, name: name || `席位 ${target}`, profile, reserved: true });
+    return { ok: true, seatToken: token, side: target };
+  }
+
+  /** AI 模式明确占据对侧；Bot 不持有 socket，也绝不显示为真人在线。 */
+  attachBot(side, name = "争鸣 AI") {
+    if (!SEAT_SIDES.includes(side) || this.seats.has(side)) return false;
+    this.seats.set(side, { socket: null, side, token: null, name, isBot: true });
+    this.#setSeat(side, name, true, { isBot: true, profile: null });
+    this.state = {
+      ...this.state,
+      match: {
+        ...this.state.match,
+        status: "matched",
+        reason: "已按你的选择创建 AI 对手，Bot 席位已明确标注。",
+        matchedAt: new Date().toISOString(),
+      },
+    };
+    this.#tryOpen();
+    return true;
   }
 
   /** 席位占满时把房间从 waiting 推进到 opening */
@@ -110,32 +148,43 @@ export class Room {
     if (seatToken && this.tokens.has(seatToken)) {
       const record = this.tokens.get(seatToken);
       const previous = this.seats.get(record.side);
-      if (previous) previous.socket.close(1000, "session replaced by reconnection");
+      const resumed = record.reserved === false;
+      if (previous?.socket && previous.socket !== socket) previous.socket.close(1000, "session replaced by reconnection");
       const displayName = name || record.name;
-      this.seats.set(record.side, { socket, side: record.side, token: seatToken, name: displayName });
-      this.#setSeat(record.side, displayName, true);
+      this.tokens.set(seatToken, { ...record, name: displayName, reserved: false });
+      this.seats.set(record.side, { socket, side: record.side, token: seatToken, name: displayName, isBot: false });
+      this.#setSeat(record.side, displayName, true, { profile: record.profile ?? null });
       this.#tryOpen();
-      return { ok: true, seatToken, side: record.side, resumed: true };
+      return { ok: true, seatToken, side: record.side, resumed };
+    }
+    if (seatToken) {
+      return { ok: false, code: "INVALID_SEAT_TOKEN", message: "seat token is not valid for this room" };
     }
 
     // 2) 无令牌 → 占一个空席位
     const target = this.freeSide(side);
+    if (side && target !== side) {
+      return { ok: false, code: "SIDE_TAKEN", message: "requested side is reserved or already occupied" };
+    }
     if (!target) {
       return { ok: false, code: "ROOM_FULL", message: "both seats are taken" };
     }
     const token = generateSeatToken();
     const displayName = name || `席位 ${target}`;
-    this.tokens.set(token, { side: target, name: displayName });
-    this.seats.set(target, { socket, side: target, token, name: displayName });
+    this.tokens.set(token, { side: target, name: displayName, profile: null, reserved: false });
+    this.seats.set(target, { socket, side: target, token, name: displayName, isBot: false });
     this.#setSeat(target, displayName, true);
     this.#tryOpen();
     return { ok: true, seatToken: token, side: target, resumed: false };
   }
 
-  /** 离席 */
-  leave(side) {
+  /**
+   * 移除当前连接。传 socket 时必须仍是该席位的连接，防止被替换的旧连接误删新连接。
+   */
+  leave(side, socket) {
     const seat = this.seats.get(side);
     if (!seat) return false;
+    if (socket !== undefined && seat.socket !== socket) return false;
     this.seats.delete(side);
     this.#setSeat(side, this.state.seats[side]?.name || seat.name, false);
     return true;
@@ -151,11 +200,25 @@ export class Room {
     return outcome;
   }
 
+  /** 串行驱动 Bot，避免同一 socket 的快速重复动作触发两条 AI 链。 */
+  async driveBot() {
+    if (this.state.match?.mode !== "ai" || typeof this.botDriver !== "function") return;
+    // Bot 广播后，真人可能在当前 driver 的 finally 前立刻提交下一步。
+    // 每次触发都追加到 Promise 尾部，保证下一轮读取最新权威状态且不会并行。
+    const previous = this.botRun || Promise.resolve();
+    const queued = previous.then(() => this.botDriver(this));
+    const tracked = queued.finally(() => {
+      if (this.botRun === tracked) this.botRun = null;
+    });
+    this.botRun = tracked;
+    await tracked;
+  }
+
   /** 广播权威快照 */
   broadcastState() {
     const message = JSON.stringify({ type: "state", roomId: this.id, state: this.state });
     for (const seat of this.seats.values()) {
-      seat.socket.send(message);
+      seat.socket?.send(message);
     }
   }
 
@@ -163,7 +226,7 @@ export class Room {
   broadcastEvent(event) {
     const message = JSON.stringify({ type: "event", roomId: this.id, event: { ...event, at: new Date().toISOString() } });
     for (const seat of this.seats.values()) {
-      seat.socket.send(message);
+      seat.socket?.send(message);
     }
   }
 
@@ -183,30 +246,117 @@ export class Room {
  * 服务端重启后房间丢失（本地开发可接受；报告已落盘可回读）。
  */
 export class RoomRegistry {
-  constructor({ transition, createTopic, onReport, createRoomState, openRoom, withSeat } = {}) {
+  constructor({ transition, createTopic, onReport, createRoomState, openRoom, withSeat, rankCandidates, driveBot } = {}) {
     this.transition = transition;
     this.createTopic = createTopic;
     this.onReport = onReport;
     this.createRoomState = createRoomState;
     this.openRoom = openRoom;
     this.withSeat = withSeat;
+    this.rankCandidates = rankCandidates;
+    this.driveBot = driveBot;
     /** @type {Map<string, Room>} */
     this.rooms = new Map();
   }
 
-  create({ topic, roomId } = {}) {
+  create({ topic, roomId, match } = {}) {
     const id = roomId || generateRoomId();
     const room = new Room({
       id,
       topic: topic || (typeof this.createTopic === "function" ? this.createTopic() : { title: "未命名议题" }),
+      match,
       transition: this.transition,
       createRoomState: this.createRoomState,
       openRoom: this.openRoom,
       withSeat: this.withSeat,
       onReport: this.onReport,
+      driveBot: this.driveBot,
     });
     this.rooms.set(id, room);
     return room;
+  }
+
+  /**
+   * 服务端权威撮合。真人模式只把**实际在线**的等待席位放入候选；AI 模式明确附加 Bot。
+   */
+  requestMatch({ topic, side, mode, name, profile = null }) {
+    if (!topic || !SEAT_SIDES.includes(side) || !["human", "ai"].includes(mode)) {
+      return { ok: false, code: "VALIDATION", message: "topic, side and mode are required" };
+    }
+    const now = new Date().toISOString();
+    const createWaitingRoom = () => this.create({
+      topic,
+      match: {
+        mode,
+        status: "waiting",
+        reason: mode === "ai"
+          ? "正在创建明确标注的 AI 对手。"
+          : "已进入真人候选池，等待持相反立场的用户在线。",
+        requestedAt: now,
+      },
+    });
+
+    if (mode === "ai") {
+      const room = createWaitingRoom();
+      const reservation = room.reserveHuman({ side, name, profile });
+      if (!reservation.ok) return reservation;
+      room.attachBot(side === "pro" ? "con" : "pro");
+      return {
+        ok: true,
+        room,
+        side,
+        seatToken: reservation.seatToken,
+        mode,
+        status: "matched",
+        reason: room.state.match.reason,
+      };
+    }
+
+    const opposite = side === "pro" ? "con" : "pro";
+    const waiting = Array.from(this.rooms.values()).filter((room) =>
+      room.state.match?.mode === "human" &&
+      room.state.phase === "waiting" &&
+      room.topic?.questionId === topic.questionId &&
+      room.state.seats[opposite]?.connected === true &&
+      room.state.seats[opposite]?.isBot === false &&
+      room.freeSide(side) === side,
+    );
+    const candidates = waiting.map((room) => ({
+      seatId: room.id,
+      name: room.state.seats[opposite]?.name || "候选辩手",
+      side: opposite,
+      profile: room.state.seats[opposite]?.profile ?? null,
+    }));
+    const ranked = typeof this.rankCandidates === "function"
+      ? this.rankCandidates(profile, candidates)
+      : candidates;
+    const matched = ranked.length ? this.get(ranked[0].seatId) : null;
+    const room = matched || createWaitingRoom();
+    const reservation = room.reserveHuman({ side, name, profile });
+    if (!reservation.ok) return reservation;
+    if (matched) {
+      room.state = {
+        ...room.state,
+        match: {
+          ...room.state.match,
+          status: "matched",
+          reason: ranked[0].score == null
+            ? "已匹配到同一议题、相反立场的在线真人（双方暂无历史画像）。"
+            : `已匹配到同一议题、相反立场的在线真人（画像相近度 ${Math.round(ranked[0].score * 100)}%）。`,
+          matchedAt: now,
+        },
+      };
+      room.broadcastState();
+    }
+    return {
+      ok: true,
+      room,
+      side,
+      seatToken: reservation.seatToken,
+      mode,
+      status: matched ? "matched" : "waiting",
+      reason: room.state.match.reason,
+    };
   }
 
   get(roomId) {
@@ -224,6 +374,7 @@ export class RoomRegistry {
       id: room.id,
       phase: room.state.phase,
       occupied: room.occupiedCount(),
+      match: room.state.match,
       topic: room.topic?.title || "",
     }));
   }

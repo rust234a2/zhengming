@@ -7,7 +7,7 @@
  *   右：本场记录 + 图例
  *
  * 与原型的关键差别（ROLLOUT v0.7）：
- *   - 对手是**真人**（WebSocket 房间），不是脚本 Bot
+ *   - 对手由用户明确选择：真人走在线候选池，AI 走标注清楚的 Bot 席位
  *   - Host 走**真实 LLM**（服务端 `/api/host/*` → StepFun），不是选项匹配
  *   - 状态**服务端权威**：本组件只发动作、渲染服务端快照，不做乐观更新
  */
@@ -19,21 +19,22 @@ import type {
   EvidenceStatus,
   FreeType,
   OpeningBrief,
+  MatchMode,
   PlayableTopic,
   Reaction,
   RoomState,
   SeatId,
 } from "../types/debateRoom";
 import { forgetCreatedRoom, readCreatedRoom, readRoomFromUrl, rememberCreatedRoom } from "./debate-room/roomStorage";
-import { seatLabel } from "../domain/roomClient";
+import { forgetSeatToken, seatLabel } from "../domain/roomClient";
 import { briefItems } from "../domain/debateRoom";
 
 import { Composer } from "./debate-room/Composer";
 import { RoomReportCard } from "./debate-room/RoomReportCard";
 import { ProfileRadar } from "./debate-room/ProfileRadar";
 import { requestMakeQuestion, requestStructureHint } from "./debate-room/hostClient";
-import { composerFor, stageProgress, topicBadges } from "./debateRoomUi";
-import { createRoom, useRoom, useTopics } from "./useRoom";
+import { composerFor, matchUiFor, stageProgress, topicBadges } from "./debateRoomUi";
+import { createMatch, useRoom, useTopics } from "./useRoom";
 
 /* ═══════════════ 小件 ═══════════════ */
 
@@ -113,7 +114,7 @@ function SeatCard({
                 {active ? <span className="dr-tag turn">该他动作</span> : null}
               </div>
               <div className="dr-seat-sub">
-                {seat ? (seat.isBot ? "Bot 兜底" : "真人对手") : "等对方入席"}
+                {seat ? (seat.isBot ? "AI 对手 · Bot" : isMe ? "真人辩手 · 你" : "真人对手") : "等对方入席"}
               </div>
             </div>
           </div>
@@ -131,6 +132,21 @@ function SeatCard({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function MatchCard({ state }: { state: RoomState }) {
+  const match = matchUiFor(state);
+  return (
+    <div className="dr-card dr-match-status">
+      <div className="dr-card-title">对手方式</div>
+      <div className="dr-match-status-line">
+        <span className={`dr-tag ${match.isAi ? "ai" : "human"}`}>{match.modeLabel}</span>
+        <b>{match.statusLabel}</b>
+      </div>
+      <p className="dr-card-note">{state.match.reason}</p>
+      {match.notice ? <p className="dr-card-note">{match.notice}</p> : null}
     </div>
   );
 }
@@ -164,7 +180,17 @@ export function DebateRoom() {
 
   const { topics, loading: topicsLoading, error: topicsError, hostConfigured, reload } = useTopics();
 
-  const { state, mySide: connectedSide, connection, error: socketError, resumed, send, leave, clearError } = useRoom({
+  const {
+    state,
+    mySide: connectedSide,
+    connection,
+    error: socketError,
+    errorCode: socketErrorCode,
+    resumed,
+    send,
+    leave,
+    clearError,
+  } = useRoom({
     roomId,
     side: mySide,
     name: myName,
@@ -198,13 +224,35 @@ export function DebateRoom() {
     }
   }, [state?.phase, state?.report, reportOpen]);
 
+  /* ── 服务端重启后旧 token 已失效：清理旧局并回到匹配页 ── */
+  useEffect(() => {
+    if (socketErrorCode !== "INVALID_SEAT_TOKEN" || !roomId) return;
+
+    forgetSeatToken(roomId);
+    forgetCreatedRoom();
+    clearError();
+    setRoomId(null);
+    setMySide(null);
+    setSelectedTopic(null);
+    setHostHint(null);
+    setReportOpen(false);
+    setLobbyError("席位凭证已失效，已清理旧房间记录，请重新匹配。");
+    setPhase({ kind: "lobby" });
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("room");
+    url.searchParams.delete("side");
+    window.history.replaceState(null, "", url.toString());
+  }, [clearError, roomId, socketErrorCode]);
+
   /* ── 开局：建房 → 入席 ── */
   const startRoom = useCallback(
-    async (topic: PlayableTopic, side: SeatId) => {
+    async (topic: PlayableTopic, side: SeatId, mode: MatchMode) => {
       setBusy(true);
       setLobbyError(null);
       try {
-        const { roomId: created } = await createRoom(topic.questionId);
+        const matched = await createMatch({ topicId: topic.questionId, side, mode, name: myName });
+        const created = matched.roomId;
         rememberCreatedRoom({ roomId: created, topicId: topic.questionId, side, at: new Date().toISOString() });
         setSelectedTopic(topic);
         setMySide(side);
@@ -216,7 +264,7 @@ export function DebateRoom() {
         setBusy(false);
       }
     },
-    [],
+    [myName],
   );
 
   /* ── 加入已有房间（邀请链接 / 另一窗口） ── */
@@ -369,10 +417,11 @@ export function DebateRoom() {
           </div>
 
           {state ? <StageBar state={state} /> : null}
+          {state ? <MatchCard state={state} /> : null}
           {state ? <SeatCard state={state} mySide={effectiveSide} /> : null}
           {state ? <TierCard report={state.report} /> : null}
 
-          <InviteCard roomId={roomId} mySide={effectiveSide} resumed={resumed} />
+          {state && matchUiFor(state).showInvite ? <InviteCard roomId={roomId} mySide={effectiveSide} resumed={resumed} /> : null}
 
           <div className="dr-card">
             <div className="dr-card-title">本局规则</div>
@@ -415,7 +464,9 @@ export function DebateRoom() {
               })
             ) : (
               <div className="dr-stream-empty">
-                {state?.phase === "waiting" ? "对方还没入席——把右边的邀请链接发给他。" : "还没有发言记录。"}
+                {state?.phase === "waiting"
+                  ? state.match?.reason || "已进入真人候选池，等待实际在线的相反立场用户。"
+                  : "还没有发言记录。"}
               </div>
             )}
           </div>
@@ -598,10 +649,11 @@ function Lobby({
   busy: boolean;
   hostConfigured: boolean | null;
   onRetry: () => void;
-  onStart: (topic: PlayableTopic, side: SeatId) => void;
+  onStart: (topic: PlayableTopic, side: SeatId, mode: MatchMode) => void;
   onJoinRoom: (roomId: string, side: SeatId) => void;
 }) {
   const [openTopicId, setOpenTopicId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<{ topicId: string; side: SeatId } | null>(null);
   const [joinId, setJoinId] = useState("");
   const [joinSide, setJoinSide] = useState<SeatId>("con");
   const playable = topics.filter((topic) => topic.playable);
@@ -623,8 +675,8 @@ function Lobby({
         <div className="dr-lobby-head">
           <h1>开一间辩论间</h1>
           <p>
-            挑一个真实知乎议题、选一边守。<b>选自己不信的一边也完全允许</b>（竞技辩论式训练）。
-            对手入席后，双方按五阶段把这场辩论打完——立论、质询、自由对辩、结辩、终局报告。
+            挑一个真实知乎议题、选一边守，再明确选择<b>真人匹配</b>或<b>直接与 AI 对辩</b>。
+            选自己不信的一边也完全允许；对局按立论、质询、自由对辩、结辩、终局报告五阶段推进。
           </p>
           <div className="dr-lobby-flags">
             {hostConfigured === false ? (
@@ -662,7 +714,10 @@ function Lobby({
               const open = openTopicId === topic.questionId;
               return (
                 <article key={topic.questionId} className={`dr-lobby-topic ${open ? "open" : ""}`}>
-                  <button type="button" className="dr-lobby-topic-head" onClick={() => setOpenTopicId(open ? null : topic.questionId)}>
+                  <button type="button" className="dr-lobby-topic-head" onClick={() => {
+                    setOpenTopicId(open ? null : topic.questionId);
+                    setSelection(null);
+                  }}>
                     <h3>{topic.title}</h3>
                     <div className="dr-badges">
                       {topicBadges(topic as unknown as DebateTopic).map((badge, index) => (
@@ -690,8 +745,13 @@ function Lobby({
                                   看知乎原文
                                 </a>
                               ) : null}
-                              <button type="button" className="dr-submit" disabled={busy} onClick={() => onStart(topic, side)}>
-                                {busy ? "开局中…" : `选${seatLabel(side)}入席`}
+                              <button
+                                type="button"
+                                className="dr-submit"
+                                disabled={busy}
+                                onClick={() => setSelection({ topicId: topic.questionId, side })}
+                              >
+                                {`选择${seatLabel(side)}`}
                               </button>
                             </div>
                           </div>
@@ -700,6 +760,36 @@ function Lobby({
                       <p className="dr-claim-note">
                         预设论点只会作为你立论结构的草稿参考——必须自己改写，不能跳过立论直接开打。
                       </p>
+                      {selection?.topicId === topic.questionId ? (
+                        <section className="dr-match-choice" aria-label="选择匹配方式">
+                          <div className="dr-match-choice-head">
+                            <b>你已选择{seatLabel(selection.side)}</b>
+                            <span>接下来选择对手类型</span>
+                          </div>
+                          <div className="dr-match-options">
+                            <button
+                              type="button"
+                              className="dr-match-option human"
+                              disabled={busy}
+                              onClick={() => onStart(topic, selection.side, "human")}
+                            >
+                              <strong>{busy ? "正在进入候选池…" : "真人匹配"}</strong>
+                              <span>进入候选池，只匹配实际在线、守相反立场的真人；没有候选时继续等待。</span>
+                              <em>真人优先</em>
+                            </button>
+                            <button
+                              type="button"
+                              className="dr-match-option ai"
+                              disabled={busy}
+                              onClick={() => onStart(topic, selection.side, "ai")}
+                            >
+                              <strong>{busy ? "正在创建对局…" : "直接选择 AI 对辩"}</strong>
+                              <span>立即创建明确标注的 AI / Bot 对手，直接进入五阶段对局。</span>
+                              <em>立即开始</em>
+                            </button>
+                          </div>
+                        </section>
+                      ) : null}
                     </div>
                   ) : null}
                 </article>

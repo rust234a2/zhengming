@@ -25,6 +25,7 @@ import {
   type EvidenceStatus,
   type FreeType,
   type MpSettlement,
+  type MatchInfo,
   type OpeningBrief,
   type RankedCandidate,
   type RoomAction,
@@ -577,19 +578,27 @@ export function createRoomState({
   roomId,
   topic,
   seats = { pro: null, con: null },
-  host = { degraded: false },
   now = new Date().toISOString(),
+  match = {
+    mode: "human",
+    status: "waiting",
+    reason: "已进入真人候选池，等待持相反立场的用户在线。",
+    requestedAt: now,
+  },
+  host = { degraded: false },
 }: {
   roomId: string;
   topic: DebateTopic;
   seats?: RoomState["seats"];
-  host?: RoomState["host"];
   now?: string;
+  match?: MatchInfo;
+  host?: RoomState["host"];
 }): RoomState {
   const occupied = Object.values(seats).filter(Boolean).length;
   return {
     roomId,
     topic,
+    match,
     // 两个席位都有人才算开局（waiting 时不允许任何对局动作）
     phase: occupied >= 2 ? "opening" : "waiting",
     seats,
@@ -614,7 +623,20 @@ export function openRoom(state: RoomState, now = new Date().toISOString()): Room
   if (state.phase !== "waiting") return state;
   const occupied = Object.values(state.seats).filter(Boolean).length;
   if (occupied < 2) return state;
-  return { ...state, phase: "opening", turnSeat: "pro", createdAt: state.createdAt || now };
+  return {
+    ...state,
+    match: {
+      ...state.match,
+      status: "matched",
+      matchedAt: state.match.matchedAt ?? now,
+      reason: state.match.mode === "ai"
+        ? "已按你的选择创建 AI 对手，Bot 席位已明确标注。"
+        : "已匹配到同一议题、相反立场的在线真人。",
+    },
+    phase: "opening",
+    turnSeat: "pro",
+    createdAt: state.createdAt || now,
+  };
 }
 
 /** 席位侧写入（join / 离席时服务端用） */

@@ -81,7 +81,7 @@
 |---|---|---|
 | LLM 选型 | 候选 DeepSeek / GLM / Moonshot，辩论场景要求指令遵循强 | ⏳ 未决（当前 Host 用选项匹配模拟） |
 | Host 真模型接入 | 承认忠实度判定、追问生成、终局归纳三个 prompt | 待做 |
-| 知乎数据接入 | 树冷启动走 `question recommend + answers`（PRD P1 流程） | 脚本已备（`research/zhihu-corpus/`） |
+| 知乎数据接入 | 树冷启动改用**已落在盘上的语料**（不新采集、不重复做立场抽取）：`research/debate-tree/gen-tree-seeds.mjs` → `web/src/data/debateTreeSeed.ts`，`?view=debate` 已渲染 122 个真实议题 | ✅ 数据侧已落地（2026-09-14）；持久化与 Host 追问仍待做 |
 | runi-core 集成 | 实时通信复用 runi 实例通信能力；树存储用本地协议层 | 待做 |
 | dissensus 迁移 | 旧工作区三文件并入 | 待做 |
 

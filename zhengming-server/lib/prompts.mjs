@@ -5,7 +5,7 @@
  *  1. **不判输赢**：所有能力禁止输出胜负/对错语义；禁用词表见 contract.mjs。
  *  2. **不代写**：
  *     - structureHint 只指出缺哪个结构要素，**不得给出可直接粘贴的论证内容**；
- *     - 事件推演（能力 5/6）的入参**不得含 canon / realChoice / 真实人物真名**。
+ *     - 事件推演（能力 6/7）的入参**不得含 canon / realChoice / 真实人物真名**。
  *
  * 降级：读不到 STEPFUN_API_KEY 时走本文件的启发式实现，
  * 并在响应里带 `degraded: true` + `degradedReason`，前端必须明示「模拟」。
@@ -29,6 +29,34 @@ const SIX_DIMS = ["立论", "论据", "逻辑", "回应", "表达", "规范"];
 /* ═══════════════════ 提示词模板 ═══════════════════ */
 
 export const PROMPTS = {
+  /** AI 对辩席位：根据服务端权威阶段只生成当前一个合法动作。 */
+  opponentTurn(context) {
+    return {
+      system: BASE_SYSTEM,
+      user: `你是辩论间里明确标注的 AI 辩手，不是 Host。你守${context.side === "pro" ? "正方" : "反方"}。
+
+议题：${context.topic?.title || ""}
+预设本方论点：${context.presetClaim || "（无）"}
+当前阶段：${context.phase}
+本方立论结构：${JSON.stringify(context.ownBrief || null)}
+对方立论结构：${JSON.stringify(context.opponentBrief || null)}
+最近发言：${JSON.stringify((context.transcript || []).slice(-8))}
+最近质询：${JSON.stringify((context.crossRecords || []).slice(-2))}
+
+只生成当前阶段的一个合法动作，严格输出 JSON：
+- opening 且本方无结构：{"action":{"kind":"submitBrief","brief":{"conclusion":"...","reasons":["..."],"evidenceStatus":"价值判断"}}}
+- opening 且双方有结构、本方未开篇：{"action":{"kind":"submitOpening","text":"..."}}
+- crossAsk：{"action":{"kind":"ask","targetItem":"结论","question":"...？"}}
+- crossAnswer：{"action":{"kind":"answer","text":"..."}}
+- crossReact：{"action":{"kind":"react","reaction":"accept"}}
+- free：{"action":{"kind":"freeSpeak","freeType":"反驳","text":"..."}}
+- closing：{"action":{"kind":"submitClosing","text":"..."}}
+
+硬要求：只输出 JSON；问题恰好一个问号；不使用禁用词；引用对方具体内容；不宣称自己是真人。`,
+      temperature: 0.5,
+    };
+  },
+
   /**
    * 能力 1 · 结构提示 structureHint
    * 用途：立论阶段指出陈述缺哪个结构要素，不给现成句子。
@@ -306,6 +334,44 @@ export function heuristicStructureHint(statement) {
     definition: "你使用的关键词是怎么界定的",
   };
   return `你的陈述里还缺「${ELEMENT_LABELS[missing]}」——${advice[missing]}？`;
+}
+
+/** 无 key/上游失败时的确定性 AI 席位，调用方必须保留 degraded 标记。 */
+export function heuristicOpponentTurn(context) {
+  const side = context.side === "con" ? "con" : "pro";
+  const own = context.ownBrief;
+  const theirs = context.opponentBrief;
+  const preset = String(context.presetClaim || (side === "pro" ? context.topic?.pro?.claim : context.topic?.con?.claim) || "这个议题需要保留更多条件");
+  const latest = (context.crossRecords || []).at(-1);
+  if (context.phase === "opening" && !own) {
+    return {
+      action: {
+        kind: "submitBrief",
+        brief: {
+          conclusion: preset,
+          reasons: ["这个判断取决于实际影响是否能够被替代方案缓解"],
+        },
+      },
+    };
+  }
+  if (context.phase === "opening") {
+    return { action: { kind: "submitOpening", text: `我的核心主张是：${own?.conclusion || preset}。理由是：${own?.reasons?.[0] || "需要比较不同条件下的实际影响"}。` } };
+  }
+  if (context.phase === "crossAsk") {
+    const targetItem = theirs?.reasons?.length ? "理由 1" : "结论";
+    const target = targetItem === "理由 1" ? theirs.reasons[0] : theirs?.conclusion;
+    return { action: { kind: "ask", targetItem, question: `你提到「${Array.from(String(target || "这项主张")).slice(0, 16).join("")}」，它在什么条件下不成立？` } };
+  }
+  if (context.phase === "crossAnswer") {
+    return { action: { kind: "answer", text: `针对这个问题，我的依据仍是本方立论中的判断标准；在条件发生变化时，我也会相应缩小结论的适用范围。` } };
+  }
+  if (context.phase === "crossReact") {
+    return { action: { kind: "react", reaction: "accept" } };
+  }
+  if (context.phase === "free") {
+    return { action: { kind: "freeSpeak", freeType: "反驳", text: `对方给出的理由说明了一个条件，但还不足以覆盖本方所强调的实际影响。` } };
+  }
+  return { action: { kind: "submitClosing", text: `本场分歧集中在判断标准与适用条件。我保留本方结论，同时承认仍需更多可查证材料来缩小争议范围。` } };
 }
 
 /** 启发式质询生成：按靶点类型选一个固定的追问角度，套用靶点原文片段 */

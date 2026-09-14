@@ -1,78 +1,181 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { DEFAULT_TREE_SEED_ID, findTreeSeed } from "../src/data/debateTreeSeed";
+import type { DebateTreeSeed } from "../src/types/debateTree";
 import { DebateTreePrototype } from "../src/ui/DebateTreePrototype";
+import { EXPANDED_STORAGE_KEY, LAST_SEED_STORAGE_KEY } from "../src/ui/debateTreeStorage";
+
+const defaultSeed = findTreeSeed(DEFAULT_TREE_SEED_ID) as DebateTreeSeed;
+const proClaim = defaultSeed.claims.find((claim) => claim.stance === "pro")!;
+const conClaim = defaultSeed.claims
+  .filter((claim) => claim.stance === "con")
+  .sort((a, b) => b.voteUp - a.voteUp)[0];
+const answerSeed = findTreeSeed("zh-2038884733304697602") as DebateTreeSeed;
+
+/** 展开某个节点卡片 */
+function expandRoot(): void {
+  fireEvent.click(screen.getByLabelText(/^议题：/));
+}
+
+function cardOf(text: string): HTMLElement {
+  return screen.getByLabelText(new RegExp(`^(支持|反对|看条件)：${text.slice(0, 12)}`));
+}
+
+/** 平台票记在 .dt-votes 里；知乎赞同数是它旁边另一枚独立标签 */
+function voteWidget(card: HTMLElement): HTMLElement {
+  return card.querySelector(".dt-votes") as HTMLElement;
+}
+
+function voteCount(card: HTMLElement): string {
+  return voteWidget(card).querySelector("b")?.textContent ?? "";
+}
 
 beforeEach(() => {
   window.localStorage.clear();
+  window.history.replaceState(null, "", "/");
 });
 
 afterEach(() => {
   cleanup();
-  vi.restoreAllMocks();
 });
 
-describe("辩论树交互原型", () => {
-  it("初始只显示根节点，点击后展开第一级", () => {
+describe("辩论树 · 真实议题渲染", () => {
+  it("初始只渲染根节点，题干就是真实知乎问题", () => {
     render(<DebateTreePrototype />);
-    expect(screen.getAllByText("43 岁县中物理老师考上苏州头部公办校（正式编制），该不该辞职去？")).toHaveLength(2);
-    expect(screen.queryByText("苏州编制含金量远高于县中，职业天花板和资源都不是一个量级")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByLabelText(/议题：43 岁县中物理老师/));
-    expect(screen.getByText("苏州编制含金量远高于县中，职业天花板和资源都不是一个量级")).toBeInTheDocument();
-    expect(screen.queryByText(/苏州头部校高手云集/)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(defaultSeed.title);
+    expect(screen.getByLabelText(`议题：${defaultSeed.title}`)).toBeInTheDocument();
+    expect(screen.queryByText(proClaim.text)).not.toBeInTheDocument();
+    expect(screen.queryByText(conClaim.text)).not.toBeInTheDocument();
   });
 
-  it("选择子节点同步详情，再次点击逐级展开", () => {
+  it("展开后的一级论点是真实内容：答主、身份、赞同数、原文链接各自独立", () => {
     render(<DebateTreePrototype />);
-    fireEvent.click(screen.getByLabelText(/议题：43 岁县中物理老师/));
-    fireEvent.click(screen.getByLabelText(/支持：苏州编制含金量/));
-    expect(screen.getAllByText("物理组张老师").length).toBeGreaterThan(1);
-    expect(screen.getByText(/苏州头部校高手云集/)).toBeInTheDocument();
-    expect(screen.getByText("待回应")).toBeInTheDocument();
+    expandRoot();
+
+    const card = cardOf(proClaim.text);
+    expect(within(card).getByText(proClaim.author)).toBeInTheDocument();
+    expect(within(card).getByText(proClaim.authorBadge)).toBeInTheDocument();
+    expect(within(card).getByText(`知乎 ${proClaim.voteUp} 赞`)).toBeInTheDocument();
+    expect(within(card).getByText("原文节选")).toBeInTheDocument();
+    expect(within(card).getByText("源自知乎回答")).toHaveAttribute("href", proClaim.url);
   });
 
-  it("投票只更新票数，不折叠当前分支", () => {
+  it("平台投票从 0 起、可改向，且绝不动知乎赞同数", () => {
     render(<DebateTreePrototype />);
-    fireEvent.click(screen.getByLabelText(/议题：43 岁县中物理老师/));
-    const claim = screen.getByLabelText(/支持：苏州编制含金量/);
-    fireEvent.click(screen.getByLabelText(/赞同 苏州编制含金量/));
-    expect(claim).toHaveTextContent("13");
-    expect(screen.getByText("关键变量是编制性质、住房支持与岗位安排，谈妥了再去")).toBeInTheDocument();
+    expandRoot();
+    const card = cardOf(proClaim.text);
+
+    expect(voteCount(card)).toBe("0");
+
+    fireEvent.click(within(card).getByLabelText(/^赞同 /));
+    expect(voteCount(card)).toBe("1");
+    expect(within(card).getByText(`知乎 ${proClaim.voteUp} 赞`)).toBeInTheDocument();
+
+    fireEvent.click(within(card).getByLabelText(/^反对 /));
+    expect(voteCount(card)).toBe("-1");
+    expect(within(card).getByText(`知乎 ${proClaim.voteUp} 赞`)).toBeInTheDocument();
   });
 
-  it("可以从根节点添加带依据的看条件论点", () => {
-    vi.spyOn(Date, "now").mockReturnValue(1234);
+  it("点同一方向即撤票，不叠加", () => {
     render(<DebateTreePrototype />);
-    const root = screen.getByLabelText(/议题：43 岁县中物理老师/);
-    fireEvent.click(root.querySelectorAll("button")[2]);
+    expandRoot();
+    const card = cardOf(proClaim.text);
+    fireEvent.click(within(card).getByLabelText(/^反对 /));
+    fireEvent.click(within(card).getByLabelText(/^反对 /));
+    expect(voteCount(card)).toBe("0");
+  });
+
+  it("展开态按议题分别存放，换议题不继承", () => {
+    render(<DebateTreePrototype />);
+    expandRoot();
+    const record = JSON.parse(window.localStorage.getItem(EXPANDED_STORAGE_KEY) ?? "{}");
+    expect(record[defaultSeed.id]).toEqual([`${defaultSeed.id}:root`]);
+
+    fireEvent.click(screen.getByRole("button", { name: "收起全树" }));
+    expect(JSON.parse(window.localStorage.getItem(EXPANDED_STORAGE_KEY) ?? "{}")[defaultSeed.id]).toEqual([]);
+  });
+});
+
+describe("辩论树 · 议题库", () => {
+  it("顶栏议题名即入口：可搜、可换、换完写回 URL 与本地记忆", () => {
+    render(<DebateTreePrototype />);
+    fireEvent.click(screen.getByRole("button", { name: /个真实议题/ }));
+
+    const dialog = screen.getByRole("dialog", { name: "议题库" });
+    fireEvent.change(within(dialog).getByLabelText("搜索议题"), { target: { value: "县中" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: new RegExp(answerSeed.title.slice(0, 10)) }));
+
+    expect(screen.getAllByText(answerSeed.title).length).toBeGreaterThan(0);
+    expect(window.location.search).toContain(`topic=${answerSeed.id}`);
+    expect(window.localStorage.getItem(LAST_SEED_STORAGE_KEY)).toBe(answerSeed.id);
+    expect(screen.queryByRole("dialog", { name: "议题库" })).not.toBeInTheDocument();
+  });
+
+  it("搜不到时给空态", () => {
+    render(<DebateTreePrototype />);
+    fireEvent.click(screen.getByRole("button", { name: /个真实议题/ }));
+    const dialog = screen.getByRole("dialog", { name: "议题库" });
+    fireEvent.change(within(dialog).getByLabelText("搜索议题"), { target: { value: "量子纠缠猫" } });
+    expect(within(dialog).getByText("没有匹配的议题")).toBeInTheDocument();
+  });
+
+  it("只有真实回答的议题：不冒充论点，把回答并列列出来", () => {
+    window.history.replaceState(null, "", `/?view=debate&topic=${answerSeed.id}`);
+    render(<DebateTreePrototype />);
+
+    expect(screen.getAllByText(answerSeed.title).length).toBeGreaterThan(0);
+    expect(screen.getByText(/立场未经标注，未作为一级论点/)).toBeInTheDocument();
+    expect(screen.getByText(answerSeed.note)).toBeInTheDocument();
+
+    const list = document.querySelector(".dt-answers ul") as HTMLElement;
+    expect(within(list).getAllByRole("link")).toHaveLength(answerSeed.answerSamples.length);
+  });
+
+  it("立场聚类按真实数量画出来", () => {
+    window.history.replaceState(null, "", `/?view=debate&topic=${answerSeed.id}`);
+    render(<DebateTreePrototype />);
+    expect(screen.getByText(/条回答做了立场聚类/)).toBeInTheDocument();
+    for (const cluster of answerSeed.clusters) {
+      expect(screen.getAllByText(cluster.label).length).toBeGreaterThan(0);
+      const rows = Array.from(document.querySelectorAll(".dt-cluster-row"));
+      expect(rows.map((row) => row.textContent)).toContain(`${cluster.label}${cluster.count}`);
+    }
+  });
+});
+
+describe("辩论树 · 参与行为", () => {
+  it("可以在根节点下添加看条件论点，统计条跟着变", () => {
+    render(<DebateTreePrototype />);
+    fireEvent.click(screen.getByRole("button", { name: "添加反对论点" }));
+    fireEvent.click(screen.getByRole("button", { name: "看条件" }));
     fireEvent.change(screen.getByLabelText("论点内容"), { target: { value: "先确认岗位与住房条件再决定" } });
     fireEvent.change(screen.getByLabelText("论点依据"), { target: { value: "正式 offer 尚未写明岗位" } });
     fireEvent.click(screen.getByRole("button", { name: "发布到树上" }));
-    expect(screen.getAllByText("先确认岗位与住房条件再决定")).toHaveLength(2);
-    expect(screen.getAllByText(/正式 offer 尚未写明岗位/).length).toBeGreaterThan(1);
-    expect(screen.getByLabelText("立场分布")).toHaveTextContent(/看条件\s*2/);
+
+    expect(screen.getAllByText("先确认岗位与住房条件再决定").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("我").length).toBeGreaterThan(0);
+    expect(screen.getByLabelText("立场分布")).toHaveTextContent(/看条件\s*1/);
   });
 
-  it("Agent 建议可生成追问，且收起全树写入持久化", () => {
+  it("追问由自己署名，不再本地伪造 Agent 建议", () => {
     render(<DebateTreePrototype />);
-    fireEvent.click(screen.getByLabelText(/议题：43 岁县中物理老师/));
-    fireEvent.click(screen.getByLabelText(/支持：43 岁是最后的窗口期/));
-    fireEvent.click(screen.getByRole("button", { name: "以此追问" }));
-    expect(screen.getAllByText(/——请回应/)).toHaveLength(2);
-    expect(screen.queryByText("待回应")).not.toBeInTheDocument();
+    expandRoot();
+    fireEvent.click(cardOf(proClaim.text));
+    fireEvent.click(screen.getByRole("button", { name: "追问此节点" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "收起全树" }));
-    expect(within(screen.getByRole("region", { name: "辩论树" })).queryByText(/——请回应/)).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /——请回应/ })).toBeInTheDocument();
-    expect(window.localStorage.getItem("zhengming.debateTree.expanded")).toBe("[]");
+    fireEvent.change(screen.getByLabelText("追问内容"), { target: { value: "这条论据的依据是什么？" } });
+    fireEvent.click(screen.getByRole("button", { name: "发布到树上" }));
+
+    expect(screen.getAllByText("这条论据的依据是什么？").length).toBeGreaterThan(0);
+    expect(screen.getByText("待回应")).toBeInTheDocument();
+    expect(screen.queryByText("Agent 追问建议")).not.toBeInTheDocument();
   });
 
-  it("切换到争议地图视图：地图画布渲染，可切回缩进树", () => {
+  it("争议地图视图可来回切换", () => {
     render(<DebateTreePrototype />);
     fireEvent.click(screen.getByRole("button", { name: "争议地图" }));
     expect(document.querySelector(".controversy-map")).toBeTruthy();
-    expect(screen.getByText(/跨议题争议地图/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "缩进树" }));
     expect(screen.getByRole("region", { name: "辩论树" })).toBeInTheDocument();
     expect(screen.getByText("树状缩略图")).toBeInTheDocument();
