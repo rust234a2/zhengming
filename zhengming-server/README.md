@@ -27,10 +27,18 @@ curl http://127.0.0.1:5300/api/health
 跑测试：
 
 ```bash
-node --test test/host.test.mjs test/server.test.mjs     # 41 项
+node --test test/host.test.mjs test/server.test.mjs     # 41 项单测
 # 或
 npm test
 ```
+
+端到端对局冒烟（会真起服务、开两个 WS 客户端、走完五阶段并校验报告落盘）：
+
+```bash
+node test/e2e-room.mjs
+```
+
+> 跑之前先确保领域模块已编译：`cd ../web && npm run build:domain`
 
 ---
 
@@ -108,11 +116,14 @@ curl -X POST http://127.0.0.1:5300/api/host/structureHint \
 
 ```bash
 cd web
-npx tsc src/domain/debateRoom.ts src/types/debateRoom.ts \
-  --outDir dist-domain --module esnext --target es2022 --moduleResolution bundler
+npm run build:domain
 ```
 
-（S2 落地 `domain/debateRoom.ts` 后会把这条编译步骤固化进 `web/package.json` 的 `build:domain`。）
+该脚本做两件事：`tsc` 编译 → `scripts/fix-domain-imports.mjs` 给相对 import 补 `.js` 扩展名
+（Node 原生 ESM 要求显式扩展名，否则服务端 `import` 报 `ERR_MODULE_NOT_FOUND`）。
+
+**服务端不手写 RoomState**：房间初始状态必须由 `createRoomState()` 构造，席位占满时用 `openRoom()` 跃迁到
+`opening`。服务端曾因手写精简状态缺 `briefs` 字段，导致所有动作被领域层拒收——现在靠「单一构造入口」避免复发。
 
 ---
 

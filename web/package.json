@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:domain": "tsc src/domain/debateRoom.ts src/types/debateRoom.ts --outDir dist-domain --module esnext --target es2022 --moduleResolution bundler --skipLibCheck && node scripts/fix-domain-imports.mjs dist-domain",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"

@@ -6,7 +6,9 @@
 **/.ruff_cache/
 **/target/
 dist/
+dist-domain/
 **/*.tsbuildinfo
+.vite/
 .DS_Store
 
 # 多 worktree 开发目录（各模块分支的独立工作区）

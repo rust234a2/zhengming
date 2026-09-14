@@ -29,31 +29,49 @@ export function generateSeatToken() {
 /**
  * 房间容器：持有状态 + 成员连接 + 落盘钩子。
  *
+ * 状态一律通过 `domain.debateRoom.createRoomState()` 构造——
+ * 服务端**不手写** RoomState（手写会缺字段，导致动作被领域层拒收）。
+ *
  * @param {object} options
  * @param {string} options.id
  * @param {object} options.topic 议题与论点对（来自真实数据）
  * @param {Function} options.transition (state, actor, action) => {ok, state?, code?, message?}
+ * @param {Function} [options.createRoomState] 领域工厂
+ * @param {Function} [options.openRoom] waiting → opening 跃迁
+ * @param {Function} [options.withSeat] 席位写入
  * @param {Function} [options.onReport] 对局结束时的落盘回调 (state) => Promise<void>
  */
 export class Room {
-  constructor({ id, topic, transition, onReport }) {
+  constructor({ id, topic, transition, createRoomState, openRoom, withSeat, onReport }) {
     this.id = id;
     this.topic = topic;
     this.transition = transition;
+    this.openRoom = openRoom;
+    this.withSeat = withSeat;
     this.onReport = onReport;
     /** @type {Map<string, {socket:object, side:string, token:string, name:string}>} */
     this.seats = new Map();
     /** 已签发但未使用的令牌（断线重连时凭它回到原席位） */
     this.tokens = new Map();
-    this.state = {
-      roomId: id,
-      topic,
-      phase: "waiting",
-      seats: { pro: null, con: null },
-      transcript: [],
-      report: null,
-      createdAt: new Date().toISOString(),
-    };
+    this.state = createRoomState
+      ? createRoomState({ roomId: id, topic })
+      : {
+          // 极端兜底：领域工厂缺失时也要有个能跑的结构（启动时已打印显著告警）
+          roomId: id,
+          topic,
+          phase: "waiting",
+          seats: { pro: null, con: null },
+          briefs: { pro: null, con: null },
+          transcript: [],
+          crossRecords: [],
+          revisions: [],
+          pressedBy: [],
+          freeSpokenBy: [],
+          turnSeat: null,
+          host: { degraded: true, reason: "domain module missing" },
+          report: null,
+          createdAt: new Date().toISOString(),
+        };
     this.closed = false;
   }
 
@@ -68,6 +86,21 @@ export class Room {
     return SEAT_SIDES.find((s) => !this.seats.has(s)) || null;
   }
 
+  /** 席位信息写入 state（走领域函数，不手写） */
+  #setSeat(side, name, connected) {
+    const info = { name, connected, isBot: false };
+    this.state = this.withSeat
+      ? this.withSeat(this.state, side, info)
+      : { ...this.state, seats: { ...this.state.seats, [side]: info } };
+  }
+
+  /** 席位占满时把房间从 waiting 推进到 opening */
+  #tryOpen() {
+    if (this.state.phase !== "waiting") return;
+    if (this.occupiedCount() < 2) return;
+    this.state = this.openRoom ? this.openRoom(this.state) : { ...this.state, phase: "opening" };
+  }
+
   /**
    * 加入 / 重连。
    * @returns {{ok:true, seatToken:string, side:string, resumed:boolean} | {ok:false, code:string, message:string}}
@@ -78,8 +111,10 @@ export class Room {
       const record = this.tokens.get(seatToken);
       const previous = this.seats.get(record.side);
       if (previous) previous.socket.close(1000, "session replaced by reconnection");
-      this.seats.set(record.side, { socket, side: record.side, token: seatToken, name: name || record.name });
-      this.state.seats[record.side] = { name: name || record.name, connected: true, isBot: false };
+      const displayName = name || record.name;
+      this.seats.set(record.side, { socket, side: record.side, token: seatToken, name: displayName });
+      this.#setSeat(record.side, displayName, true);
+      this.#tryOpen();
       return { ok: true, seatToken, side: record.side, resumed: true };
     }
 
@@ -89,9 +124,11 @@ export class Room {
       return { ok: false, code: "ROOM_FULL", message: "both seats are taken" };
     }
     const token = generateSeatToken();
-    this.tokens.set(token, { side: target, name: name || `席位 ${target}` });
-    this.seats.set(target, { socket, side: target, token, name: name || `席位 ${target}` });
-    this.state.seats[target] = { name: name || `席位 ${target}`, connected: true, isBot: false };
+    const displayName = name || `席位 ${target}`;
+    this.tokens.set(token, { side: target, name: displayName });
+    this.seats.set(target, { socket, side: target, token, name: displayName });
+    this.#setSeat(target, displayName, true);
+    this.#tryOpen();
     return { ok: true, seatToken: token, side: target, resumed: false };
   }
 
@@ -100,7 +137,7 @@ export class Room {
     const seat = this.seats.get(side);
     if (!seat) return false;
     this.seats.delete(side);
-    if (this.state.seats[side]) this.state.seats[side].connected = false;
+    this.#setSeat(side, this.state.seats[side]?.name || seat.name, false);
     return true;
   }
 
@@ -145,10 +182,13 @@ export class Room {
  * 服务端重启后房间丢失（本地开发可接受；报告已落盘可回读）。
  */
 export class RoomRegistry {
-  constructor({ transition, createTopic, onReport } = {}) {
+  constructor({ transition, createTopic, onReport, createRoomState, openRoom, withSeat } = {}) {
     this.transition = transition;
     this.createTopic = createTopic;
     this.onReport = onReport;
+    this.createRoomState = createRoomState;
+    this.openRoom = openRoom;
+    this.withSeat = withSeat;
     /** @type {Map<string, Room>} */
     this.rooms = new Map();
   }
@@ -159,6 +199,9 @@ export class RoomRegistry {
       id,
       topic: topic || (typeof this.createTopic === "function" ? this.createTopic() : { title: "未命名议题" }),
       transition: this.transition,
+      createRoomState: this.createRoomState,
+      openRoom: this.openRoom,
+      withSeat: this.withSeat,
       onReport: this.onReport,
     });
     this.rooms.set(id, room);

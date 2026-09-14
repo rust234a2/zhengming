@@ -57,23 +57,63 @@ function fallbackTransition(state, actor, action) {
   return { ok: false, code: "DOMAIN_MODULE_MISSING", message: "debateRoom domain module is not loaded" };
 }
 
+/**
+ * 兜底领域实现：领域模块缺失时保证服务端能起，但除 leave 外的动作一律拒绝。
+ * `createRoomState` 必须给出结构完整的 RoomState，否则前端拿到 undefined 字段会崩。
+ */
+const fallbackDomain = {
+  createRoomState: ({ roomId, topic, now }) => ({
+    roomId,
+    topic,
+    phase: "waiting",
+    seats: { pro: null, con: null },
+    briefs: { pro: null, con: null },
+    transcript: [],
+    crossRecords: [],
+    revisions: [],
+    pressedBy: [],
+    freeSpokenBy: [],
+    turnSeat: null,
+    host: { degraded: true, reason: "debateRoom domain module is not loaded" },
+    report: null,
+    createdAt: now || new Date().toISOString(),
+  }),
+  openRoom: (state) =>
+    state.phase === "waiting" && Object.values(state.seats).filter(Boolean).length >= 2
+      ? { ...state, phase: "opening", turnSeat: "pro" }
+      : state,
+  withSeat: (state, side, info) => ({ ...state, seats: { ...state.seats, [side]: info } }),
+  transition: fallbackTransition,
+};
+
 async function loadDomain() {
   for (const candidate of DOMAIN_CANDIDATES) {
     try {
       if (!fs.existsSync(candidate)) continue;
       const mod = await import(`file://${candidate.replace(/\\/g, "/")}`);
-      if (typeof mod.transition === "function") {
-        return { transition: mod.transition, source: candidate };
+      if (typeof mod.transition === "function" && typeof mod.createRoomState === "function") {
+        return {
+          transition: mod.transition,
+          createRoomState: mod.createRoomState,
+          openRoom: typeof mod.openRoom === "function" ? mod.openRoom : fallbackDomain.openRoom,
+          withSeat: typeof mod.withSeat === "function" ? mod.withSeat : fallbackDomain.withSeat,
+          source: candidate,
+        };
       }
+      console.warn(
+        `[zhengming] domain module at ${candidate} is missing transition/createRoomState; ` +
+          "run `npm run build:domain` in web/ and retry.",
+      );
     } catch (error) {
       console.warn(`[zhengming] domain module at ${candidate} failed to load: ${error.message}`);
     }
   }
   console.warn(
-    "[zhengming] WARNING: debateRoom domain module not found; using minimal fallback transition. " +
-      "Room actions will be rejected with DOMAIN_MODULE_MISSING. See README 「领域内核共享」.",
+    "[zhengming] WARNING: debateRoom domain module not found; using minimal fallback. " +
+      "Room actions will be rejected with DOMAIN_MODULE_MISSING. " +
+      "Run `npm run build:domain` in web/ to fix. See README 「领域内核共享」.",
   );
-  return { transition: fallbackTransition, source: null };
+  return { ...fallbackDomain, source: null };
 }
 
 /* ═══════════════════ 真实议题数据加载 ═══════════════════
@@ -186,7 +226,7 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
   await store.ensureDir();
 
   const domain = transitionOverride
-    ? { transition: transitionOverride, source: "injected" }
+    ? { ...fallbackDomain, transition: transitionOverride, source: "injected" }
     : await loadDomain();
 
   const claims = loadClaims();
@@ -194,6 +234,9 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
 
   const registry = new RoomRegistry({
     transition: domain.transition,
+    createRoomState: domain.createRoomState,
+    openRoom: domain.openRoom,
+    withSeat: domain.withSeat,
     createTopic: () => topics[0] || { title: "未命名议题", paired: false },
     onReport: async (state) => {
       try {
@@ -378,7 +421,7 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
       }
       for (const frame of frames) {
         if (frame.opcode === OPCODE.CLOSE) {
-          leaveRoom();
+          void leaveRoom().catch(() => {});
           client.close(1000, "bye");
           return;
         }
@@ -395,12 +438,15 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
             client.send(JSON.stringify({ type: "error", code: "VALIDATION", message: "message is not valid JSON" }));
             continue;
           }
-          handleMessage(message);
+          // 串行处理：保证同一连接上动作的落盘先于下一条消息（同请求幂等的本地保证）
+          handleMessage(message).catch((error) => {
+            client.send(JSON.stringify({ type: "error", code: "INTERNAL", message: error?.message || "internal error" }));
+          });
         }
       }
     }
 
-    function leaveRoom() {
+    async function leaveRoom() {
       if (!client.room) return;
       const { room, side } = client;
       room.leave(side);
@@ -408,16 +454,14 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
       // 离席惩罚（PRD §7：MP -5）由领域层结算——这里只把 leave 动作交给 transition
       const outcome = room.applyAction(side, { kind: "leave" });
       if (outcome.ok) {
-        room.broadcastState();
-        void room.finish();
-      } else {
-        room.broadcastState();
+        await room.finish();
       }
+      room.broadcastState();
       client.room = null;
       client.side = null;
     }
 
-    function handleMessage(message) {
+    async function handleMessage(message) {
       if (!message || typeof message !== "object") {
         client.send(JSON.stringify({ type: "error", code: "VALIDATION", message: "message must be an object" }));
         return;
@@ -426,8 +470,7 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
       if (message.type === "join") {
         const room = registry.getOrCreate(message.roomId, {
           topic: message.topicId ? topics.find((t) => t.questionId === message.topicId) : undefined,
-        });
-        if (client.room && client.room !== room) leaveRoom();
+        });        if (client.room && client.room !== room) await leaveRoom();
         const result = room.join({ socket: client, seatToken: message.seatToken, side: message.side, name: message.name });
         if (!result.ok) {
           client.send(JSON.stringify({ type: "error", code: result.code, message: result.message }));
@@ -477,15 +520,16 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
           client.send(JSON.stringify({ type: "error", code: outcome.code, message: outcome.message }));
           return;
         }
-        client.room.broadcastState();
+        // 终局时**先落盘再广播**：客户端收到 settled 快照时，报告已经可以从磁盘回读
         if (client.room.state.phase === "settled") {
-          void client.room.finish();
+          await client.room.finish();
         }
+        client.room.broadcastState();
         return;
       }
 
       if (message.type === "leave") {
-        leaveRoom();
+        await leaveRoom();
         return;
       }
 
@@ -494,11 +538,11 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
 
     socket.on("data", handleChunk);
     socket.on("error", () => {
-      leaveRoom();
+      void leaveRoom().catch(() => {});
       client.close(1011, "socket error");
     });
     socket.on("close", () => {
-      leaveRoom();
+      void leaveRoom().catch(() => {});
       client.closed = true;
     });
   });
