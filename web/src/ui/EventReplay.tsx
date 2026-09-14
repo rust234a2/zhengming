@@ -880,7 +880,7 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
                 >
                   {canonStatus === "pending" ? "正在读取…" : "历史上实际发生了什么"}
                 </button>
-                <p>展开后会显示与现实对照的材料；你走的这条线始终是「架空推演」。</p>
+                <p>展开后会显示与原作对照的材料；你走的这条线始终是「架空推演」。</p>
                 {canonStatus === "error" ? (
                   <div role="alert" className="er-error">
                     <p>{canonError}</p>

@@ -323,8 +323,8 @@ describe("事件推演 UI · 自定义事件生成（能力 9 · 契约 §0.8）
     // 生成成功 → 自动切入新事件：面包屑显示新标题，角色位是新事件的
     await waitFor(() => expect(document.body.textContent).toContain("一次团队去留"));
     expect(screen.getByRole("button", { name: /以创始人（化名）进入事件/ })).toBeTruthy();
-    // 生成事件的图层说明是组合事件专用文案（没有现实对照层）
-    expect(screen.getByText(/没有现实对照层/)).toBeTruthy();
+    // 生成事件的图层说明是组合事件专用文案（没有原作对照层）
+    expect(screen.getByText(/没有原作对照层/)).toBeTruthy();
     // 请求体是白名单形状
     const sent = compose.mock.calls[0][0] as { topic: string; timeline: string[]; actCount: number };
     expect(sent.topic).toBe("一家创业公司收到收购意向");

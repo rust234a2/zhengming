@@ -140,9 +140,6 @@ const client: EventReplayClient = {
   async canon() {
     return { ok: true, result: CANON, degraded: false };
   },
-  async compose() {
-    throw new Error("visual-check 夹具不需要 compose");
-  },
 };
 
 const mode = new URLSearchParams(window.location.search).get("auto") ?? "play";
