@@ -262,8 +262,16 @@ function MiniMap({ tree, expanded, selectedId }: { tree: DebateTreeNode; expande
     if (expanded.has(node.id)) node.children.forEach(collect);
   })(tree);
 
-  const width = Math.max(leaf * (W + GX) - GX, W);
-  const height = (maxDepth + 1) * (H + GY) - GY;
+  // viewBox 设最小尺寸并居中内容：默认议题可能只展开根节点（单叶），
+  // 若按内容裁剪 viewBox，单个矩形会被放大数倍、描边变成粗框
+  const MIN_W = 260;
+  const MIN_H = 120;
+  const contentW = Math.max(leaf * (W + GX) - GX, W);
+  const contentH = (maxDepth + 1) * (H + GY) - GY;
+  const width = Math.max(contentW, MIN_W);
+  const height = Math.max(contentH, MIN_H);
+  const dx = (width - contentW) / 2;
+  const dy = (height - contentH) / 2;
   const py = (d: number): number => d * (H + GY);
   const colorOf = (node: DebateTreeNode): string => {
     if (node.type === "root" || node.type === "question") return "#056DE8";
@@ -283,28 +291,30 @@ function MiniMap({ tree, expanded, selectedId }: { tree: DebateTreeNode; expande
 
   return (
     <svg className="dt-minimap-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="树状缩略图">
-      {edges.map((e, i) => (
-        <line key={i} x1={e.x1} y1={py(e.y1) + H} x2={e.x2} y2={py(e.y2)} stroke="#d5dae4" strokeWidth={1} />
-      ))}
-      {visible.map((node) => {
-        const p = pos.get(node.id)!;
-        const color = colorOf(node);
-        const selected = node.id === selectedId;
-        return (
-          <rect
-            key={node.id}
-            x={p.x - W / 2}
-            y={py(p.y)}
-            width={W}
-            height={H}
-            rx={4}
-            fill={selected ? color : "none"}
-            stroke={color}
-            strokeWidth={selected ? 2 : 1.5}
-            strokeDasharray={node.type === "question" ? "3 2" : undefined}
-          />
-        );
-      })}
+      <g transform={`translate(${dx} ${dy})`}>
+        {edges.map((e, i) => (
+          <line key={i} x1={e.x1} y1={py(e.y1) + H} x2={e.x2} y2={py(e.y2)} stroke="#d5dae4" strokeWidth={1} />
+        ))}
+        {visible.map((node) => {
+          const p = pos.get(node.id)!;
+          const color = colorOf(node);
+          const selected = node.id === selectedId;
+          return (
+            <rect
+              key={node.id}
+              x={p.x - W / 2}
+              y={py(p.y)}
+              width={W}
+              height={H}
+              rx={4}
+              fill={selected ? "#ffffff" : "none"}
+              stroke={color}
+              strokeWidth={selected ? 2.5 : 1.5}
+              strokeDasharray={node.type === "question" ? "3 2" : undefined}
+            />
+          );
+        })}
+      </g>
     </svg>
   );
 }
@@ -484,14 +494,24 @@ function TreeWorkspace({ seed, onPickSeed }: { seed: DebateTreeSeed; onPickSeed(
         </button>
         <span className="dt-spacer" />
         <nav className="dt-nav" aria-label="模块切换">
-          <a className="on" href="?view=debate" aria-current="page">辩论树</a>
-          <a href="?view=map">争议地图</a>
+          <button
+            type="button"
+            className={view === "tree" ? "on" : ""}
+            aria-pressed={view === "tree"}
+            onClick={() => setView("tree")}
+          >
+            辩论树
+          </button>
+          <button
+            type="button"
+            className={view === "graph" ? "on" : ""}
+            aria-pressed={view === "graph"}
+            onClick={() => setView("graph")}
+          >
+            争议地图
+          </button>
           <a href="?view=room">辩论间</a>
         </nav>
-        <div className="dt-vbtns" role="group" aria-label="视图切换">
-          <button type="button" className={view === "tree" ? "on" : ""} aria-pressed={view === "tree"} onClick={() => setView("tree")}>缩进树</button>
-          <button type="button" className={view === "graph" ? "on" : ""} aria-pressed={view === "graph"} onClick={() => setView("graph")}>争议地图</button>
-        </div>
         <button type="button" className="dt-button ghost" title="多人共同编辑尚未接入服务端">邀请加入</button>
         <button type="button" className="dt-button primary" onClick={() => persistExpanded(new Set())}>收起全树</button>
       </header>
@@ -550,7 +570,7 @@ function TreeWorkspace({ seed, onPickSeed }: { seed: DebateTreeSeed; onPickSeed(
                   <span><i className="dt-mm-swatch" style={{ borderColor: "#121212" }} />反对</span>
                   <span><i className="dt-mm-swatch" style={{ borderColor: "#a9aebc" }} />看条件</span>
                   <span><i className="dt-mm-swatch" style={{ borderColor: "#056DE8", borderStyle: "dashed" }} />追问</span>
-                  <span><i className="dt-mm-swatch fill" style={{ borderColor: "#121212" }} />当前选中</span>
+                  <span><i className="dt-mm-swatch" style={{ borderColor: "#121212", borderWidth: 2.5 }} />当前选中</span>
                 </div>
               </section>
 

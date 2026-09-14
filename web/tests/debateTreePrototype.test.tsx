@@ -189,11 +189,31 @@ describe("辩论树 · 参与行为", () => {
     expect(screen.getByRole("link", { name: "辩论间" })).toHaveAttribute("href", "?view=room");
   });
 
+  it("顶栏只有一排模块标签：辩论树（页内视图）｜争议地图｜辩论间", () => {
+    render(<DebateTreePrototype />);
+    const nav = document.querySelector(".dt-nav") as HTMLElement;
+    expect(nav).toBeTruthy();
+
+    // 一排里：辩论树 / 争议地图是页内视图切换按钮（辩论树在最前），辩论间是模块跳转链接
+    const buttons = Array.from(nav.querySelectorAll("button")).map((b) => b.textContent?.trim());
+    const links = Array.from(nav.querySelectorAll("a")).map((a) => a.textContent?.trim());
+    expect(buttons).toEqual(["辩论树", "争议地图"]);
+    expect(links).toEqual(["辩论间"]);
+    expect(screen.getByRole("link", { name: "辩论间" })).toHaveAttribute("href", "?view=room");
+
+    // 旧的「缩进树」标签与独立的视图切换组（.dt-vbtns）已删除
+    expect(document.querySelector(".dt-vbtns")).toBeNull();
+    expect(document.body.textContent).not.toContain("缩进树");
+
+    // 默认视图是辩论树，且处于选中态
+    expect(nav.querySelector("button.on")?.textContent?.trim()).toBe("辩论树");
+  });
+
   it("争议地图视图可来回切换", () => {
     render(<DebateTreePrototype />);
     fireEvent.click(screen.getByRole("button", { name: "争议地图" }));
     expect(document.querySelector(".controversy-map")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "缩进树" }));
+    fireEvent.click(screen.getByRole("button", { name: "辩论树" }));
     expect(screen.getByRole("region", { name: "辩论树" })).toBeInTheDocument();
     expect(screen.getByText("树状缩略图")).toBeInTheDocument();
   });

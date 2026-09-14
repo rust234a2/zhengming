@@ -1087,38 +1087,6 @@ textarea {
 .dt-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .dt-stance-picker button:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* 顶栏：事件推演入口 + 缩进树 / 关系图谱视图切换（对齐原型 header） */
-.dt-event-link {
-  padding: 6px 12px;
-  border: 1px solid var(--dt-line);
-  border-radius: 6px;
-  color: var(--dt-muted);
-  font-size: 12.5px;
-  cursor: pointer;
-}
-.dt-event-link:hover { color: var(--dt-blue); }
-
-.dt-vbtns { display: flex; gap: 2px; }
-.dt-vbtns button {
-  position: relative;
-  padding: 6px 14px;
-  border-radius: 0;
-  color: var(--dt-muted);
-  font-size: 13px;
-  cursor: pointer;
-}
-.dt-vbtns button.on { color: var(--dt-blue); font-weight: 500; }
-.dt-vbtns button.on::after {
-  content: "";
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 0;
-  height: 2px;
-  border-radius: 1px;
-  background: var(--dt-blue);
-}
-
 /* 折叠按钮（原型中是可点击按钮） */
 .dt-fold { cursor: pointer; }
 
@@ -1149,7 +1117,6 @@ textarea {
   border: 1.5px solid #999;
   border-radius: 2px;
 }
-.dt-mm-swatch.fill { background: #999; }
 
 /* ────────── 辩论树 · 关系图谱（对齐原型 #graph-panel / .g-*） ────────── */
 .dt-graph-panel { position: relative; min-width: 0; padding: 8px 4px; }
@@ -1759,31 +1726,39 @@ textarea {
   flex-direction: column;
 }
 
-/* ── 顶栏补充：模块切换标签 ── */
+/* ── 顶栏：模块导航一排（辩论树 / 争议地图为页内视图切换，辩论间为模块跳转）── */
 .dt-nav {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.dt-nav a {
+.dt-nav a,
+.dt-nav button {
   position: relative;
   padding: 6px 12px;
+  border: none;
+  background: none;
   color: var(--dt-muted);
+  font: inherit;
   font-size: 13px;
   text-decoration: none;
   white-space: nowrap;
+  cursor: pointer;
 }
 
-.dt-nav a:hover { color: var(--dt-blue); }
+.dt-nav a:hover,
+.dt-nav button:hover { color: var(--dt-blue); }
 
-.dt-nav a.on {
+.dt-nav a.on,
+.dt-nav button.on {
   color: var(--dt-ink);
   font-weight: 500;
 }
 
-.dt-nav a.on::after {
-  content: ;
+.dt-nav a.on::after,
+.dt-nav button.on::after {
+  content: "";
   position: absolute;
   left: 10px;
   right: 10px;

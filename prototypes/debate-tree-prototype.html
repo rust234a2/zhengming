@@ -93,7 +93,7 @@ main{max-width:1200px;margin:14px auto 40px;padding:0 24px;display:flex;gap:16px
 .mm-note{font-size:11px;color:var(--sub);margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .mm-k{display:inline-flex;align-items:center;gap:4px}
 .mm-r{display:inline-block;width:14px;height:9px;border-radius:2px;background:none;border:1.5px solid #999}
-.mm-r.fill{background:#999}
+.mm-r.fill{background:#fff}
 /* ── 详情面板 ── */
 .agent-card{border:none;background:var(--blue-soft);border-radius:8px;padding:12px;margin-bottom:14px}
 .agent-card .a-head{font-size:12px;color:var(--blue);font-weight:600;margin-bottom:4px}
@@ -390,7 +390,11 @@ function renderMinimap(){
       const xs=kids.map(k=>pos[k.id].x);
       pos[n.id]={x:(Math.min(...xs)+Math.max(...xs))/2,y:d}; }
   })(tree,0);
-  const W=Math.max(leaf*(MM.W+MM.GX)-MM.GX,MM.W), H=(maxD+1)*(MM.H+MM.GY)-MM.GY;
+  // viewBox 设最小尺寸并居中内容：单叶树若按内容裁剪，矩形会被放大数倍、描边变粗框
+  const MINW=260, MINH=120;
+  const contentW=Math.max(leaf*(MM.W+MM.GX)-MM.GX,MM.W), contentH=(maxD+1)*(MM.H+MM.GY)-MM.GY;
+  const W=Math.max(contentW,MINW), H=Math.max(contentH,MINH);
+  const dx=(W-contentW)/2, dy=(H-contentH)/2;
   const py=d=>d*(MM.H+MM.GY);
   let edges='';
   (function e(n){
@@ -401,10 +405,10 @@ function renderMinimap(){
   let rects='';
   visibleNodes().forEach(n=>{
     const p=pos[n.id], col=mmColor(n), sel=n.id===selectedId;
-    rects+=`<rect x="${(p.x-MM.W/2).toFixed(1)}" y="${py(p.y)}" width="${MM.W}" height="${MM.H}" rx="4" fill="${sel?col:'none'}" stroke="${col}" stroke-width="${sel?2:1.5}"${n.type==='question'?' stroke-dasharray="3 2"':''}/>`;
+    rects+=`<rect x="${(p.x-MM.W/2).toFixed(1)}" y="${py(p.y)}" width="${MM.W}" height="${MM.H}" rx="4" fill="${sel?'#fff':'none'}" stroke="${col}" stroke-width="${sel?2.5:1.5}"${n.type==='question'?' stroke-dasharray="3 2"':''}/>`;
   });
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
-  svg.innerHTML=edges+rects;
+  svg.innerHTML=`<g transform="translate(${dx} ${dy})">${edges+rects}</g>`;
 }
 
 /* ────────── 选中与详情 ────────── */
