@@ -159,7 +159,7 @@ test("GET /api/health 只报有无 key，不下发 key", async () => {
   assert.equal(res.status, 200);
   assert.equal(body.ok, true);
   assert.equal(typeof body.host.configured, "boolean");
-  assert.equal(body.host.capabilities.length, 8);
+  assert.equal(body.host.capabilities.length, 9);
   assert.ok(body.host.capabilities.includes("opponentTurn"));
   assert.equal(JSON.stringify(body).includes("STEPFUN_API_KEY"), false);
 });
