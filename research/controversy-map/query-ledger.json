@@ -198,6 +198,249 @@
    "questionHits": 10,
    "newQuestions": 2,
    "yield": 2
+  },
+  "q23": {
+   "text": "AI 会取代教师吗",
+   "construction": "conflict-pos",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 9,
+   "newQuestions": 5,
+   "yield": 5
+  },
+  "q24": {
+   "text": "教师 为什么不会被 AI 取代",
+   "construction": "conflict-neg",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 8,
+   "newQuestions": 3,
+   "yield": 3
+  },
+  "q25": {
+   "text": "AI 会取代医生吗",
+   "construction": "conflict-pos",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 8,
+   "newQuestions": 7,
+   "yield": 7
+  },
+  "q26": {
+   "text": "医生 为什么不会被 AI 取代",
+   "construction": "conflict-neg",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 8,
+   "newQuestions": 3,
+   "yield": 3
+  },
+  "q27": {
+   "text": "AI 会取代护士吗",
+   "construction": "conflict-pos",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 4,
+   "newQuestions": 4,
+   "yield": 4
+  },
+  "q28": {
+   "text": "护士 为什么不会被 AI 取代",
+   "construction": "conflict-neg",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 3,
+   "newQuestions": 0,
+   "yield": 0
+  },
+  "q29": {
+   "text": "AI 会取代司机吗",
+   "construction": "conflict-pos",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 7,
+   "newQuestions": 6,
+   "yield": 6
+  },
+  "q30": {
+   "text": "司机 为什么不会被 AI 取代",
+   "construction": "conflict-neg",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 5,
+   "newQuestions": 2,
+   "yield": 2
+  },
+  "q31": {
+   "text": "AI 会取代客服吗",
+   "construction": "conflict-pos",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 4,
+   "newQuestions": 4,
+   "yield": 4
+  },
+  "q32": {
+   "text": "客服 为什么不会被 AI 取代",
+   "construction": "conflict-neg",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 3,
+   "newQuestions": 0,
+   "yield": 0
+  },
+  "q33": {
+   "text": "AI 会取代会计吗",
+   "construction": "conflict-pos",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 5,
+   "newQuestions": 5,
+   "yield": 5
+  },
+  "q34": {
+   "text": "会计 为什么不会被 AI 取代",
+   "construction": "conflict-neg",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 5,
+   "newQuestions": 2,
+   "yield": 2
+  },
+  "q35": {
+   "text": "AI 会取代自媒体吗",
+   "construction": "conflict-pos",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 8,
+   "newQuestions": 4,
+   "yield": 4
+  },
+  "q36": {
+   "text": "自媒体 为什么不会被 AI 取代",
+   "construction": "conflict-neg",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 4,
+   "newQuestions": 0,
+   "yield": 0
+  },
+  "q37": {
+   "text": "AI 会取代律师吗",
+   "construction": "conflict-pos",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 5,
+   "newQuestions": 4,
+   "yield": 4
+  },
+  "q38": {
+   "text": "律师 为什么不会被 AI 取代",
+   "construction": "conflict-neg",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 5,
+   "newQuestions": 0,
+   "yield": 0
+  },
+  "q39": {
+   "text": "如何看待 AI 对教师行业的冲击",
+   "construction": "facet",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 5,
+   "newQuestions": 2,
+   "yield": 2
+  },
+  "q40": {
+   "text": "如何看待 AI 对医生行业的冲击",
+   "construction": "facet",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 7,
+   "newQuestions": 1,
+   "yield": 1
+  },
+  "q41": {
+   "text": "如何看待 AI 对护士行业的冲击",
+   "construction": "facet",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 3,
+   "newQuestions": 1,
+   "yield": 1
+  },
+  "q42": {
+   "text": "如何看待 AI 对司机行业的冲击",
+   "construction": "facet",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 3,
+   "newQuestions": 1,
+   "yield": 1
+  },
+  "q43": {
+   "text": "如何看待 AI 对客服行业的冲击",
+   "construction": "facet",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 4,
+   "newQuestions": 2,
+   "yield": 2
+  },
+  "q44": {
+   "text": "如何看待 AI 对会计行业的冲击",
+   "construction": "facet",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 6,
+   "newQuestions": 2,
+   "yield": 2
+  },
+  "q45": {
+   "text": "如何看待 AI 对自媒体行业的冲击",
+   "construction": "facet",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 5,
+   "newQuestions": 2,
+   "yield": 2
+  },
+  "q46": {
+   "text": "如何看待 AI 对律师行业的冲击",
+   "construction": "facet",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 2,
+   "newQuestions": 0,
+   "yield": 0
+  },
+  "q47": {
+   "text": "师范专业还值得报考吗 AI",
+   "construction": "facet",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 8,
+   "newQuestions": 3,
+   "yield": 3
+  },
+  "q48": {
+   "text": "会计学还值得报考吗 AI",
+   "construction": "facet",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 6,
+   "newQuestions": 2,
+   "yield": 2
+  },
+  "q49": {
+   "text": "法学专业还值得报考吗 AI",
+   "construction": "facet",
+   "status": "ok",
+   "itemCount": 10,
+   "questionHits": 6,
+   "newQuestions": 3,
+   "yield": 3
   }
  }
 }

@@ -156,6 +156,9 @@ function runSimulation(seed: () => number = seededRandom(42)) {
   const dist: Record<string, number> = { bridge: 165, member: 78, contains: 118, rebuts: 250 };
   const str: Record<string, number> = { bridge: 0.55, member: 0.9, contains: 0.32, rebuts: 0.08 };
   const charge: Record<string, number> = { cluster: -1150, topic: -560, claim: -170 };
+  /* 骨架目标半径随规模自适应：力导向布局的线性尺度 ~ O(√N)（v1 = 43 节点时 520），
+   * 数据扩充后论点云半径同步膨胀，骨架半径必须按 √N 缩放才能继续留在外围。 */
+  const skeletonR = Math.max(520, 80 * Math.sqrt(nodes.length));
 
   const sim = d3
     .forceSimulation<MapSimNode, MapSimLink>(nodes)
@@ -164,7 +167,7 @@ function runSimulation(seed: () => number = seededRandom(42)) {
     .force("center", d3.forceCenter(0, 0))
     .force("collide", d3.forceCollide<MapSimNode>().radius((n) => n.radius + (n.kind === "cluster" ? 34 : n.kind === "topic" ? 22 : 13)).strength(0.95))
     .force("polarity", d3.forceX<MapSimNode>((n) => (n.side === "positive" ? -420 : n.side === "negative" ? 420 : 0)).strength((n) => (n.kind === "cluster" ? 0.1 : 0.035)))
-    .force("skeleton", d3.forceRadial<MapSimNode>((n) => (n.kind === "cluster" ? 520 : 0), 0, 0).strength((n) => (n.kind === "cluster" ? 0.08 : 0)))
+    .force("skeleton", d3.forceRadial<MapSimNode>((n) => (n.kind === "cluster" ? skeletonR : 0), 0, 0).strength((n) => (n.kind === "cluster" ? 0.15 : 0)))
     .alphaDecay(0.022)
     .velocityDecay(0.42)
     .stop();

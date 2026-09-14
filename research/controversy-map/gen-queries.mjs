@@ -20,8 +20,8 @@ let n = 0;
 const add = (construction, slots, text) =>
   queries.push({ id: `q${String(++n).padStart(2, "0")}`, construction, slots, text });
 
-// 1. 冲突对式：6 主体 × 2
-for (const s of lex.subjects) {
+// 1. 冲突对式：v1 的 6 主体 × 2（固定 slice(0,6)，v2 新主体在后面追加，保证已有 id 稳定）
+for (const s of lex.subjects.slice(0, 6)) {
   add("conflict-pos", { subject: s, polarity: "pos" }, `AI 会取代${s}吗`);
   add("conflict-neg", { subject: s, polarity: "neg" }, `${s} 为什么不会被 AI 取代`);
 }
@@ -37,11 +37,30 @@ const judgmentPairs = [
 ];
 for (const [s, m, extra] of judgmentPairs) add("judgment", { subject: s, judgment: m }, `${s} ${m} ${extra} AI`);
 
-// 3. 拼接式：教育 / 转换面
+// 3. 拼接式：教育 / 转换面（v1 的 4 条保持原序，id 稳定）
 add("facet", { subject: "计算机专业", facet: "还值得吗" }, `${lex.educationSubjects[0]}还值得报考吗 就业前景`);
 add("facet", { subject: "学编程", facet: "还值得吗" }, `AI 时代还值得${lex.educationSubjects[1]}吗`);
 add("facet", { subject: "插画师", facet: "如何看待" }, `如何看待 AI 取代插画师`);
 add("facet", { subject: "程序员", facet: "真的能" }, `AI 真的能替代程序员吗`);
+
+// ── v2 扩量（只追加，不改前面已生成 query 的 id/文本，discover 幂等依赖 id 对应）──
+// 4. 冲突对式：v2 新增 8 个主体 × 2
+const v2Subjects = lex.subjects.slice(6);
+for (const s of v2Subjects) {
+  add("conflict-pos", { subject: s, polarity: "pos", gen: "v2" }, `AI 会取代${s}吗`);
+  add("conflict-neg", { subject: s, polarity: "neg", gen: "v2" }, `${s} 为什么不会被 AI 取代`);
+}
+
+// 5. 拼接式：v2 新主体的行业冲击评价面（观点评价族，可用区产出高）
+for (const s of v2Subjects) {
+  add("facet", { subject: s, facet: "如何看待", gen: "v2" }, `如何看待 AI 对${s}行业的冲击`);
+}
+
+// 6. 拼接式：v2 新增教育主体（专业报考价值，决策抉择族，甜区）
+const v2Edu = lex.educationSubjects.slice(2);
+for (const s of v2Edu) {
+  add("facet", { subject: s, facet: "还值得吗", gen: "v2" }, `${s}还值得报考吗 AI`);
+}
 
 fs.writeFileSync(
   path.join(DIR, "queries.json"),
