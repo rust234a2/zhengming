@@ -36,7 +36,7 @@
 | 辩论树 | 论点、证据、追问长成一棵人人可续写的树（**v0.2 起不再提供进入辩论间的出口**——详情面板的「开实时辩论间 →」是条断链，已删；顶栏三模块导航保留） | `debate-tree-PRD.md` | `prototypes/debate-tree-prototype.html`（缩进版）/ `prototypes/debate-tree-canvas.html`（画布版） |
 | 议题图谱 | 聚类布局的真实议题关系网络，是树的索引页 | （辩论树 PRD F1 的一部分） | 同上（原型内「议题图谱」Tab） |
 | 实时辩论间 | 围绕知乎问题临时开间，**选边制开局**（预设论点对、真人优先 Bot 兜底），五阶段轮次制对局（定义随立论给出、可被质询），轮次结束产出对局报告（**v0.6 选边制；已去树化、去概念对齐**） | `debate-room-PRD.md` | `prototypes/debate-room-prototype.html` |
-| 事件推演 | **沉浸式历史角色扮演**：你是事件里的一个角色，你的决定改变走向；原作只在终局可选揭示 | `event-replay-PRD.md`（v0.5） | `prototypes/event-replay-prototype.html`（旧形态存档，**不再用于演示**） |
+| 事件推演 | **沉浸式历史角色扮演**：你是事件里的一个角色，你的决定改变走向；原作只在终局可选揭示 | `event-replay-PRD.md`（v0.6） | `prototypes/event-replay-prototype.html`（**v0.6 起转为视觉与壳体基线**：借版式与配色、不借语义；演示仍只能用 `web/` 的 `?view=event`） |
 | 跨议题争议地图 | 同一主张跨议题的横向索引，发现「该吵哪一场」；**v0.2 视觉增强（2026-09-14，卡 3-4）**：凸包分组底色 / 连线透明度分层 + 缝合线弧线化 / 标签密度三档 | `controversy-map-PRD.md`（v0.2）＋ `controversy-map-PLAN.md` ＋ `controversy-map-VISUAL-REFERENCES.md` | runi-desktop `?view=map`（已发布在线） |
 | ~~力导向辩论图~~ | **已于 2026-09-13 拍板下线（D3）**——单议题对垒感知的职责由争议地图与辩论树覆盖；`?view=force` 相关代码已移除 | — | 代码已移除（`prototypes/` 的 debate-graph 原型保留为历史存档） |
 
@@ -74,7 +74,7 @@
 - 运行时测试五套 195 项全绿（`debate-graph 52 / debate-room 41 / debate-tree-v2 40 / event-replay 26 / app 36`，Node DOM 桩真实执行页内脚本）。
 - **争议地图 v0.2 视觉增强（2026-09-14，卡 3-4）**：凸包分组底色 / 连线透明度分层 + 缝合线弧线化 / 标签密度三档；`web/` 全量 223 项测试通过，数据层未动。
 
-> **事件推演已升级到 v0.5（沉浸式历史角色扮演）**：本模块经历两次形态变更——v0.4 由「静态分岔图」改为「LLM 生成式沙盘」（玩家仍在局外）；v0.5 进一步把玩家**放进局内**：你是历史事件中的一个角色位，外部事件按历史时间表锁定到来，你逐幕做决定、看后果与代价账本（**无分数、无成败**）。原作轨迹（canon）推演期间**不展示也不注入模型**，仅在终局以可选方式揭示（标「史实」，玩家路径标「架空推演」）。可重复游玩性来自角色位（信息/资源/关系各不相同）。`prototypes/event-replay-prototype.html` 与其 26 项测试**转为历史存档，不再用于演示**；本版走 `web/` + `HostClient`（能力 5/6/7，编号见 `IMPLEMENTATION-PATH.md` 卡 0-1）。实施计划见 `event-replay-PLAN.md`。
+> **事件推演已升级到 v0.5（沉浸式历史角色扮演），界面在 v0.6 对齐交互原型**：本模块经历两次形态变更——v0.4 由「静态分岔图」改为「LLM 生成式沙盘」（玩家仍在局外）；v0.5 进一步把玩家**放进局内**：你是历史事件中的一个角色位，外部事件按历史时间表锁定到来，你逐幕做决定、看后果与代价账本（**无分数、无成败**）。原作轨迹（canon）推演期间**不展示也不注入模型**，仅在终局以可选方式揭示（标「史实」，玩家路径标「架空推演」）。可重复游玩性来自角色位（信息/资源/关系各不相同）。**v0.6（2026-09-14）**：前端界面按 `prototypes/event-replay-prototype.html` 重做——沿用其**视觉系统与三栏壳体**（顶栏 + 左「事件卡/推演路径/图层说明」+ 中「舞台」+ 右「Host 追问/我的路径/本局数据/代价账本」+ 终局遮罩对照表，配色同源 `#056DE8` 系），但**只借壳不借语义**：`%` 占比、多数人列、「↺ 从这里重走」、「分歧点沉淀到辩论树」、预设结局一律不实现。原型**仍不可作为演示物**（保留着已砍掉的开辩论入口）；演示只走 `web/` 的 `?view=event`。本版走 `web/` + `HostClient`（能力 5/6/7，编号见 `IMPLEMENTATION-PATH.md` 卡 0-1）。实施计划见 `event-replay-PLAN.md`。**真模型联调已通过（2026-09-14）**：`host-contract.md` §0.7 钉死事件推演六个公共类型（入参 `LedgerEntry[]`/`RelationEntry[]` 累加态快照 vs 出参增量、账本五维枚举、`visibleFacts` 事实级粒度），修掉首度联调的 `400 VALIDATION`；`actAdvance` 浏览器端到端实测两轮通过（选角色 → HTTP 200 → 真模型叙事 + 动作卡，无「请求参数不合法」）。
 
 **下一步（接入层）**
 
@@ -96,8 +96,9 @@
 docs/design/
 ├── README.md                        ← 本文件（总纲）
 ├── IMPLEMENTATION-PATH.md           ← ★ AI 执行手册（实施顺序 + 17 张任务卡 + 8 个决策点 + 验收命令）
-├── debate-tree-PRD.md               ← v0.2 辩论树（含图谱；不再提供进入辩论间的出口）＋ debate-tree-PLAN.md├── debate-room-PRD.md               ← v0.6 实时辩论间（选边制撮合 · 轮次制 · 去树化）＋ debate-room-PLAN.md
-├── event-replay-PRD.md              ← v0.5 事件推演（沉浸式角色扮演）＋ event-replay-PLAN.md
+├── debate-tree-PRD.md               ← v0.2 辩论树（含图谱；不再提供进入辩论间的出口）＋ debate-tree-PLAN.md
+├── debate-room-PRD.md               ← v0.6 实时辩论间（选边制撮合 · 轮次制 · 去树化）＋ debate-room-PLAN.md
+├── event-replay-PRD.md              ← v0.6 事件推演（沉浸式角色扮演 · 界面壳体对齐交互原型）＋ event-replay-PLAN.md
 └── controversy-map-PRD.md           ← 跨议题争议地图 v0.2（web ?view=map）＋ controversy-map-PLAN.md ＋ controversy-map-VISUAL-REFERENCES.md
 docs/research/
 ├── zhihu-post-taxonomy.md           ← 知乎语料分类与可辩性调研

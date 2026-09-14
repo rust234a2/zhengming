@@ -7,6 +7,7 @@
 >
 > - 新增能力 4 `opponentTurn`，仅服务于用户明确选择的 AI 对手；后续能力编号顺延。
 > - Bot 每次只生成一个动作，动作仍须通过房间共享 `transition()`；上游失败时启发式降级并公开标记。
+> - **同日补记（§0.7）**：补齐事件推演公共形状（`EventHeader` / `Position` / `Act` / `LedgerEntry` / `RelationEntry` / `SceneLog`）。这六个类型此前只在能力 5..7 的签名里被**引用**、没有**定义**，前后端只好各自想象，首度联调即报 `400 VALIDATION: ledger must be an array`——本节以服务端既有实现（`zhengming-server/lib/host.mjs`）为准把它们钉死。
 >
 > **v1.2 变更（2026-09-14，升级上游为 StepFun）**
 >
@@ -28,8 +29,12 @@
 ```
 POST /api/host/:capability        # capability ∈ 能力 1..8 的机器名
 Content-Type: application/json    # 请求体上限 256KB，超限拒收
-超时：30s
+超时：30s；生成式长文本能力（6 actAdvance / 7 replayEnding）90s
 ```
+
+> **超时分级（2026-09-14 补记）**：真机实测 actAdvance 单幕生成 P50 ≈ 26s，带 history 的
+> 中后幕普遍越过 30s——30s 阈值下 TIMEOUT 是高频事件而非兜底，前端表现为
+> 「这一步暂时无法推进/模型响应超时」频发。故能力 6/7 放宽到 90s，其余能力维持 30s。
 
 ```jsonc
 // 成功
@@ -62,7 +67,7 @@ Content-Type: application/json    # 请求体上限 256KB，超限拒收
 - 服务端以 SSE（`text/event-stream`）或 NDJSON 分块转发模型增量。
 - 客户端解析规则（与 `event-replay-PLAN.md` §3.3 一致）：
   1. 叙事字段（`outcome`、`nextScene.text`）边到边渲染；
-  2. 结构字段（`moves[]` 等）必须等完整 JSON 到齐并过 `validateActAdvanceResult` + `assertWithinVisible` + `assertNoCanonLeak` 后才可交互；
+  2. 结构字段（`moves[]` 等）必须等完整 JSON 到齐并过 `validateActAdvanceResult`（含 `atEnding` 前端归一化）+ `filterWithinVisible`（越界事实丢弃不展示）+ `assertNoCanonLeak` 后才可交互；
   3. 流中断即失败态，重试**整幕重新生成**；
   4. 禁用词过滤在**流结束后**对完整文本执行。
 
@@ -87,6 +92,85 @@ interface Turn {
   evidenceStatus?: string; // 证据七档（辩论间）
 }
 ```
+
+### 0.7 事件推演公共形状（能力 5/6/7 的入参；2026-09-14 补记）
+
+> **为什么补这一节**：v1.3 之前，能力 5..7 的签名只写了类型名（`LedgerEntry[]`、`SceneLog[]`…），没有结构定义。前端把账本做成「五维累加对象」、把关系做成 `Record<positionId, number>`，服务端按「条目列表」实现，两边各自想象，首度联调第一发请求就是 `400 VALIDATION: ledger must be an array`。本节以**服务端既有实现为准**把这六个类型钉死；此后任何一方改形状，都必须同时改本节。
+
+```ts
+interface EventHeader {
+  id: string;
+  title: string;
+  background: string;                                  // 事件背景（不含原作走向）
+  endingCondition: { kind: "actCount"; actCount: number };
+}
+
+interface Position {
+  id: string;
+  name: string;        // 角色位名称（如「当事人」「配偶」）
+  role?: string;       // 一句话身份说明（供提示词使用）
+  stake: string;       // 这个位置押上了什么
+  visible: string[];   // 该位置**只能知道**什么，逐条一项；nextScene.visibleFacts 必须落在此集合内
+  resources: string;   // 可动用的资源
+  canDo: string[];     // 能做与不能做的事
+}
+
+interface Act { index: number; month: string; text: string }
+
+interface LedgerEntry {               // 代价账本条目（**累加态**，不是增量）
+  key: string;                        // 账本维度，取值见下方枚举
+  value: number;                      // 当前累计值
+}
+
+interface RelationEntry {             // 关系态（**累加态**）
+  target: string;                     // 关系对象，用 Position.name
+  value: number;                      // 当前态度值，-100..100
+}
+
+interface SceneLog {                  // 已锁定的一幕（既成事实，不得改写）
+  actIndex: number;
+  month: string;
+  moveText: string;                   // 玩家当时选的动作
+  outcome: string;                    // 该动作的后果叙事
+}
+```
+
+**账本维度枚举（`LedgerEntry.key`）**——PRD §F3 定死五维，模型不得自造：
+
+```
+时间 | 钱 | 关系 | 健康 | 机会
+```
+
+服务端对模型返回的 `ledgerDeltas[].key` 做归一化：命中枚举则采用，**无法归一则丢弃该条**（不得静默塞进别的维度）。客户端构造入参时使用同一组中文键，模型因此倾向于沿用。
+
+**可见事实（`nextScene.visibleFacts`）**——§6 硬约束的粒度定义（2026-09-14 联调补记）：
+
+`visibleFacts` 的每一条必须取自 `Position.visible` 列表（**逐字摘取**：不改写、不合并、不新增）。这条约束同时压住三处写法，缺一处就整幕失败：
+
+| 位置 | 要求 |
+|---|---|
+| 事件库 `Position.visible` | 必须写成**事实级条目**（如「聘用条件：编制、安家补贴、子女随迁就读」），**不能**写成抽象类别（「聘用条件」）——否则模型无从摘取 |
+| 提示词 `prompts.mjs` | 把该列表逐条列给模型，并显式要求「visibleFacts 只能从这里逐字摘取」 |
+| 客户端 `assertWithinVisible` | 在**归一化后**做互相包含匹配（容忍标点差异与适度精简），只拦范围外的内容 |
+
+同批提示词硬要求（与本节配套）：`moves` 必须 2-3 张；`relationDeltas[].target` 必须**照抄**其他角色位的名字；`ledgerDeltas[].key` 只能取五维之一，本幕无代价时返回空数组。
+
+**三处「宽容」的取舍**（都要有测试守着；2026-09-14 由两处扩为三处）：
+
+- `ledgerDeltas[].key` 归一化不了 → **丢弃该条**，不得塞进别的维度（否则会伪造出一条玩家没付过的代价）；
+- `relationDeltas[].target` 解析不到任何角色位 → **丢弃该条，不阻断整幕**。为一处称谓不精确就废掉整幕（玩家只能干等重试），代价远高于少看一条态度变化。解析用三级匹配：id → 角色名 → 互相包含；
+- `nextScene.visibleFacts` 越界条目 → **丢弃不展示**（越界内容不进「知道」列表即无泄露，过滤本身就是完整防护），不再整幕拒收。真机实测模型偶尔会补一句范围外事实，把随机性变成整幕失败不可接受。判定规则：归一化（去空白标点、统一小写）后互相包含。`atEnding` 同理**由前端按幕数归一化**，不作为校验对象——终局节奏是 `endingCondition.actCount` 定的硬规则。
+
+**形状方向（最易混，写死）**
+
+| 位置 | 字段 | 形状 | 语义 |
+|---|---|---|---|
+| 能力 5/6/7 **入参** | `ledger` | `LedgerEntry[]` | 累加态快照 |
+| 能力 5/6/7 **入参** | `relations` | `RelationEntry[]` | 累加态快照 |
+| 能力 5 **出参** | `ledgerDeltas` | `{ key, delta, note }[]` | 本幕增量 |
+| 能力 5 **出参** | `relationDeltas` | `{ target, delta }[]` | 本幕增量 |
+
+**客户端职责**：内部状态可自由表示（前端即用五维加法器 + `Record`），但**进出 `POST /api/host/*` 的边界必须完成上述转换**，且转换只发生在请求体的构造/解析层（`eventReplayClient.ts`），不得散落到 UI。
 
 ---
 
@@ -260,7 +344,7 @@ actAdvance(
 **硬约束**
 
 - `moves.length ∈ [2,3]`，越界即脏数据拒收；
-- `nextScene.visibleFacts` ⊆ `position.visible` 所允许的信息范围，越界拒收（`assertWithinVisible`）；
+- `nextScene.visibleFacts` ⊆ `position.visible` 所允许的信息范围，越界条目**丢弃不展示**（2026-09-14 起由整幕拒收放宽，见 §0.7 宽容取舍；`filterWithinVisible`）；
 - 入参序列化后**不得含 `canon` / `realChoice` / 真实人物真名**（见 §9）；
 - 已生成的 `outcome` 作为锁定条件注入后续调用，不得改写 `history` 里的既成事实。
 

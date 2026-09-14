@@ -4,8 +4,10 @@ import {
   applyLedger,
   applyRelations,
   assertNoCanonLeak,
-  assertWithinVisible,
+  filterWithinVisible,
+  normalizeLedgerKey,
   relationGate,
+  resolveRelationTarget,
   validateActAdvanceResult,
   validateEventReplay,
 } from "../src/domain/eventReplay";
@@ -21,8 +23,8 @@ const event: EventReplay = {
     endingCondition: { kind: "actCount", actCount: 2 },
   },
   positions: [
-    { id: "teacher", name: "教师", stake: "职业与家庭", visible: "聘用条件，家庭安排", resources: "积蓄与专业经验", canDo: ["协商"], relations: [{ to: "partner", attitude: 20 }] },
-    { id: "partner", name: "伴侣", stake: "家庭稳定", visible: "家庭安排，孩子近况", resources: "家庭否决权", canDo: ["沟通"], relations: [{ to: "teacher", attitude: 20 }] },
+    { id: "teacher", name: "教师", role: "收到异地邀请的教师", stake: "职业与家庭", visible: ["聘用条件", "家庭安排"], resources: "积蓄与专业经验", canDo: ["协商"], relations: [{ to: "partner", attitude: 20 }] },
+    { id: "partner", name: "伴侣", role: "当事人的伴侣", stake: "家庭稳定", visible: ["家庭安排", "孩子近况"], resources: "家庭否决权", canDo: ["沟通"], relations: [{ to: "teacher", attitude: 20 }] },
   ],
   acts: [
     { index: 0, month: "2023-03", text: "异地学校发来正式邀请。" },
@@ -40,8 +42,11 @@ const result: ActAdvanceResult = {
     { id: "accept", text: "接受邀请", costHint: "搬迁时间", implicitAssumption: "机会不会重来", label: "accept" },
     { id: "wait", text: "继续协商", costHint: "消耗人情", implicitAssumption: "条件仍可变化", label: "negotiate" },
   ],
-  relationDeltas: [{ positionId: "partner", amount: 5 }],
-  ledgerDeltas: [{ time: -1, opportunity: 2 }],
+  relationDeltas: [{ target: "伴侣", delta: 5 }],
+  ledgerDeltas: [
+    { key: "时间", delta: -1, note: "协商占掉的时间" },
+    { key: "机会", delta: 2, note: "争取到的缓冲" },
+  ],
   atEnding: false,
 };
 
@@ -58,27 +63,54 @@ describe("事件推演领域校验", () => {
     expect(checked.errors.map((item) => item.path)).toContain("canon[0].sources[0].url");
   });
 
-  it("拒绝幕数、关系目标和 canon 泄漏", () => {
-    expect(validateActAdvanceResult(result, ["teacher", "partner"], 0, 2).ok).toBe(true);
-    const invalid = { ...result, moves: [result.moves[0]], relationDeltas: [{ positionId: "unknown", amount: 1 }], canon: "hidden" };
-    const checked = validateActAdvanceResult(invalid, ["teacher", "partner"], 0, 2);
-    expect(checked.errors.map((item) => item.path)).toEqual(expect.arrayContaining(["moves", "relationDeltas[0].positionId", "$" ]));
+  it("拒绝幕数不足与 canon 泄漏；未知关系目标不阻断整幕", () => {
+    expect(validateActAdvanceResult(result, 0, 2).ok).toBe(true);
+
+    const invalid = { ...result, moves: [result.moves[0]], canon: "hidden" };
+    const checked = validateActAdvanceResult(invalid, 0, 2);
+    expect(checked.errors.map((item) => item.path)).toEqual(expect.arrayContaining(["moves", "$"]));
+
+    // 模型给的可能是代称（真机实测会给「林女士」这类简称）：不该为一个称谓废掉整幕，
+    // 解析不了的条目由 applyRelations 丢弃。
+    const unknown = { ...result, relationDeltas: [{ target: "查无此人", delta: 1 }] };
+    expect(validateActAdvanceResult(unknown, 0, 2).ok).toBe(true);
   });
 
-  it("按角色 visible 精确拦截越界信息", () => {
-    expect(assertWithinVisible(result, event.positions[0]).ok).toBe(true);
+  it("atEnding 由前端按幕数归一化：模型置错不产生错误，直接被纠正", () => {
+    // 第 1 幕（共 2 幕）：模型谎报终局 → 归一化为 false，且不算校验失败
+    const earlyEnding = structuredClone(result);
+    earlyEnding.atEnding = true;
+    expect(validateActAdvanceResult(earlyEnding, 0, 2).ok).toBe(true);
+    expect(earlyEnding.atEnding).toBe(false);
+    // 最后一幕：模型忘了置位 → 归一化为 true
+    const missedEnding = structuredClone(result);
+    missedEnding.atEnding = false;
+    expect(validateActAdvanceResult(missedEnding, 1, 2).ok).toBe(true);
+    expect(missedEnding.atEnding).toBe(true);
+  });
+
+  it("越界 visibleFacts 被丢弃不展示（泄露内容不进「知道」列表），不再废整幕", () => {
     const leaked = structuredClone(result);
-    leaked.nextScene.visibleFacts.push("孩子近况");
-    expect(assertWithinVisible(leaked, event.positions[0]).ok).toBe(false);
+    leaked.nextScene.visibleFacts = ["聘用条件", "孩子近况"];
+    const dropped = filterWithinVisible(leaked, event.positions[0]);
+    expect(dropped).toEqual(["孩子近况"]);
+    expect(leaked.nextScene.visibleFacts).toEqual(["聘用条件"]);
   });
 
   it("检测原作关键词且结算函数不修改输入", () => {
     expect(assertNoCanonLeak("当事人决定继续协商聘用条件。", event.canon)).toContain("当事人决定继续协商聘用条件");
     const ledger = { time: 3, money: 2, relation: 0, health: 1, opportunity: 0 };
-    expect(applyLedger(ledger, [{ time: -1, opportunity: 2 }])).toEqual({ ...ledger, time: 2, opportunity: 2 });
+    expect(
+      applyLedger(ledger, [
+        { key: "时间", delta: -1, note: "协商占掉的时间" },
+        { key: "机会", delta: 2, note: "争取到的缓冲" },
+      ]),
+    ).toEqual({ ...ledger, time: 2, opportunity: 2 });
     expect(ledger.time).toBe(3);
     const relations = { partner: 98 };
-    expect(applyRelations(relations, [{ positionId: "partner", amount: 8 }])).toEqual({ partner: 100 });
+    expect(applyRelations(relations, [{ target: "伴侣", delta: 8 }], event.positions)).toEqual({
+      partner: 100,
+    });
     expect(relations.partner).toBe(98);
   });
 
@@ -86,5 +118,72 @@ describe("事件推演领域校验", () => {
     const move = { ...result.moves[0], relationGate: { positionId: "partner", minimum: 20 } };
     expect(relationGate(move, { partner: 19 })).toBe(false);
     expect(relationGate(move, { partner: 20 })).toBe(true);
+  });
+});
+
+/**
+ * 这一组守的是 Host 契约 §0.7 的形状边界。
+ *
+ * 起因：服务端与前端曾各自想象 `ledger` / `relations` 的形状（一边要条目数组、
+ * 一边发累加对象），首度联调第一发请求就是 `400 VALIDATION: ledger must be an array`。
+ * 契约 §0.7 定死形状后，这里把「模型可能给什么」的边界逐条钉住。
+ */
+describe("Host 契约 §0.7 · 形状与归一化", () => {
+  it("账本维度：中文名 / 英文键 / 常见别名都归一，五维之外返回 null", () => {
+    expect(normalizeLedgerKey("时间")).toBe("time");
+    expect(normalizeLedgerKey("钱")).toBe("money");
+    expect(normalizeLedgerKey("time")).toBe("time");
+    expect(normalizeLedgerKey("opportunity")).toBe("opportunity");
+    expect(normalizeLedgerKey("人情")).toBe("relation");
+    expect(normalizeLedgerKey("金钱成本")).toBe("money"); // 条目名里含维度词
+    expect(normalizeLedgerKey("声望")).toBeNull(); // PRD 定死五维，自造维度不许进账本
+    expect(normalizeLedgerKey("   ")).toBeNull();
+  });
+
+  it("账本增量：归一化不了的条目被丢弃，不污染其他维度", () => {
+    const ledger = { time: 0, money: 0, relation: 0, health: 0, opportunity: 0 };
+    const next = applyLedger(ledger, [
+      { key: "时间", delta: -2, note: "搬迁准备" },
+      { key: "声望", delta: 99, note: "模型自造维度" },
+      { key: "relation", delta: -1, note: "英文键也吃" },
+    ]);
+    expect(next).toEqual({ time: -2, money: 0, relation: -1, health: 0, opportunity: 0 });
+  });
+
+  it("关系目标：id / 角色名 / 简称都解析到同一角色位，解析不了的条目被丢弃", () => {
+    expect(resolveRelationTarget("partner", event.positions)).toBe("partner");
+    expect(resolveRelationTarget("伴侣", event.positions)).toBe("partner");
+    expect(resolveRelationTarget("伴侣（她）", event.positions)).toBe("partner");
+    expect(resolveRelationTarget("查无此人", event.positions)).toBeNull();
+
+    const rels = applyRelations(
+      {},
+      [
+        { target: "伴侣", delta: 10 },
+        { target: "查无此人", delta: 100 },
+      ],
+      event.positions,
+    );
+    expect(rels).toEqual({ partner: 10 });
+  });
+
+  it("角色位按契约序列化：visible 是数组，越界条目直接过滤掉", () => {
+    // 「孩子近况」只属于 partner 的可见范围，在 teacher 位置上必须被丢弃
+    const leaked = structuredClone(result);
+    leaked.nextScene.visibleFacts = ["孩子近况"];
+    const dropped = filterWithinVisible(leaked, event.positions[0]);
+    expect(dropped).toEqual(["孩子近况"]);
+    expect(leaked.nextScene.visibleFacts).toEqual([]);
+  });
+
+  it("越界判定容忍标点差异与适度精简，只丢范围外的内容", () => {
+    // teacher 的 visible 是 ["聘用条件", "家庭安排"]
+    const tolerated = structuredClone(result);
+    tolerated.nextScene.visibleFacts = ["聘用条件。", "家庭安排（含收支）", "家庭安排"];
+    expect(filterWithinVisible(tolerated, event.positions[0])).toEqual([]);
+
+    const outOfRange = structuredClone(result);
+    outOfRange.nextScene.visibleFacts = ["配偶的内心活动"];
+    expect(filterWithinVisible(outOfRange, event.positions[0])).toEqual(["配偶的内心活动"]);
   });
 });

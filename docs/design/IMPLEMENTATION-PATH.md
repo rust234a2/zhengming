@@ -38,9 +38,10 @@
 | ~~3-1~~ | ~~地图 → 力导向图~~ **已于 2026-09-13 作废**：D3 拍板力导向图下线 | — | ✗ |
 | ~~3-2~~ | ~~力导向图 → 树~~ **已于 2026-09-13 作废**：同上 | — | ✗ |
 | 3-3 | 地图数据作冷启动种子 | 2-1 | 🟡 已落地：树与地图共用同一份语料（`controversy-map/claims.json`），生成器在 `research/debate-tree/` |
-| 3-4 | 地图视觉增强（凸包 / 连线分层 / 标签密度，P0 三条） | 独立（浏览层支线，不阻塞主链） | ✅ 2026-09-14（`61d4080` + `8dbb9ec`） || 4-1 | 事件库 schema + 准入检查 | 0-2 | ☐ |
-| 4-2 | 入库真实事件 ×3（仅事件头 + 真实发展线） | 4-1 | ☐ |
-| 4-3 | 生成式推演引擎走真 Host | 4-2 | ☐ |
+| 3-4 | 地图视觉增强（凸包 / 连线分层 / 标签密度，P0 三条） | 独立（浏览层支线，不阻塞主链） | ✅ 2026-09-14（`61d4080` + `8dbb9ec`） |
+| 4-1 | 事件库 schema + 准入检查 | 0-2 | 🟡 前端层已落地（`web/src/domain/eventReplay.ts` 的 `validateEventReplay` + 事件库 schema 类型，Vitest 全绿）；准入与 Host 联调待服务端 |
+| 4-2 | 入库真实事件 ×3（仅事件头 + 真实发展线） | 4-1 | 🟡 三例已起草入库（`web/src/data/eventReplays.ts`，来源链接真实，**待人工准入核验**，见文件头审核声明） |
+| 4-3 | 生成式推演引擎走真 Host | 4-2 | ✅ 前后端均已落地并真模型联调通过（2026-09-14）：契约 §0.7 补齐六类型定义修掉 400；浏览器端到端（选角色 → actAdvance 200 → 动作卡渲染）两轮实测通过 |
 | 4-4 | Host 推演追问走真 Host | 4-3 | ☐ |
 | 5-1 | 重建集成应用 | 全部原型改动 | ☐ |
 | 5-2 | 部署 | 5-1 | ☐ |
@@ -444,6 +445,8 @@ desktop ──POST /v1/sessions/{session_id}/turns──▶ core（持有 key，
 - **完成标志**：事件库从 1 个涨到 3 个，且每个都可真跑通
 
 ### 卡 4-3 · 角色扮演推演引擎走真 Host
+
+> **进度（2026-09-14，分支 `feat/event-simulation`）：✅ 真模型联调通过，本卡关闭。** 前端层已落地——`web/src/domain/eventReplayReducer.ts`（无回溯单轴 reducer）、`web/src/ui/event-replay/eventReplayClient.ts`（契约 §0.7 形状转换 + 流式读取 + 降级透传）、`web/src/ui/EventReplay.tsx` + `eventReplay.css`（`?view=event` 全流程界面，v0.6 按交互原型重做壳体，只借壳不借语义）。**首度联调报 `400 VALIDATION: ledger must be an array`**，根因是契约只引用未定义六个公共类型，前后端各自想象——已在 `host-contract.md` §0.7 以服务端实现为准钉死（入参 `LedgerEntry[]`/`RelationEntry[]` 累加态快照 vs 出参增量、账本五维枚举、visibleFacts 事实级粒度、两处宽容取舍），前端在 client 层完成形状转换并补三道归一化容错（`normalizeLedgerKey` / `resolveRelationTarget` / `assertWithinVisible` 归一化匹配）。服务端 `actAdvance` 提示词同步收紧（账本 key 限五维、target 照抄角色位名、visibleFacts 逐字摘取）。**验收实录**：Vitest 307 项全绿（含「请求体按契约 §0.7 发条目数组」守卫）；headless Chrome 实测两轮——选角色 → `POST /api/host/actAdvance` 200 → 真模型处境叙事 + 2-3 张动作卡渲染，页面无「请求参数不合法」，请求体 `ledger=[]`/`relations=[{target,value}]` 形状正确，两轮叙事内容不同（证实实时生成非缓存）。
 
 - 三个新能力：`actAdvance`（幕推进：处境 + 动作 + 后果 + 账本/关系增量）/ `replayEnding`（终局叙述）/ `replayCanon`（原作揭示，独立通道，仅终局调用）
 - **必须实现的机制**

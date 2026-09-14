@@ -200,12 +200,16 @@ ${relationText || "（无）"}
       user: `你正在主持一场**架空历史推演**（不是真实历史复述）。
 
 事件：${header?.title || ""}
-时间跨度：${header?.span || ""}
-角色位：${position?.name || ""}（${position?.role || ""}）
-该角色位**只能知道**以下信息：${visible.length ? visible.join("、") : "（无特别限制）"}
+背景：${header?.background || ""}
+角色位：${position?.name || ""}${position?.role ? `（${position.role}）` : ""}
+该角色位**只能知道**以下信息（下一幕的 visibleFacts 只能从这里逐字摘取）：
+${visible.length ? visible.map((v) => `- ${v}`).join("\n") : "（无特别限制）"}
 
 时间表：
-${(acts || []).map((a, i) => `第${i + 1}幕 · ${a?.month || ""}`).join("\n")}
+${(acts || []).map((a, i) => {
+  const head = `第${i + 1}幕 · ${a?.month || ""}`;
+  return `${head}\n  外部事件：${a?.text || "（未提供）"}`;
+}).join("\n")}
 
 当前推进到：第 ${actIndex + 1} 幕
 ${chosenMoveId ? `玩家上一幕选择的动作 id：${chosenMoveId}` : "这是第一幕。"}
@@ -222,19 +226,21 @@ ${historyText || "（无）"}
   "nextScene": {
     "month": "下一幕的时点",
     "text": "下一幕的处境描写，100-180 字",
-    "visibleFacts": ["玩家在该角色位此时可以知道的事实，每条一句话"]
+    "visibleFacts": ["从上面「该角色位只能知道」列表里逐字复制的条目"]
   },
   "moves": [
     {"id": "m1", "text": "玩家可执行的一个具体动作", "costHint": "非评判性的代价描述", "implicitAssumption": "这个动作默认成立的前提，一句话", "label": "两到四字的动作标签"}
   ],
-  "relationDeltas": [{"target": "关系对象", "delta": 0}],
-  "ledgerDeltas": [{"key": "账本条目名", "delta": 0, "note": "一句话说明"}],
+  "relationDeltas": [{"target": "其他角色位的名字（照抄）", "delta": 0}],
+  "ledgerDeltas": [{"key": "时间|钱|关系|健康|机会", "delta": 0, "note": "一句话说明"}],
   "atEnding": false
 }
 
 硬要求：
 - moves **必须为 2 或 3 张**，不能是 1 张也不能是 4 张。
-- visibleFacts 里的**每一条**都必须落在上面给定的角色位可见范围内，越界即无效。
+- visibleFacts 的每一条必须**逐字复制**上面「该角色位只能知道」列表里的某一项：原样照抄，不改写、不合并、不新增；列表里没有的内容一律不许写。
+- relationDeltas 的 target 必须是该事件里**其他角色位的名字**（照抄角色位名称，不要用代称）；本幕若不影响任何关系，返回空数组 []。
+- ledgerDeltas 的 key **只能取「时间」「钱」「关系」「健康」「机会」这五个词之一**，不得自造维度（如「编制权益」「家庭安置成本」都属无效）；本幕确实没有代价时返回空数组 []。
 - 不要提到任何真实历史人物真名，不要提到现实中的真实结局。
 - moves 的 text 是玩家能做的事，不是建议、不是评价。
 - 不得使用「你错了」「谬误」「正确」「错误」这类词。`,
@@ -294,6 +300,53 @@ ${historyText || "（无）"}
 - development 为**中性史实描述**，不含对任何推演路径的褒贬。
 - 若你不确定该事件的可靠史实，**宁可返回空数组** {"canon": []}，也不要编造。`,
       temperature: 0.3,
+    };
+  },
+
+  /**
+   * 能力 9 · 事件生成 replayCompose（契约 §0.8）
+   * 用途：把一段有明显时间线的社会事件，改写成一份可直接推演的事件脚本。
+   * 生成物只有「壳」：角色位 / 幕节拍 / 信息范围。不生成 canon——史实对照
+   * 必须有人工核实的来源，生成事件一律 canon: []。
+   */
+  replayCompose(topic, timeline, actCount) {
+    const timelineText = (timeline || []).length
+      ? `用户给的时间线节点（按此排幕，允许合理归并）：\n${timeline.map((t, i) => `${i + 1}. ${t}`).join("\n")}\n`
+      : "";
+    return {
+      system: BASE_SYSTEM,
+      user: `请把下面这段社会事件，改写成一份「事件推演」脚本。推演是**架空模拟**：玩家扮演其中一个处境，一步一步做决定，看路径如何展开。
+
+事件材料：
+"""
+${topic}
+"""
+${timelineText}
+要求生成 ${actCount} 幕。
+
+严格输出 JSON（不要代码块包裹）：
+{
+  "title": "事件短题，≤20字，不含真实人名机构名",
+  "background": "80-180字的处境背景，时间粒度到月，人物一律化名",
+  "admission": {"publiclyDiscussed": true, "disasterOrCasualty": false},
+  "positions": [
+    {"id": "英文短横线id", "name": "身份 · 某某（化名）", "role": "一句话身份",
+     "stake": "这个处境里他最在意什么",
+     "visible": ["该角色位只能知道的事实，4-6条，逐条一项"],
+     "resources": "能动用的资源或杠杆",
+     "canDo": ["能做的动作类型，2-4条"],
+     "relations": [{"to": "另一角色位的id", "attitude": -30到30的整数}]}
+  ],
+  "acts": [{"index": 0, "month": "YYYY-MM", "text": "本幕发生的外部事件，40-90字"}]
+}
+
+硬要求：
+- 2-4 个角色位，全部是**虚构位置**，绝不扮演可识别的真实个人；人物一律化名，机构模糊化。
+- visible 是信息范围：每个角色位**只能**知道哪些事实，逐条一项、可直接摘引；不同角色位的范围必须有实质差异。
+- acts 覆盖 ${actCount} 幕，month 用 YYYY-MM，节拍沿时间线推进；最后一幕要形成"必须做决定"的压力。
+- 若事件涉及灾难、伤亡，或并非公开讨论的事件：把 admission 对应项如实置为 true/false 并照常输出，服务端会拒收——不要为此编造或美化。
+- 不使用禁用词（错误/谬误/偷换/输赢/对错/你错了/赢了）。`,
+      temperature: 0.4,
     };
   },
 };
@@ -503,4 +556,15 @@ export function heuristicReplayEnding(position, history, ledger) {
 /** 启发式原作揭示：无可靠来源时不编造，返回空数组 */
 export function heuristicReplayCanon() {
   return { canon: [], degraded: true };
+}
+
+/**
+ * 启发式事件生成（无 key 降级）。
+ *
+ * 降级**不可能**真的改写用户给的事件——硬凑角色位只会产出廉价的假结构。
+ * 所以直接返回结构化失败标记，由调用方看 `ok:false` 走「无法生成」路径，
+ * 不假装这是一份可推演的事件。
+ */
+export function heuristicReplayCompose() {
+  throw new Error("replayCompose has no heuristic fallback: composing an event requires the real model");
 }

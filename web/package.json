@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:event": "vite --port 5310 --strictPort --open /?view=event",
     "build": "tsc -b && vite build",
     "build:domain": "tsc src/domain/debateRoom.ts src/types/debateRoom.ts --outDir dist-domain --module esnext --target es2022 --moduleResolution bundler --skipLibCheck && node scripts/fix-domain-imports.mjs dist-domain",
     "preview": "vite preview",

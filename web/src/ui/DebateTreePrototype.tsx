@@ -511,6 +511,7 @@ function TreeWorkspace({ seed, onPickSeed }: { seed: DebateTreeSeed; onPickSeed(
             争议地图
           </button>
           <a href="?view=room">辩论间</a>
+          <a href="?view=event">事件推演</a>
         </nav>
         <button type="button" className="dt-button ghost" title="多人共同编辑尚未接入服务端">邀请加入</button>
         <button type="button" className="dt-button primary" onClick={() => persistExpanded(new Set())}>收起全树</button>
