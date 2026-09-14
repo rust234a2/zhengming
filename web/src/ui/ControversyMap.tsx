@@ -98,6 +98,109 @@ function chargeFor(kind: MapNodeKind): number {
   return -170;
 }
 
+/* ────────── 扇形分翼（v2 布局） ────────── */
+
+/**
+ * v1 用 forceX(±420) 分翼：只约束 X，节点在 Y 方向自由散开，每个立场被拉成
+ * 一根竖条（数据扩到 244 论点后尤其难看）。v2 改扇形：正方 = 左扇区、
+ * 反方 = 右扇区、中性 = 上下两段；同一主张簇的节点分到相邻角度，保住团块。
+ * 目标点只依赖静态数据，是模块级常量——模拟与测试共用同一口径。
+ */
+export interface PolarityTarget {
+  tx: number;
+  ty: number;
+}
+
+/** 各立场的角度区间（度，数学坐标系：0=右，90=上）。 */
+const SECTOR_SPANS: Record<DebateSideLike, Array<[number, number]>> = {
+  positive: [[112, 248]],
+  negative: [[-68, 68]],
+  neutral: [
+    [70, 110],
+    [250, 290],
+  ],
+};
+
+/** 各类节点的基准半径：簇最外、议题居中、论点贴内圈。 */
+const SECTOR_RADIUS: Record<MapNodeKind, number> = { cluster: 330, topic: 270, claim: 235 };
+
+/** 纵向压缩系数：指向左右的楔形纵向弦天然更长，整体压扁后图形贴合宽视口
+ * （v1 竖条问题的反面——不能压出一个横条，0.45 实测各侧横纵比均衡）。 */
+const SECTOR_Y_SCALE = 0.45;
+
+const POLARITY_SIDES = ["positive", "negative", "neutral"] as const;
+
+export const POLARITY_TARGETS: Map<string, PolarityTarget> = (() => {
+  const nodes = CONTROVERSY_MAP.nodes;
+  // 议题 → 缝合它的主张簇（bridge 边方向：cluster → topic）
+  const topicCluster = new Map<string, string>();
+  for (const e of CONTROVERSY_MAP.edges) {
+    if (e.relation === "bridge" && !topicCluster.has(e.target)) topicCluster.set(e.target, e.source);
+  }
+  type DataNode = (typeof nodes)[number];
+  const groupOf = (n: DataNode): string => {
+    if (n.kind === "cluster") return n.id;
+    if (n.kind === "topic") return topicCluster.get(n.id) ?? `t:${n.id}`;
+    if (n.topicId) return topicCluster.get(n.topicId) ?? `t:${n.topicId}`;
+    return `solo:${n.id}`;
+  };
+
+  const targets = new Map<string, PolarityTarget>();
+  const golden = 0.618033988749895;
+  let globalIndex = 0;
+  for (const side of POLARITY_SIDES) {
+    const list = nodes.filter((n) => (n.side ?? "neutral") === side);
+    if (!list.length) continue;
+    // 同簇相邻；簇间按规模降序（大簇占更宽的角区），其余按 id 稳定
+    const sizeOf = new Map<string, number>();
+    for (const n of list) sizeOf.set(groupOf(n), (sizeOf.get(groupOf(n)) ?? 0) + 1);
+    list.sort((a, b) => {
+      const ga = groupOf(a);
+      const gb = groupOf(b);
+      if (ga !== gb) {
+        const bySize = (sizeOf.get(gb) ?? 0) - (sizeOf.get(ga) ?? 0);
+        if (bySize !== 0) return bySize;
+        return ga < gb ? -1 : 1;
+      }
+      const rank = (k: MapNodeKind) => (k === "cluster" ? 0 : k === "topic" ? 1 : 2);
+      return rank(a.kind) - rank(b.kind) || (a.id < b.id ? -1 : 1);
+    });
+    // 排序后按 group 切块（排序保证同组连续）
+    const groups: DataNode[][] = [];
+    let lastGroup = "";
+    for (const n of list) {
+      const g = groupOf(n);
+      if (g !== lastGroup) {
+        groups.push([]);
+        lastGroup = g;
+      }
+      groups[groups.length - 1].push(n);
+    }
+
+    // 角度分配：单扇区侧整块铺满；中性侧把「整个组」轮流分给上下两段
+    //（按组分配而非按节点奇偶，否则同组会被上下弧拆散）
+    const spans = SECTOR_SPANS[side];
+    const placeInSpan = (span: [number, number], items: DataNode[]) => {
+      const n = items.length;
+      items.forEach((n0, i) => {
+        const theta = ((span[0] + ((i + 0.5) / n) * (span[1] - span[0])) * Math.PI) / 180;
+        const jitter = (globalIndex * golden) % 1; // 黄金比例抖动，避免排成完美圆环
+        globalIndex += 1;
+        const r = SECTOR_RADIUS[n0.kind] * (0.82 + 0.5 * jitter);
+        targets.set(n0.id, { tx: r * Math.cos(theta), ty: r * Math.sin(theta) * SECTOR_Y_SCALE });
+      });
+    };
+    if (spans.length === 1) {
+      placeInSpan(spans[0], groups.flat());
+    } else {
+      spans.forEach((span, si) => {
+        placeInSpan(span, groups.filter((_, gi) => gi % spans.length === si).flat());
+      });
+    }
+  }
+  return targets;
+})();
+
 /* ────────── 视觉常量 ────────── */
 
 const KIND_LABEL: Record<MapNodeKind, string> = {
@@ -516,23 +619,21 @@ export function ControversyMap() {
           .radius((n) => n.radius + (n.kind === "cluster" ? 34 : n.kind === "topic" ? 22 : 13))
           .strength(0.95),
       )
-      // 立场分翼（v1 着色）：正/负立场的簇与论点被推向左右两翼（原型 forceX ±420 等效）。
-      // 聚焦视图下让位给径向环力（否则分翼会把邻居压成一条竖线）。
+      // 扇形分翼（v2）：正/负/中性各占一个扇区，目标点查 POLARITY_TARGETS。
+      // X、Y 同时轻拉（0.08），只定方向不锁死坐标，节点在扇区内自然铺开——
+      // 旧 forceX(±420) 只约束 X，会把每个立场拉成一根竖条。
+      // 聚焦视图下让位给径向环力（分翼会把邻居压扁）。
       .force(
-        "polarity",
+        "polarityX",
         d3
-          .forceX<MapSimNode>((n) =>
-            focusRef.current
-              ? 0
-              : n.kind === "claim" || n.kind === "cluster"
-                ? n.side === "positive"
-                  ? -420
-                  : n.side === "negative"
-                    ? 420
-                    : 0
-                : 0,
-          )
-          .strength(() => (focusRef.current ? 0 : 0.12)),
+          .forceX<MapSimNode>((n) => POLARITY_TARGETS.get(n.id)?.tx ?? 0)
+          .strength(() => (focusRef.current ? 0 : 0.08)),
+      )
+      .force(
+        "polarityY",
+        d3
+          .forceY<MapSimNode>((n) => POLARITY_TARGETS.get(n.id)?.ty ?? 0)
+          .strength(() => (focusRef.current ? 0 : 0.08)),
       )
       // 聚焦视图：中心节点拉回原点、邻居落在同心环上（非聚焦时强度 0，不影响原布局）
       .force(

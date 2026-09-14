@@ -14,7 +14,7 @@ import * as d3 from "d3";
 
 import { CONTROVERSY_MAP } from "../src/data/controversyMap";
 import type { MapSimLink, MapSimNode } from "../src/types/map";
-import { ControversyMap, HULL_GROUPS, hullPathFor, labelTierFromK } from "../src/ui/ControversyMap";
+import { ControversyMap, HULL_GROUPS, hullPathFor, labelTierFromK, POLARITY_TARGETS } from "../src/ui/ControversyMap";
 
 afterEach(() => {
   cleanup();
@@ -166,7 +166,8 @@ function runSimulation(seed: () => number = seededRandom(42)) {
     .force("charge", d3.forceManyBody<MapSimNode>().strength((n) => charge[n.kind]))
     .force("center", d3.forceCenter(0, 0))
     .force("collide", d3.forceCollide<MapSimNode>().radius((n) => n.radius + (n.kind === "cluster" ? 34 : n.kind === "topic" ? 22 : 13)).strength(0.95))
-    .force("polarity", d3.forceX<MapSimNode>((n) => (n.side === "positive" ? -420 : n.side === "negative" ? 420 : 0)).strength((n) => (n.kind === "cluster" ? 0.1 : 0.035)))
+    .force("polarityX", d3.forceX<MapSimNode>((n) => POLARITY_TARGETS.get(n.id)?.tx ?? 0).strength(0.08))
+    .force("polarityY", d3.forceY<MapSimNode>((n) => POLARITY_TARGETS.get(n.id)?.ty ?? 0).strength(0.08))
     .force("skeleton", d3.forceRadial<MapSimNode>((n) => (n.kind === "cluster" ? skeletonR : 0), 0, 0).strength((n) => (n.kind === "cluster" ? 0.15 : 0)))
     .alphaDecay(0.022)
     .velocityDecay(0.42)
@@ -314,6 +315,92 @@ describe("争议地图布局质量（真实 d3 模拟）", () => {
     }
     expect(diff).toBeGreaterThan(1);
   }, 20000);
+
+  it("扇形分翼口径：目标点覆盖全部节点，正方在左、反方在右、中性在上下", () => {
+    for (const n of CONTROVERSY_MAP.nodes) {
+      const t = POLARITY_TARGETS.get(n.id);
+      expect(t).toBeDefined();
+      const side = n.side ?? "neutral";
+      if (side === "positive") expect(t!.tx).toBeLessThan(0);
+      if (side === "negative") expect(t!.tx).toBeGreaterThan(0);
+      if (side === "neutral") expect(Math.abs(t!.ty)).toBeGreaterThan(Math.abs(t!.tx));
+    }
+  });
+
+  it("整体布局不是竖条：全图外接框宽不小于高（v1 forceX 分翼的竖条反面）", () => {
+    const { nodes } = runSimulation();
+    const xs = nodes.map((n) => n.x!);
+    const ys = nodes.map((n) => n.y!);
+    const w = Math.max(...xs) - Math.min(...xs);
+    const h = Math.max(...ys) - Math.min(...ys);
+    expect(w).toBeGreaterThan(h * 0.9);
+  });
+
+  it("扇形分翼不是竖条：任何单侧的目标点横向跨度显著大于纵向跨度", () => {
+    // 旧 forceX 布局的特征是「X 钉死、Y 自由」→ 纵向跨度 >> 横向跨度；
+    // 扇形目标应把这个比例倒过来（左右扇区）或摊平（中性上下两段各自横铺）
+    for (const side of ["positive", "negative"] as const) {
+      const pts = [...POLARITY_TARGETS.entries()]
+        .filter(([id]) => (CONTROVERSY_MAP.nodes.find((n) => n.id === id)?.side ?? "neutral") === side)
+        .map(([, t]) => t);
+      const xs = pts.map((p) => p.tx);
+      const ys = pts.map((p) => p.ty);
+      const spanX = Math.max(...xs) - Math.min(...xs);
+      const spanY = Math.max(...ys) - Math.min(...ys);
+      expect(spanX).toBeGreaterThan(spanY * 0.6);
+    }
+  });
+
+  it("扇形分翼保团块：同组节点在所属扇区内角度连续（不被其他组切散）", () => {
+    // 与组件同口径的分组：簇 → 自身；议题 → 缝合它的簇；论点 → 所属议题的簇
+    const topicCluster = new Map<string, string>();
+    for (const e of CONTROVERSY_MAP.edges) {
+      if (e.relation === "bridge" && !topicCluster.has(e.target)) topicCluster.set(e.target, e.source);
+    }
+    const groupOf = (n: (typeof CONTROVERSY_MAP.nodes)[number]): string => {
+      if (n.kind === "cluster") return n.id;
+      if (n.kind === "topic") return topicCluster.get(n.id) ?? `t:${n.id}`;
+      if (n.topicId) return topicCluster.get(n.topicId) ?? `t:${n.topicId}`;
+      return `solo:${n.id}`;
+    };
+    // 找出「单侧内成员最多」的组
+    const best = { count: 0, side: "", group: "", ids: [] as string[] };
+    const acc = new Map<string, string[]>();
+    for (const n of CONTROVERSY_MAP.nodes) {
+      const side = n.side ?? "neutral";
+      const key = `${side}|${groupOf(n)}`;
+      const ids = acc.get(key) ?? [];
+      ids.push(n.id);
+      acc.set(key, ids);
+    }
+    for (const [key, ids] of acc) {
+      if (ids.length > best.count) {
+        const [side, group] = key.split("|");
+        best.count = ids.length;
+        best.side = side;
+        best.group = group;
+        best.ids = ids;
+      }
+    }
+    expect(best.count).toBeGreaterThanOrEqual(4);
+
+    // 该侧全部目标点按角度排序后，组成员的下标必须是一段连续区间
+    const normDeg = (rad: number) => {
+      let d = (rad * 180) / Math.PI;
+      if (d < 0) d += 360; // 正方扇区跨 180°，负方/中性跨度不绕 0，统一到 [0,360)
+      return d;
+    };
+    const ordered = CONTROVERSY_MAP.nodes
+      .filter((n) => (n.side ?? "neutral") === best.side)
+      .map((n) => {
+        const t = POLARITY_TARGETS.get(n.id)!;
+        return { id: n.id, ang: normDeg(Math.atan2(t.ty, t.tx)) };
+      })
+      .sort((a, b) => a.ang - b.ang);
+    const memberIdx = ordered.map((o, i) => (best.ids.includes(o.id) ? i : -1)).filter((i) => i >= 0);
+    expect(memberIdx.length).toBe(best.ids.length);
+    expect(memberIdx[memberIdx.length - 1] - memberIdx[0]).toBe(best.ids.length - 1);
+  });
 
   it("聚焦布局：中心压到圆心，论点贴内圈、议题围外环，且都落进相机取景框", () => {
     const id = richestClusterId();
