@@ -52,6 +52,13 @@ export function labelTierFromK(k: number): LabelTier {
 /** 拖拽期间把模拟「温度」钉在 0.45（原型 d3.drag 的 alphaTarget(0.45) 等效）。 */
 const DRAG_ALPHA_TARGET = 0.45;
 
+/** 类型开关的文案与顺序（工具栏展示顺序 = 图层级从粗到细）。 */
+const KIND_TOGGLES: Array<{ kind: MapNodeKind; name: string; hint: string }> = [
+  { kind: "cluster", name: "主张簇", hint: "隐藏后只看议题层（缝合线随之消失，议题间冲突线保留）" },
+  { kind: "topic", name: "议题", hint: "隐藏后缝合线与议题间冲突线随之消失" },
+  { kind: "claim", name: "论点", hint: "骨架视图下论点本就不显示" },
+];
+
 /** 半径：cluster 是骨架要显眼，topic 次之，claim 最小（与原型 demo 一致）。 */
 function radiusFor(kind: MapNodeKind, weight: number, topicCount: number): number {
   if (kind === "cluster") return 13 + Math.min(topicCount * 2, 16);
@@ -451,6 +458,12 @@ export function ControversyMap() {
   const [showClaims, setShowClaims] = useState(false);
   const [showStructEdges, setShowStructEdges] = useState(false);
   /**
+   * 节点类型开关：被隐藏的 kind 整类从图上移除，端点被藏的边随之消失
+   * （makeLink 按「两端都在可见集」建边，天然成立）。
+   * 例：全量 + 隐藏议题 = 簇 + 论点 + member 边；骨架 + 隐藏簇 = 纯议题冲突图。
+   */
+  const [hiddenKinds, setHiddenKinds] = useState<ReadonlySet<MapNodeKind>>(new Set());
+  /**
    * 聚焦路径（root → … → 当前中心）：点节点下钻一层，只显示「该节点 + 一跳邻居」。
    * 数组即层级栈 —— 「返回上一级」弹一层，面包屑可跳级，空数组 = 全图。
    */
@@ -487,6 +500,7 @@ export function ControversyMap() {
     (
       withClaims: boolean,
       focusedId: string | null,
+      hidden: ReadonlySet<MapNodeKind>,
     ): { nodes: MapSimNode[]; links: MapSimLink[]; focus: FocusState | null } => {
       const prev = new Map(nodesRef.current.map((n) => [n.id, n]));
 
@@ -529,14 +543,14 @@ export function ControversyMap() {
         };
       };
 
-      /* ── 聚焦视图：该节点 + 一跳邻居（诱导子图） ── */
+      /* ── 聚焦视图：该节点 + 一跳邻居（诱导子图）；被隐藏的类型整类剔除 ── */
       if (focusedId) {
         const inView = new Set<string>([focusedId]);
         for (const e of CONTROVERSY_MAP.edges) {
           if (e.source === focusedId) inView.add(e.target);
           if (e.target === focusedId) inView.add(e.source);
         }
-        const nodes = CONTROVERSY_MAP.nodes.filter((n) => inView.has(n.id)).map(toSimNode);
+        const nodes = CONTROVERSY_MAP.nodes.filter((n) => inView.has(n.id) && !hidden.has(n.kind)).map(toSimNode);
         const byId = new Map(nodes.map((n) => [n.id, n]));
         const links: MapSimLink[] = [];
         for (const [i, e] of CONTROVERSY_MAP.edges.entries()) {
@@ -551,9 +565,9 @@ export function ControversyMap() {
         };
       }
 
-      /* ── 全图：骨架（默认）或全量 ── */
+      /* ── 全图：骨架（默认）或全量；再叠加类型开关过滤 ── */
       const nodes: MapSimNode[] = CONTROVERSY_MAP.nodes
-        .filter((n) => withClaims || n.kind !== "claim")
+        .filter((n) => (withClaims || n.kind !== "claim") && !hidden.has(n.kind))
         .map(toSimNode);
 
       const byId = new Map(nodes.map((n) => [n.id, n]));
@@ -666,7 +680,7 @@ export function ControversyMap() {
   useEffect(() => {
     const simulation = simulationRef.current;
     if (!simulation) return;
-    const { nodes, links, focus } = buildGraph(showClaims, focusId);
+    const { nodes, links, focus } = buildGraph(showClaims, focusId, hiddenKinds);
     focusRef.current = focus;
     nodesRef.current = nodes;
     nodesByIdRef.current = new Map(nodes.map((n) => [n.id, n]));
@@ -705,7 +719,7 @@ export function ControversyMap() {
 
     setSnapshot({ nodes, links: linkSnapshot });
     simulation.alpha(0.95).restart();
-  }, [buildGraph, focusId, showClaims]);
+  }, [buildGraph, focusId, showClaims, hiddenKinds]);
 
   /* ---------- 逐帧坐标写入 ---------- */
 
@@ -1068,6 +1082,38 @@ export function ControversyMap() {
   const nodeById = useMemo(() => new Map(CONTROVERSY_MAP.nodes.map((n) => [n.id, n])), []);
   const activeNode = activeId ? nodeById.get(activeId) ?? null : null;
 
+  /** 类型开关：切换显隐；藏掉聚焦中心则自动退出聚焦；会藏成空图的操作被拒绝。 */
+  const toggleKind = useCallback(
+    (kind: MapNodeKind): void => {
+      const focusNode = focusId ? nodeById.get(focusId) : undefined;
+      if (focusNode && focusNode.kind === kind) {
+        cameraIntentRef.current = "exit";
+        setFocusPath([]);
+        setSelectedId(null);
+      }
+      setHiddenKinds((prev) => {
+        const next = new Set(prev);
+        if (next.has(kind)) {
+          next.delete(kind);
+          return next;
+        }
+        // 防空图：藏掉这类之后还必须剩点东西（骨架模式论点本来就不上屏）
+        const restVisible = CONTROVERSY_MAP.nodes.some(
+          (n) => n.kind !== kind && (n.kind !== "claim" || showClaims) && !next.has(n.kind),
+        );
+        return restVisible ? new Set([...next, kind]) : prev;
+      });
+    },
+    [focusId, nodeById, showClaims],
+  );
+
+  /** 该开关是否应禁用：当前隐藏着（可恢复）则不禁；否则藏掉它不能把图藏空。 */
+  const kindGuardDisabled = (kind: MapNodeKind): boolean =>
+    !hiddenKinds.has(kind) &&
+    !CONTROVERSY_MAP.nodes.some(
+      (n) => n.kind !== kind && (n.kind !== "claim" || showClaims) && !hiddenKinds.has(n.kind),
+    );
+
   /** 详情浮层：论点 / 议题 / 主张簇三种形态（与原型 #panel 一致，数据缺 author 时显示 —）。 */
   const panel = useMemo(() => {
     if (!activeNode) return null;
@@ -1142,6 +1188,22 @@ export function ControversyMap() {
           </span>
         </div>
         <div className="controversy-map-actions">
+          {KIND_TOGGLES.map(({ kind, name, hint }) => {
+            const off = hiddenKinds.has(kind);
+            const disabled = kind === "claim" ? !showClaims && !off : kindGuardDisabled(kind);
+            return (
+              <button
+                key={kind}
+                type="button"
+                className={off ? "cm-kind-toggle is-off" : "cm-kind-toggle"}
+                disabled={disabled}
+                title={kind === "claim" && !showClaims ? "先展开全部论点后再隐藏" : hint}
+                onClick={() => toggleKind(kind)}
+              >
+                {off ? `显示${name}` : `隐藏${name}`}
+              </button>
+            );
+          })}
           <button
             type="button"
             onClick={() => {
@@ -1209,7 +1271,7 @@ export function ControversyMap() {
       ) : (
         <div className="cm-caption">
           默认骨架视图（簇 + 议题 + 缝合线 + 议题间冲突聚合线）；点任一节点可下钻到「该节点 + 相连节点」的
-          聚焦视图，再从顶部返回。悬停查看详情；拖动节点可固定，双击取消固定。
+          聚焦视图，再从顶部返回。悬停查看详情；拖动节点可固定，双击取消固定；顶部按钮可整类隐藏节点。
         </div>
       )}
 
@@ -1266,7 +1328,7 @@ export function ControversyMap() {
               加一层低透明度包络后，「这几个议题是一伙的」才成为一眼可见的事实。
               聚焦视图下不画：那时成员多半不全，包络会失真，局部也不需要分组背景。
             */}
-            {focusId === null && (
+            {focusId === null && !hiddenKinds.has("cluster") && !hiddenKinds.has("topic") && (
               <g className="cm-hulls">
                 {HULL_GROUPS.map((g) => (
                   <path

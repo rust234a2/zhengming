@@ -1318,6 +1318,18 @@ textarea {
   background: #f4f8ff;
 }
 
+/* 类型开关的「已隐藏」态：置灰 + 虚线边，与普通操作按钮区分 */
+.controversy-map-actions button.cm-kind-toggle.is-off {
+  opacity: 0.55;
+  border-style: dashed;
+  color: #64748b;
+}
+
+.controversy-map-actions button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .controversy-map-legend {
   position: absolute;
   left: 12px;

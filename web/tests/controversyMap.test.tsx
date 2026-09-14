@@ -739,6 +739,85 @@ describe("争议地图组件", () => {
   });
 });
 
+/* ────────── 3.5 节点类型开关 ────────── */
+
+describe("争议地图节点类型开关", () => {
+  const kindCount = (kind: string) => CONTROVERSY_MAP.nodes.filter((n) => n.kind === kind).length;
+
+  it("骨架下隐藏议题：只剩主张簇，缝合线与冲突聚合线随之消失，凸包不渲染", () => {
+    const { container, svg } = renderMap();
+    // 骨架模式下论点开关应禁用（论点本来就不显示）
+    const claimBtn = [...container.querySelectorAll("button")].find((b) =>
+      (b.textContent ?? "").includes("隐藏论点"),
+    );
+    expect(claimBtn?.disabled).toBe(true);
+
+    clickButton({ container }, "隐藏议题");
+    expect(svg.querySelectorAll('[data-node-kind="topic"]').length).toBe(0);
+    expect(svg.querySelectorAll('[data-node-kind="cluster"]').length).toBe(kindCount("cluster"));
+    // bridge 端点全是议题 → 整类消失；聚合冲突线的端点也是议题 → 消失
+    expect(svg.querySelectorAll('[data-relation="bridge"]').length).toBe(0);
+    expect(svg.querySelectorAll('[data-relation="rebuts"]').length).toBe(0);
+    // 议题藏掉后包络没有意义（成员不全），凸包层整个不渲染
+    expect(svg.querySelectorAll("[data-hull-id]").length).toBe(0);
+  });
+
+  it("骨架下隐藏主张簇：议题层保留，议题间冲突聚合线仍在；再藏议题会藏空 → 禁用", () => {
+    const { container, svg } = renderMap();
+    clickButton({ container }, "隐藏主张簇");
+    expect(svg.querySelectorAll('[data-node-kind="cluster"]').length).toBe(0);
+    expect(svg.querySelectorAll('[data-node-kind="topic"]').length).toBe(kindCount("topic"));
+    // 纯议题冲突图：红线聚合线保留，缝合线消失
+    expect(svg.querySelectorAll('[data-relation="rebuts"]').length).toBe(expectedAggregatedCount());
+    expect(svg.querySelectorAll('[data-relation="bridge"]').length).toBe(0);
+
+    const hideTopic = [...container.querySelectorAll("button")].find((b) =>
+      (b.textContent ?? "").includes("隐藏议题"),
+    );
+    expect(hideTopic?.disabled).toBe(true);
+  });
+
+  it("全量下隐藏议题 = 簇 + 论点 + member 边（复现「删议题层」形态）", () => {
+    const { container, svg } = renderMap();
+    clickButton({ container }, "展开全部论点");
+    clickButton({ container }, "隐藏议题");
+    expect(svg.querySelectorAll("[data-node-id]").length).toBe(
+      kindCount("cluster") + kindCount("claim"),
+    );
+    expect(svg.querySelectorAll('[data-relation="bridge"]').length).toBe(0);
+    // member 边端点是 论点+主张簇，都不在隐藏集里 → 打开归属边后应全量存在
+    clickButton({ container }, "显示归属边");
+    expect(svg.querySelectorAll('[data-relation="member"]').length).toBe(
+      CONTROVERSY_MAP.edges.filter((e) => e.relation === "member").length,
+    );
+    expect(svg.querySelectorAll('[data-relation="member"]').length).toBeGreaterThan(0);
+  });
+
+  it("隐藏聚焦中心自动退出聚焦，回到全图", () => {
+    const { container, svg } = renderMap();
+    const topicId = CONTROVERSY_MAP.nodes.find((n) => n.kind === "topic")!.id;
+    clickNode(svg, topicId);
+    expect(container.querySelector(".cm-focus-bar")).toBeTruthy();
+    clickButton({ container }, "隐藏议题");
+    expect(container.querySelector(".cm-focus-bar")).toBeNull();
+    expect(svg.querySelectorAll('[data-node-kind="topic"]').length).toBe(0);
+  });
+
+  it("开关可恢复：重新显示议题后节点、缝合线、凸包都回来", () => {
+    const { container, svg } = renderMap();
+    const topicsBefore = svg.querySelectorAll('[data-node-kind="topic"]').length;
+    const bridgesBefore = svg.querySelectorAll('[data-relation="bridge"]').length;
+    const hullsBefore = svg.querySelectorAll("[data-hull-id]").length;
+    expect(hullsBefore).toBeGreaterThan(0);
+
+    clickButton({ container }, "隐藏议题");
+    clickButton({ container }, "显示议题");
+    expect(svg.querySelectorAll('[data-node-kind="topic"]').length).toBe(topicsBefore);
+    expect(svg.querySelectorAll('[data-relation="bridge"]').length).toBe(bridgesBefore);
+    expect(svg.querySelectorAll("[data-hull-id]").length).toBe(hullsBefore);
+  });
+});
+
 /* ────────── 4. 聚焦视图（点击下钻 + 返回上一级） ────────── */
 
 describe("争议地图聚焦视图", () => {
