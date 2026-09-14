@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>争议地图 · 范式示例图集</title>
+<style>
+  :root { --ink: #1f2328; --muted: #5f6673; --line: #e3e6ea; --bg: #fbfcfe; --card: #ffffff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 48px 24px 72px; background: var(--bg); color: var(--ink);
+         font: 15px/1.7 system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+  header, main { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 24px; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.2px; }
+  .lede { color: var(--muted); font-size: 14px; margin: 0 0 10px; }
+  .meta { color: var(--muted); font-size: 13px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+  .meta code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+               background: #eef1f5; padding: 1px 5px; border-radius: 4px; }
+  figure { margin: 36px 0 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+           padding: 22px 24px 20px; }
+  figure img { display: block; width: 100%; height: auto; }
+  figcaption { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .n { display: inline-block; min-width: 22px; height: 22px; line-height: 22px; text-align: center;
+       background: #eef1f5; border-radius: 6px; font-size: 12px; font-weight: 600; color: #444a55;
+       margin-right: 8px; vertical-align: 1px; }
+  .t { font-size: 15px; font-weight: 600; }
+  .d { color: var(--muted); font-size: 13.5px; margin: 8px 0 0; }
+  .d a { color: #185fa5; text-decoration: none; border-bottom: 1px solid #cfd9e6; }
+  .d a:hover { border-bottom-color: #185fa5; }
+  .note { margin-top: 40px; padding: 18px 22px; background: #fdf7ea; border: 1px solid #f0e0bf;
+          border-radius: 12px; font-size: 13.5px; color: #5c4a1f; }
+  .note strong { font-weight: 600; }
+  .note ul { margin: 8px 0 0; padding-left: 20px; }
+  .note li { margin: 4px 0; }
+  footer { max-width: 860px; margin: 40px auto 0; color: var(--muted); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>争议地图 · 范式示例图集</h1>
+  <p class="lede">九个可借鉴的图形设计范式，每个都标明「解决什么问题」与「真实案例在哪」。</p>
+  <p class="meta">配套文档：<code>docs/design/controversy-map-VISUAL-REFERENCES.md</code>　｜　图为原理示意，非真实案例截图</p>
+</header>
+<main>
+
+<figure>
+  <img src="01-convex-hull.svg" alt="凸包分组前后对比">
+  <figcaption>
+    <span class="n">1</span><span class="t">凸包分组</span>
+    <p class="d">解决「这些节点是一伙的」看不出来的问题。给每组建一个包络多边形，低透明度填色，聚类自己就显形了。成本最低、收益最直接。
+      参考：<a href="https://bl.ocks.org/larskotthoff/4e5dbf8be2c83631a05b">bl.ocks 凸包分组实现</a>。
+      注意包络只是布局产物，不是数据归属，图例必须写明。</p>
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="02-edge-bundling.svg" alt="直线与分层边捆绑的对比">
+  <figcaption>
+    <span class="n">2</span><span class="t">分层边捆绑</span>
+    <p class="d">解决边太多糊成毛线团。让边沿层级路由，同一走向的边自然聚成河流，跨组流量一眼可见。
+      参考：<a href="https://observablehq.com/@d3/hierarchical-edge-bundling">D3 官方实现</a>、<a href="https://syntagmatic.github.io/moonshine/d3-power-tools/edge-bundling.html">tension 参数讲解</a>。
+      已知副作用是「假河」——不同类的边混捆会被读成同一种关系。</p>
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="03-focus-lens.svg" alt="替换式下钻与透镜式的对比">
+  <figcaption>
+    <span class="n">3</span><span class="t">聚焦透镜</span>
+    <p class="d">解决下钻时「不知道自己在哪」。不把无关节点移走，只降低透明度，全局方位感就保住了。
+      参考：<a href="http://fandu.org/papers/du2017chi-2.pdf">iSphere（CHI 2017）</a>、<a href="https://queue.acm.org/detail.cfm?id=2146416">ACM Queue 交互综述</a>。</p>
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="04-semantic-zoom.svg" alt="语义缩放的三档视图">
+  <figcaption>
+    <span class="n">4</span><span class="t">语义缩放</span>
+    <p class="d">解决「一屏塞不下」也不该塞。缩放时改变的不只是尺寸，还有显示什么——远景看簇，近景看论点，中间自动过渡。
+      进一步可用兴趣度分数决定谁浮现、谁淡出，不必让用户手动切档。</p>
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="05-radial-chord.svg" alt="圆周弦图布局">
+  <figcaption>
+    <span class="n">5</span><span class="t">圆周布局</span>
+    <p class="d">节点多到力导向排不开时的备选：沿环均匀排布，关系走弧线，空间利用率最高且天然不重叠。
+      代价是丢掉「距离≈语义距离」这一直觉。参考：<a href="https://www.sohu.com/a/233394507_416207">弧长连接图与弦图案例</a>。</p>
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="06-container-frame.svg" alt="容器框的表达能力与盲区">
+  <figcaption>
+    <span class="n">6</span><span class="t">容器框</span>
+    <p class="d">用「框」表达归属，归属一眼可见——但框与框之间的关系无处安放，这是学术界已有结论的短板。
+      对我们的启示是只借它的边框语言（也就是第 1 条的凸包），关系仍然必须用线表达。
+      参考：<a href="https://www.cs.cmu.edu/~bmclaren/pubs/ScheuerEtAl-CompSupportedArgStateOfArt-IJCSCL2010.pdf">论证可视化综述</a>。</p>
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="07-weather-map.svg" alt="气象图语法的等值线表达">
+  <figcaption>
+    <span class="n">7</span><span class="t">气象图语法</span>
+    <p class="d">把抽象的「讨论密度」翻译成读者已经会读的语言：等值线画密度，H 标出最热的议题簇，不需要先教图例。
+      参考：<a href="https://rodighiero.github.io/Edgelands/">Weather Map 在线实例</a>。</p>
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="08-small-multiples.svg" alt="八域小倍数对比">
+  <figcaption>
+    <span class="n">8</span><span class="t">小倍数</span>
+    <p class="d">大图看结构，小图看对比。同一套视觉语言切成八份并排，每个域的争议结构复杂度立刻可比。</p>
+  </figcaption>
+</figure>
+
+<figure>
+  <img src="09-encoding-channels.svg" alt="四个视觉编码通道">
+  <figcaption>
+    <span class="n">9</span><span class="t">视觉编码通道</span>
+    <p class="d">颜色编码类别、形状编码类型、大小编码重要性、粗细编码强度——原则是「同色必同义」，且每个通道都必须对应一个真实字段。
+      参考：<a href="https://yfiles.com/knowledge-graph/guide">yFiles 知识图谱设计指南</a>。</p>
+  </figcaption>
+</figure>
+
+<div class="note">
+  <strong>三条不要做的</strong>
+  <ul>
+    <li>不引入不编码任何信息的装饰——发光、粒子、渐变本身不是设计感，是噪音。</li>
+    <li>不混类捆绑边——bridge 与 rebuts 捆在一起会出现「假河」。</li>
+    <li>不为配色新增字段——任何视觉维度都必须来自真实数据，否则踩溯源红线。</li>
+  </ul>
+</div>
+
+</main>
+<footer>争议地图模块 · 设计参考图集　｜　图为原理示意，真实案例请点各条目外链</footer>
+</body>
+</html>

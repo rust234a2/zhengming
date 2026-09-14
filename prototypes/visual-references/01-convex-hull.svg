@@ -1,0 +1,39 @@
+<svg viewBox="0 0 680 240" width="100%" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>凸包分组前后对比</title>
+  <desc>左图是散落的节点，看不出分组；右图是同样的节点加上分组凸包后，两组归属一眼可见。</desc>
+  <style>
+    .th { font-family: system-ui, -apple-system, sans-serif; font-size: 14px; font-weight: 500; fill: #2C2C2A; }
+    .ts { font-family: system-ui, -apple-system, sans-serif; font-size: 12px; fill: #5F5E5A; }
+  </style>
+  <text class="th" x="40" y="46">无凸包</text>
+  <text class="ts" x="40" y="64">看不出哪几个是一组</text>
+  <circle cx="86" cy="116" r="5" fill="#378ADD"/>
+  <circle cx="124" cy="104" r="5" fill="#378ADD"/>
+  <circle cx="146" cy="138" r="5" fill="#378ADD"/>
+  <circle cx="112" cy="170" r="5" fill="#378ADD"/>
+  <circle cx="78" cy="150" r="5" fill="#378ADD"/>
+  <circle cx="128" cy="178" r="5" fill="#378ADD"/>
+  <circle cx="206" cy="112" r="5" fill="#E24B4A"/>
+  <circle cx="244" cy="104" r="5" fill="#E24B4A"/>
+  <circle cx="266" cy="136" r="5" fill="#E24B4A"/>
+  <circle cx="226" cy="172" r="5" fill="#E24B4A"/>
+  <circle cx="190" cy="148" r="5" fill="#E24B4A"/>
+  <circle cx="242" cy="174" r="5" fill="#E24B4A"/>
+  <text class="th" x="370" y="46">有凸包</text>
+  <text class="ts" x="370" y="64">分组归属一眼可见</text>
+  <polygon points="394,114 408,92 442,92 478,120 482,150 460,186 420,190 392,164" fill="#E6F1FB" fill-opacity="0.75" stroke="#85B7EB" stroke-width="0.5" stroke-linejoin="round"/>
+  <polygon points="508,110 536,90 578,90 608,124 602,158 570,186 530,184 506,148" fill="#FCEBEB" fill-opacity="0.75" stroke="#F09595" stroke-width="0.5" stroke-linejoin="round"/>
+  <circle cx="416" cy="116" r="5" fill="#378ADD"/>
+  <circle cx="454" cy="104" r="5" fill="#378ADD"/>
+  <circle cx="476" cy="138" r="5" fill="#378ADD"/>
+  <circle cx="442" cy="170" r="5" fill="#378ADD"/>
+  <circle cx="408" cy="150" r="5" fill="#378ADD"/>
+  <circle cx="458" cy="178" r="5" fill="#378ADD"/>
+  <circle cx="536" cy="112" r="5" fill="#E24B4A"/>
+  <circle cx="574" cy="104" r="5" fill="#E24B4A"/>
+  <circle cx="596" cy="136" r="5" fill="#E24B4A"/>
+  <circle cx="556" cy="172" r="5" fill="#E24B4A"/>
+  <circle cx="520" cy="148" r="5" fill="#E24B4A"/>
+  <circle cx="572" cy="174" r="5" fill="#E24B4A"/>
+  <text class="ts" x="40" y="220">凸包是布局的产物，不是数据的归属 — 图例必须写明</text>
+</svg>
