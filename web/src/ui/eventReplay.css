@@ -1,0 +1,615 @@
+/* ═══════════════════════════════════════════════════════════════════
+   事件推演 · 单人扮演界面样式（?view=event）
+
+   自包含约定：所有变量定义在根类 .event-replay（--er-*），
+   不依赖 .debate-app 的任何变量 —— 与 .debate-app / .controversy-map
+   的隔离方式一致。配色沿用争鸣视觉语言（墨 #111827 / 蓝 #0f6fe5）。
+
+   关键语义：
+   - .er-tag-fact（史实，蓝底）  外部事件节拍 / 原作揭示区块
+   - .er-tag-fiction（架空，金褐底） 玩家路径相关的所有叙事
+   - .er-canon 独立灰底区块 —— 原作揭示永远与推演内容视觉分离
+   ═══════════════════════════════════════════════════════════════════ */
+
+.event-replay {
+  --er-ink: #111827;
+  --er-muted: #64748b;
+  --er-line: #d9e2ee;
+  --er-panel: #ffffff;
+  --er-canvas: #fbfcfe;
+  --er-blue: #0f6fe5;
+  --er-blue-soft: #e8f1fd;
+  --er-gold: #8a5a00;
+  --er-gold-soft: #fdf3df;
+  --er-danger: #b3261e;
+  --er-danger-soft: #fdecea;
+
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--er-canvas);
+  color: var(--er-ink);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+/* ── 顶栏 ── */
+
+.er-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--er-line);
+  background: var(--er-panel);
+  flex: 0 0 auto;
+}
+
+.er-topbar h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.er-subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--er-muted);
+}
+
+.er-event-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--er-muted);
+}
+
+.er-event-picker select {
+  font: inherit;
+  padding: 5px 8px;
+  border: 1px solid var(--er-line);
+  border-radius: 8px;
+  background: var(--er-panel);
+  color: var(--er-ink);
+}
+
+/* ── 通用元素 ── */
+
+.er-degraded {
+  margin: 10px 20px 0;
+  padding: 8px 12px;
+  border: 1px dashed var(--er-gold);
+  border-radius: 8px;
+  background: var(--er-gold-soft);
+  color: var(--er-gold);
+  font-size: 12px;
+}
+
+.er-hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--er-muted);
+}
+
+.er-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.er-tag-fact {
+  background: var(--er-blue-soft);
+  color: var(--er-blue);
+}
+
+.er-tag-fiction {
+  background: var(--er-gold-soft);
+  color: var(--er-gold);
+}
+
+.er-error {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border: 1px solid var(--er-danger);
+  border-radius: 10px;
+  background: var(--er-danger-soft);
+  color: var(--er-danger);
+}
+
+.er-error p {
+  margin: 0 0 8px;
+}
+
+.er-error button {
+  padding: 5px 14px;
+  border: 1px solid var(--er-danger);
+  border-radius: 8px;
+  background: var(--er-panel);
+  color: var(--er-danger);
+  cursor: pointer;
+}
+
+.er-partial {
+  font-size: 12px;
+  color: var(--er-muted);
+}
+
+/* ── 大厅（选角色位） ── */
+
+.er-lobby {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.er-card {
+  background: var(--er-panel);
+  border: 1px solid var(--er-line);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+
+.er-event-head h2 {
+  margin: 0 0 8px;
+  font-size: 19px;
+}
+
+.er-background {
+  margin: 0 0 10px;
+}
+
+.er-adapted {
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px dashed var(--er-line);
+  font-size: 12px;
+  color: var(--er-muted);
+}
+
+.er-lobby-positions {
+  margin-top: 20px;
+}
+
+.er-lobby-positions h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.er-position-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.er-position-card {
+  width: 100%;
+  text-align: left;
+  background: var(--er-panel);
+  border: 1px solid var(--er-line);
+  border-radius: 14px;
+  padding: 16px 18px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.er-position-card:hover {
+  border-color: var(--er-blue);
+  box-shadow: 0 2px 10px rgba(15, 111, 229, 0.12);
+}
+
+.er-position-card h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.er-position-card dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  font-size: 12px;
+}
+
+.er-position-card dt {
+  color: var(--er-muted);
+}
+
+.er-position-card dd {
+  margin: 0;
+}
+
+/* ── 对局主区 ── */
+
+.er-board {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 16px;
+  padding: 16px 20px 20px;
+  overflow: hidden;
+}
+
+.er-main {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+.er-scene,
+.er-timeline,
+.er-ending {
+  background: var(--er-panel);
+  border: 1px solid var(--er-line);
+  border-radius: 14px;
+  padding: 16px 20px;
+}
+
+.er-scene-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.er-scene-head h2,
+.er-timeline h2,
+.er-ending h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.er-act-text {
+  margin: 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--er-blue);
+  background: var(--er-blue-soft);
+  border-radius: 0 10px 10px 0;
+  font-size: 13px;
+}
+
+.er-narrative {
+  margin: 14px 0 0;
+  font-size: 14px;
+}
+
+.er-caret {
+  display: inline-block;
+  width: 7px;
+  height: 15px;
+  margin-left: 2px;
+  vertical-align: -2px;
+  background: var(--er-blue);
+  animation: er-blink 0.9s steps(1) infinite;
+}
+
+@keyframes er-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.er-generating {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--er-muted);
+}
+
+/* ── 动作卡 ── */
+
+.er-move-list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.er-move-button {
+  width: 100%;
+  text-align: left;
+  background: var(--er-panel);
+  border: 1px solid var(--er-line);
+  border-radius: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.15s ease;
+}
+
+.er-move-button:hover:not(:disabled) {
+  border-color: var(--er-blue);
+}
+
+.er-move-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.er-move-text {
+  font-size: 14px;
+}
+
+.er-move-cost {
+  font-size: 12px;
+  color: var(--er-gold);
+}
+
+.er-move-locked {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--er-muted);
+}
+
+.er-assumption {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--er-muted);
+}
+
+.er-assumption summary {
+  cursor: pointer;
+}
+
+.er-assumption p {
+  margin: 6px 0 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--er-line);
+}
+
+/* ── 时间线 ── */
+
+.er-timeline ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.er-timeline li {
+  padding: 10px 14px;
+  border: 1px solid var(--er-line);
+  border-radius: 10px;
+  background: var(--er-canvas);
+}
+
+.er-timeline li[data-current="true"] {
+  border-color: var(--er-blue);
+  background: var(--er-panel);
+}
+
+.er-timeline h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+
+.er-timeline-act {
+  margin: 0;
+  font-size: 12px;
+  color: var(--er-muted);
+}
+
+.er-timeline-played {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--er-line);
+  font-size: 13px;
+}
+
+.er-timeline-played p {
+  margin: 0 0 4px;
+}
+
+.er-timeline-empty {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--er-muted);
+}
+
+/* ── 结局与原作揭示 ── */
+
+.er-ending-text {
+  margin: 0 0 10px;
+}
+
+.er-ending-note {
+  margin: 10px 0;
+  font-size: 12px;
+  color: var(--er-muted);
+}
+
+.er-restart {
+  padding: 8px 18px;
+  border: 1px solid var(--er-line);
+  border-radius: 10px;
+  background: var(--er-panel);
+  cursor: pointer;
+}
+
+.er-restart:hover {
+  border-color: var(--er-blue);
+  color: var(--er-blue);
+}
+
+.er-canon-entry {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--er-line);
+}
+
+.er-canon-entry > button {
+  padding: 8px 18px;
+  border: 1px solid var(--er-line);
+  border-radius: 10px;
+  background: var(--er-panel);
+  cursor: pointer;
+}
+
+.er-canon-entry > button:hover:not(:disabled) {
+  border-color: var(--er-blue);
+  color: var(--er-blue);
+}
+
+/* 原作揭示：独立灰底区块 —— 与架空推演在视觉上彻底分离 */
+.er-canon {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--er-line);
+  border-radius: 12px;
+  background: #f1f4f8;
+}
+
+.er-canon h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.er-canon ol {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.er-canon h4 {
+  margin: 0 0 2px;
+  font-size: 12px;
+  color: var(--er-blue);
+}
+
+.er-canon p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.er-sources {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.er-sources a {
+  color: var(--er-blue);
+  font-size: 12px;
+}
+
+.er-source-time {
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--er-muted);
+}
+
+/* ── 侧栏（账本 / 关系 / 处境） ── */
+
+.er-side {
+  overflow-y: auto;
+  min-height: 0;
+  background: var(--er-panel);
+  border: 1px solid var(--er-line);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+
+.er-side h2 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+
+.er-side h2 + .er-hint {
+  margin-bottom: 10px;
+}
+
+.er-side h2:not(:first-child) {
+  margin-top: 18px;
+}
+
+.er-ledger {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.er-ledger li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.er-ledger strong[data-sign="up"] {
+  color: var(--er-gold);
+}
+
+.er-ledger strong[data-sign="down"] {
+  color: var(--er-danger);
+}
+
+.er-ledger strong[data-sign="flat"] {
+  color: var(--er-muted);
+  font-weight: 400;
+}
+
+.er-relations {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.er-relations li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.er-position-brief {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
+.er-review-note {
+  margin: 18px 0 0;
+  padding-top: 12px;
+  border-top: 1px dashed var(--er-line);
+  font-size: 11px;
+  color: var(--er-muted);
+}
+
+/* ── 窄屏 ── */
+
+@media (max-width: 900px) {
+  .er-board {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .er-side {
+    overflow: visible;
+  }
+}

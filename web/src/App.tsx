@@ -1,10 +1,11 @@
 /**
  * 争鸣桌面端路由壳。
  *
- * 三个平级模块，靠 `?view=` 切换（三个入口互相可跳转，链接可直接分享）：
+ * 四个平级模块，靠 `?view=` 切换（入口互相可跳转，链接可直接分享）：
  *   ?view=debate / 无参数   辩论树（顶栏可切换 缩进树 | 争议地图）
  *   ?view=map              跨议题争议地图（d3 力导向）
  *   ?view=room             辩论间（真实多人 + Host LLM，需 zhengming-server）
+ *   ?view=event            事件推演（单人历史角色扮演，Host LLM 生成推演）
  *
  * 辩论间的邀请链接形如 `?view=room&room=room-xxxxxxxx`，
  * 对方打开后会自动坐到空着的那个席位（见 ui/DebateRoom.tsx）。
@@ -13,6 +14,7 @@
 import { ControversyMap } from "./ui/ControversyMap";
 import { DebateRoom } from "./ui/DebateRoom";
 import { DebateTreePrototype } from "./ui/DebateTreePrototype";
+import { EventReplay } from "./ui/EventReplay";
 
 function readView(): string | null {
   if (typeof window === "undefined") return null;
@@ -34,6 +36,10 @@ export function App() {
   if (view === "room") {
     // 辩论间自带三栏布局与自己的顶栏，不要再套一层内边距容器
     return <DebateRoom />;
+  }
+  if (view === "event") {
+    // 事件推演同样自带顶栏与全屏布局，直接渲染
+    return <EventReplay />;
   }
   if (view === "map") {
     return (
