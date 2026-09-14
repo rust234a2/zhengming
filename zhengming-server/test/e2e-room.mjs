@@ -17,6 +17,23 @@ import { createServer } from "../server.mjs";
 import { OPCODE, FrameParser } from "../lib/ws.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
+const useRealHost = process.argv.includes("--real-host") || process.env.ZHENGMING_E2E_REAL_HOST === "1";
+
+async function deterministicHost(capability, params, options) {
+  if (capability !== "evaluate") throw new Error(`unexpected capability in e2e: ${capability}`);
+  const answers = params.transcript.filter((turn) => turn.authorId === "user" && turn.kind === "answer").length;
+  return {
+    ok: true,
+    capability,
+    requestId: options.requestId,
+    result: {
+      dims: { 立论: 76, 论据: 72, 逻辑: 74, 回应: 68 + answers * 6, 表达: 78, 规范: 88 },
+      total: 76,
+      grounds: [{ dim: "回应", quote: "回答原文", reason: `完成 ${answers} 组对应问答` }],
+      verdict: "按完整发言记录生成的中立结构反馈。",
+    },
+  };
+}
 
 class Client {
   constructor(port) {
@@ -124,12 +141,17 @@ const step = (n, text) => log(`\n[${n}] ${text}`);
 
 async function main() {
   const storeDir = await fs.mkdtemp(path.join(os.tmpdir(), "zm-e2e-"));
-  const ctx = await createServer({ port: 0, storeDir });
+  const ctx = await createServer({
+    port: 0,
+    storeDir,
+    hostInvoker: useRealHost ? undefined : deterministicHost,
+  });
   await new Promise((resolve) => ctx.server.listen(0, "127.0.0.1", resolve));
   const port = ctx.server.address().port;
 
   log(`服务端口 ${port}`);
   log(`领域模块: ${ctx.domainSource || "缺失"}`);
+  log(`终局评分: ${useRealHost ? "StepFun 真实上游" : "确定性测试替身"}`);
   log(`议题数: ${ctx.topics.length}（成对 ${ctx.topics.filter((t) => t.paired).length}）`);
   if (!ctx.domainSource) {
     log("！！领域模块未加载，后续动作会被拒");
@@ -182,12 +204,16 @@ async function main() {
   const afterCross1 = await con.waitState((s) => s.phase === "crossAsk" && s.turnSeat === "con");
   log(`   第一轮质询闭环 · 轮到 ${afterCross1.turnSeat}`);
 
-  step(5, "② 质询轮：con 问 → pro 答 → con 指出回避");
+  step(5, "② 质询轮：con 问 → pro 答 → con 追问至上限后自动推进");
   con.send({ type: "action", roomId, action: { kind: "ask", targetItem: "理由 1", question: "需求定义为什么无法被工具承担？" } });
   await pro.waitState((s) => s.phase === "crossAnswer" && s.turnSeat === "pro");
   pro.send({ type: "action", roomId, action: { kind: "answer", text: "因为需求是利益相关方协商的产物，工具只能承接已定型的表述。" } });
   await con.waitState((s) => s.phase === "crossReact" && s.turnSeat === "con");
-  con.send({ type: "action", roomId, action: { kind: "react", reaction: "evade" } });
+  con.send({ type: "action", roomId, action: { kind: "react", reaction: "press" } });
+  await con.waitState((s) => s.phase === "crossAsk" && s.turnSeat === "con");
+  con.send({ type: "action", roomId, action: { kind: "ask", targetItem: "理由 1", question: "这些协商为何不能由工具辅助完成？" } });
+  await pro.waitState((s) => s.phase === "crossAnswer" && s.turnSeat === "pro");
+  pro.send({ type: "action", roomId, action: { kind: "answer", text: "工具可以辅助整理，但责任主体仍须在冲突目标之间作出取舍并承担后果。" } });
   const afterFree = await pro.waitState((s) => s.phase === "free");
   log(`   两轮质询走完 · phase=${afterFree.phase}`);
 
@@ -212,14 +238,21 @@ async function main() {
   con.send({ type: "action", roomId, action: { kind: "submitClosing", text: "分歧在需求定义的归属。按我的标准，职业形态已经改变。" } });
 
   step(8, "⑤ 终局：等待 settled 与报告");
-  const settled = await pro.waitState((s) => s.phase === "settled" && Boolean(s.report));
+  const settled = await pro.waitState(
+    (s) => s.phase === "settled" && Boolean(s.report),
+    useRealHost ? 75_000 : 4_000,
+  );
   const report = settled.report;
   log(`   phase=${settled.phase} · completed=${report.completed}`);
   log(`   质询记录 ${report.crossRecords.length} 条 · 修正 ${report.revisions.length} 条 · 分歧 ${report.openQuestions.length} 条`);
   log(`   段位结算: ${report.settlement.entries.map((e) => `${e.label} ${e.amount > 0 ? "+" : ""}${e.amount}`).join(" / ")} = ${report.settlement.total} MP`);
   log(`   当前段位: ${report.settlement.tier}（${report.settlement.mp} MP）`);
   log(`   Host 降级标记: ${report.hostDegraded}`);
+  if (report.hostDegraded) log(`   Host 降级原因: ${settled.host?.reason || "未提供"}`);
   log(`   议题: ${report.topic.title.slice(0, 40)}…（真实作者 ${report.topic.pro.author} / ${report.topic.con.author}）`);
+  if (!report.profiles.pro || !report.profiles.con) {
+    throw new Error("终局评分没有写入双方六维画像");
+  }
 
   step(9, "报告落盘回读");
   // 服务端在广播 settled 快照**之前**已完成落盘，所以这里文件应已就绪
@@ -246,7 +279,7 @@ async function main() {
   con.close();
   await ctx.close();
 
-  const ok = hits.length === 0 && report.completed;
+  const ok = hits.length === 0 && report.completed && (!useRealHost || !report.hostDegraded);
   log(`\n${ok ? "✓ 全部通过" : "✗ 存在问题"}`);
   process.exit(ok ? 0 : 1);
 }

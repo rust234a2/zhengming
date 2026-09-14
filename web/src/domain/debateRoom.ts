@@ -27,7 +27,6 @@ import {
   type MpSettlement,
   type OpeningBrief,
   type RankedCandidate,
-  type Reaction,
   type RoomAction,
   type RoomReport,
   type RoomState,
@@ -51,29 +50,23 @@ export function tierOf(mp: number): string {
 }
 
 /**
- * 段位结算（PRD §7）。只有三条规则，**没有任何胜负奖励**。
+ * 段位结算（PRD §7）。只按完成/离席结算，**没有任何胜负奖励**。
  *
- * @param acceptedAnswers 本场本方质询回答被对方「接受」的次数
  * @param completed 是否走满五阶段
  * @param left 是否中途离席
  * @param previousMp 进场前累计 MP
  */
 export function settleMp({
-  acceptedAnswers = 0,
   completed = false,
   left = false,
   previousMp = 0,
 }: {
-  acceptedAnswers?: number;
   completed?: boolean;
   left?: boolean;
   previousMp?: number;
 }): MpSettlement {
   const entries: { label: string; amount: number }[] = [];
   if (completed) entries.push({ label: "完成完整对局（五阶段走满）", amount: MP_RULES.completeRoom });
-  if (acceptedAnswers > 0) {
-    entries.push({ label: "质询回答被对方接受", amount: MP_RULES.answerAccepted * acceptedAnswers });
-  }
   if (left) entries.push({ label: "中途离席", amount: MP_RULES.leavePenalty });
 
   const total = entries.reduce((sum, entry) => sum + entry.amount, 0);
@@ -186,6 +179,14 @@ function withTranscript(state: RoomState, turn: Turn): RoomState {
   return { ...state, transcript: [...state.transcript, turn] };
 }
 
+function advanceAfterCross(state: RoomState, asker: SeatId): RoomState {
+  const askerSet = new Set(state.crossRecords.map((record) => record.asker));
+  if (askerSet.has("pro") && askerSet.has("con")) {
+    return { ...state, phase: "free", turnSeat: null };
+  }
+  return { ...state, phase: "crossAsk", turnSeat: opponentOf(asker) };
+}
+
 /* ═══════════════════ 阶段跃迁 ═══════════════════ */
 
 /**
@@ -193,7 +194,7 @@ function withTranscript(state: RoomState, turn: Turn): RoomState {
  *
  * 不变量（单测覆盖）：
  *  - 理由至少 1 条
- *  - 继续追问限 1 次
+ *  - 每方最多 2 问；第 2 问回答后自动推进
  *  - 每方自由发言 1 次
  *  - 质询一问一答
  *  - 轮次走满即 settled
@@ -335,11 +336,20 @@ export function transition(state: RoomState, actor: SeatId, action: RoomAction):
       if (!last) {
         return fail("NO_QUESTION", "目前没有待回答的质询。");
       }
-      records[records.length - 1] = { ...last, answer: action.text.trim() };
+      const reachedQuestionLimit = state.pressedBy.includes(last.asker);
+      records[records.length - 1] = {
+        ...last,
+        answer: action.text.trim(),
+        closedBy: reachedQuestionLimit ? "questionLimit" : last.closedBy,
+      };
       const next = withTranscript(state, makeTurn(state.roomId, actor, "answer", action.text.trim()));
+      const answered = { ...next, crossRecords: records };
+      if (reachedQuestionLimit) {
+        return { ok: true, state: advanceAfterCross(answered, last.asker) };
+      }
       return {
         ok: true,
-        state: { ...next, crossRecords: records, phase: "crossReact", turnSeat: last.asker },
+        state: { ...answered, phase: "crossReact", turnSeat: last.asker },
       };
     }
 
@@ -350,8 +360,8 @@ export function transition(state: RoomState, actor: SeatId, action: RoomAction):
       if (state.turnSeat !== actor) {
         return fail("NOT_YOUR_TURN", "还没轮到你做反应。");
       }
-      if (!["accept", "press", "evade"].includes(action.reaction)) {
-        return fail("VALIDATION", "反应必须是 accept / press / evade 三选一。");
+      if (!["accept", "press"].includes(action.reaction)) {
+        return fail("VALIDATION", "反应必须是 accept 或 press。");
       }
       if (action.reaction === "press" && state.pressedBy.includes(actor)) {
         return fail("PRESS_LIMIT", "继续追问每方限 1 次——你已经用过了。");
@@ -359,7 +369,12 @@ export function transition(state: RoomState, actor: SeatId, action: RoomAction):
       const records = [...state.crossRecords];
       const last = records[records.length - 1];
       if (!last) return fail("NO_QUESTION", "目前没有待处理的质询。");
-      records[records.length - 1] = { ...last, reaction: action.reaction, pressed: action.reaction === "press" };
+      records[records.length - 1] = {
+        ...last,
+        reaction: action.reaction,
+        pressed: action.reaction === "press",
+        closedBy: action.reaction === "accept" ? "accepted" : last.closedBy,
+      };
 
       const pressedBy =
         action.reaction === "press" ? [...state.pressedBy, actor] : state.pressedBy;
@@ -370,13 +385,8 @@ export function transition(state: RoomState, actor: SeatId, action: RoomAction):
         return { ok: true, state: { ...next, phase: "crossAsk", turnSeat: actor } };
       }
 
-      // 接受 / 指出回避 → 本次质询闭环。双方各一次提问权 → 两次记录后进自由对辩
-      const askerSet = new Set(records.map((r) => r.asker));
-      if (askerSet.has("pro") && askerSet.has("con")) {
-        return { ok: true, state: { ...next, phase: "free", turnSeat: null } };
-      }
-      // 换另一方提问
-      return { ok: true, state: { ...next, phase: "crossAsk", turnSeat: opponentOf(actor) } };
+      // 接受只结束本方质询，不表示同意对方立场；是否回避由终局 AI 评价
+      return { ok: true, state: advanceAfterCross(next, actor) };
     }
 
     case "freeSpeak": {
@@ -503,17 +513,8 @@ export function buildReport(
   const consensus = countByFreeType(state, "寻共识");
   const acknowledged = countByFreeType(state, "承认");
 
-  const openQuestions = state.crossRecords
-    .filter((record) => record.reaction === "evade")
-    .map((record) => `${opponentOf(record.asker) === "pro" ? "正方" : "反方"}对「${record.targetItem}」的回应被指出回避：${record.question}`);
-
-  const acceptedBySeat: Record<SeatId, number> = { pro: 0, con: 0 };
-  state.crossRecords.forEach((record) => {
-    if (record.reaction === "accept" && record.asker) {
-      // 被接受的是回答方 —— 即提问方的对手
-      acceptedBySeat[opponentOf(record.asker)] += 1;
-    }
-  });
+  // 不接受对手的人工「回避」裁决；未决问题由终局 AI 对照完整问答生成。
+  const openQuestions: string[] = [];
 
   const profiles: Record<SeatId, number[] | null> = {
     pro: state.seats.pro?.profile ?? null,
@@ -534,7 +535,6 @@ export function buildReport(
     grounds: [],
     verdict: "",
     settlement: settleMp({
-      acceptedAnswers: acceptedBySeat[state.seats.pro ? "pro" : "con"],
       completed,
       left: Boolean(leftBy),
     }),

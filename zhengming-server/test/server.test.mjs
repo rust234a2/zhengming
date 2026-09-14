@@ -16,7 +16,8 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import test, { after, before } from "node:test";
 
-import { createServer } from "../server.mjs";
+import { createServer, evaluateSettledRoom } from "../server.mjs";
+import { invokeHost } from "../lib/host.mjs";
 import { OPCODE, FrameParser, encodeFrame } from "../lib/ws.mjs";
 
 let ctx;
@@ -128,7 +129,12 @@ class TestWsClient {
 
 before(async () => {
   const storeDir = await fs.mkdtemp(path.join(os.tmpdir(), "zhengming-rooms-"));
-  ctx = await createServer({ port: 0, storeDir });
+  ctx = await createServer({
+    port: 0,
+    storeDir,
+    // 普通 HTTP/WS 回归固定走无 Key 降级；真实联网只由 env.test.mjs 负责。
+    hostInvoker: (capability, params, options) => invokeHost(capability, params, { ...options, apiKey: null }),
+  });
   await new Promise((resolve) => ctx.server.listen(0, "127.0.0.1", resolve));
   wsPort = ctx.server.address().port;
   baseUrl = `http://127.0.0.1:${wsPort}`;
@@ -217,6 +223,75 @@ test("POST /api/rooms 建房，GET /api/rooms/:id 可回读", async () => {
 test("GET 不存在的房间 → 404", async () => {
   const res = await fetch(`${baseUrl}/api/rooms/room-does-not-exist`);
   assert.equal(res.status, 404);
+});
+
+test("终局分别调用 Host 评价双方，并把席位视角映射为 user", async () => {
+  const calls = [];
+  const state = {
+    roomId: "room-evaluate-test",
+    phase: "settled",
+    host: { degraded: false },
+    transcript: [
+      { turnId: "q1", authorId: "pro", kind: "question", text: "依据是什么？" },
+      { turnId: "a1", authorId: "con", kind: "answer", text: "依据来自公开报告。" },
+      { turnId: "r1", authorId: "pro", kind: "reaction", text: "接受回答" },
+    ],
+    report: {
+      profiles: { pro: null, con: null },
+      grounds: [],
+      verdict: "",
+      hostDegraded: false,
+    },
+  };
+  const hostInvoker = async (capability, params, options) => {
+    calls.push({ capability, params, options });
+    const evaluatedSeat = options.requestId.endsWith("-pro") ? "pro" : "con";
+    return {
+      ok: true,
+      result: {
+        dims: { 立论: 71, 论据: 72, 逻辑: 73, 回应: evaluatedSeat === "pro" ? 64 : 84, 表达: 75, 规范: 76 },
+        grounds: [{ dim: "回应", quote: evaluatedSeat === "pro" ? "依据是什么" : "公开报告", reason: "对照问答评价" }],
+        verdict: "按完整发言记录生成的中立结构反馈。",
+      },
+    };
+  };
+
+  const evaluated = await evaluateSettledRoom(state, hostInvoker);
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].capability, "evaluate");
+  assert.equal(calls[0].params.transcript[0].authorId, "user");
+  assert.equal(calls[1].params.transcript[1].authorId, "user");
+  assert.equal(evaluated.report.profiles.pro[3], 64);
+  assert.equal(evaluated.report.profiles.con[3], 84);
+  assert.deepEqual(evaluated.report.grounds.map((ground) => ground.seat), ["pro", "con"]);
+  assert.match(evaluated.report.verdict, /正方：/);
+  assert.match(evaluated.report.verdict, /反方：/);
+  assert.equal(evaluated.report.hostDegraded, false);
+});
+
+test("终局真实评分失败时回退启发式，保留双方画像与降级原因", async () => {
+  const state = {
+    roomId: "room-evaluate-fallback",
+    phase: "settled",
+    host: { degraded: false },
+    transcript: [
+      { turnId: "q1", authorId: "pro", kind: "question", text: "你的判断标准是什么？" },
+      { turnId: "a1", authorId: "con", kind: "answer", text: "我以岗位职责是否独立存在为标准。" },
+    ],
+    report: { profiles: { pro: null, con: null }, grounds: [], verdict: "", hostDegraded: false },
+  };
+  const failedHost = async () => ({
+    ok: false,
+    error: { code: "TIMEOUT", message: "upstream did not respond within 30000ms" },
+  });
+
+  const evaluated = await evaluateSettledRoom(state, failedHost);
+
+  assert.equal(evaluated.report.hostDegraded, true);
+  assert.ok(evaluated.report.profiles.pro);
+  assert.ok(evaluated.report.profiles.con);
+  assert.match(evaluated.host.reason, /upstream did not respond/);
 });
 
 /* ─────────── WebSocket ─────────── */

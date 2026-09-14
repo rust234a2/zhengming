@@ -2,7 +2,7 @@
  * 辩论间领域内核单测
  *
  * 覆盖 ROLLOUT §4 列出的全部不变量：
- *   理由至少 1 条 · 继续追问限 1 次 · 每方自由发言 1 次 · 质询一问一答 ·
+ *   理由至少 1 条 · 每方最多 2 问且达到上限自动推进 · 每方自由发言 1 次 · 质询一问一答 ·
  *   轮次走满即 settled · **无 winner/rank/胜负字段** · 禁用词不入库
  * 以及非法规跃迁（错阶段、抢轮次、重复提交）与段位/撮合纯函数。
  */
@@ -207,7 +207,7 @@ describe("transition：五阶段全流程", () => {
     expect(s.turnSeat).toBe("pro");
   });
 
-  it("质询轮一问一答：回答完由提问方做三选一", () => {
+  it("质询轮一问一答：首次回答后由提问方接受或继续追问", () => {
     let s = withBriefs();
     const o1 = transition(s, "pro", { kind: "submitOpening", text: "我方结论是继续存在。" });
     if (o1.ok) s = o1.state;
@@ -227,7 +227,7 @@ describe("transition：五阶段全流程", () => {
     expect(s.turnSeat).toBe("pro");
   });
 
-  it("继续追问限 1 次，用了就进 pressedBy，第二次被拒", () => {
+  it("继续追问限 1 次，第二次回答后自动推进", () => {
     let s = withBriefs();
     const o1 = transition(s, "pro", { kind: "submitOpening", text: "我方结论是继续存在。" });
     if (o1.ok) s = o1.state;
@@ -251,9 +251,13 @@ describe("transition：五阶段全流程", () => {
     if (askAgain.ok) s = askAgain.state;
     const ansAgain = transition(s, "con", { kind: "answer", text: "被并入产品与运营角色。" });
     if (ansAgain.ok) s = ansAgain.state;
+    expect(s.phase).toBe("crossAsk");
+    expect(s.turnSeat).toBe("con");
+    expect(s.crossRecords.at(-1)?.closedBy).toBe("questionLimit");
+
     const pressAgain = transition(s, "pro", { kind: "react", reaction: "press" });
     expect(pressAgain.ok).toBe(false);
-    if (!pressAgain.ok) expect(pressAgain.code).toBe("PRESS_LIMIT");
+    if (!pressAgain.ok) expect(pressAgain.code).toBe("WRONG_PHASE");
   });
 
   it("每方自由发言 1 次", () => {
@@ -429,11 +433,11 @@ describe("红线：报告中物理上不存在胜负语义", () => {
     }
   });
 
-  it("MP 结算只有参与类条目，没有任何胜负奖励", () => {
-    const settlement = settleMp({ acceptedAnswers: 2, completed: true });
+  it("接受回答不参与 MP 结算，只有完成行为获得奖励", () => {
+    const settlement = settleMp({ completed: true });
     const labels = settlement.entries.map((e) => e.label);
-    expect(labels).toEqual(["完成完整对局（五阶段走满）", "质询回答被对方接受"]);
-    expect(settlement.total).toBe(10 + 2 * 2);
+    expect(labels).toEqual(["完成完整对局（五阶段走满）"]);
+    expect(settlement.total).toBe(10);
   });
 
   it("段位按累计 MP 单调映射，且从不因对局结果升降", () => {
@@ -504,7 +508,7 @@ describe("rankCandidates：六维画像相近度", () => {
 /* ─────────── 报告与 Host 合并 ─────────── */
 
 describe("buildReport / mergeEvaluateResult", () => {
-  it("共识、承认、回避分别归入对应栏目", () => {
+  it("共识、承认分别归档，人工回避栏目保持为空", () => {
     let s = freshState({ phase: "free" });
     const free1 = transition(s, "pro", { kind: "freeSpeak", freeType: "寻共识", text: "我们都同意敲代码占比在降。" });
     if (free1.ok) s = free1.state;
@@ -516,6 +520,7 @@ describe("buildReport / mergeEvaluateResult", () => {
     expect(report.consensus[0].seat).toBe("pro");
     expect(report.acknowledged).toHaveLength(1);
     expect(report.acknowledged[0].seat).toBe("con");
+    expect(report.openQuestions).toEqual([]);
   });
 
   it("Host 降级标记透传到报告", () => {

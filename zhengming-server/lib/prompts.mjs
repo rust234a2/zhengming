@@ -104,11 +104,13 @@ ${transcriptText}
 - 立论：观点是否明确、是否紧扣辩题、判断标准是否合理
 - 论据：证据是否真实、相关、充分，来源是否可靠
 - 逻辑：论点与论据是否匹配、推理是否完整
-- 回应：是否准确理解对方观点、是否回应核心攻击、反驳是否有效
+- 回应：逐条对照对方提出的问题与紧随其后的本方回答，判断是否直接触及问题焦点、是否回应核心攻击、反驳是否有效
 - 表达：语言是否清楚、结构是否连贯
-- 规范：是否尊重对手；有无人身攻击、打断、回避问题
+- 规范：是否尊重对手；有无人身攻击、打断
 
 硬要求：
+- 评估「回应」时，必须把每个 question 与对应的 answer 成对比较；没有回答、只重复立场或偏离问题焦点，都应在该维度如实体现。
+- reaction 中的「接受回答」只是提问方结束本轮的流程动作，不代表同意立场，也不证明回答切题；不得因出现「接受」而提高任何分数。
 - 每条依据（grounds）**必须引用发言记录里的原话片段**（quote 字段，原文摘录，不要改写）。引用不到原话的依据请删掉。
 - 综合得分（total）为六维**等权平均**，四舍五入取整。
 - **绝不出现胜负语义**，不要写「占上风」「更胜一筹」「谁赢」「谁错」之类表述。这是结构质量反馈，像教练复盘，不像裁判打分。
@@ -327,8 +329,20 @@ export function heuristicEvaluate(transcript) {
   const open = mine.find((t) => t.kind === "opening" || t.kind === "brief");
   const closing = mine.find((t) => t.kind === "closing");
   const evidenceTurns = turns.filter((t) => t.evidenceStatus && t.evidenceStatus !== "缺少证据");
-  const accepts = turns.filter((t) => /接受/.test(String(t.text || ""))).length;
   const revisions = mine.filter((t) => t.kind === "revision" || /修正/.test(String(t.kind || ""))).length;
+  let pendingQuestion = false;
+  let questionsToMine = 0;
+  let pairedAnswers = 0;
+  for (const turn of turns) {
+    if (turn.kind === "question" && turn.authorId !== "user") {
+      questionsToMine += 1;
+      pendingQuestion = true;
+    } else if (turn.kind === "answer" && turn.authorId === "user" && pendingQuestion) {
+      pairedAnswers += 1;
+      pendingQuestion = false;
+    }
+  }
+  const answerCoverage = questionsToMine ? pairedAnswers / questionsToMine : 0;
   const avgLen = mine.length
     ? Math.round(mine.reduce((sum, t) => sum + charCount(t.text), 0) / mine.length)
     : 0;
@@ -337,7 +351,8 @@ export function heuristicEvaluate(transcript) {
     立论: Math.min(96, 60 + (open ? 12 : 0) + (/标准/.test(open?.text || "") ? 12 : 0) + (avgLen >= 50 ? 8 : 0)),
     论据: Math.min(96, 52 + Math.min(3, evidenceTurns.length) * 12),
     逻辑: Math.min(96, 62 + (revisions ? 12 : 0) + (mine.length >= 3 ? 8 : 0)),
-    回应: Math.min(96, 58 + Math.min(3, accepts) * 10 + (closing ? 10 : 0)),
+    // 降级模式只能观察问答是否成对完成，不能判断语义上是否回避；接受动作不参与评分。
+    回应: Math.min(96, 52 + Math.min(2, pairedAnswers) * 10 + Math.round(answerCoverage * 14) + (closing ? 4 : 0)),
     表达: Math.min(96, avgLen >= 60 ? 82 : avgLen >= 35 ? 72 : 60),
     规范: Math.min(96, 84 + (revisions ? 6 : 0)),
   };
@@ -348,6 +363,14 @@ export function heuristicEvaluate(transcript) {
     grounds.push({ dim: "论据", quote: Array.from(evidenceTurns[0].text).slice(0, 24).join(""), reason: `全场提交可查证来源 ${evidenceTurns.length} 处` });
   } else {
     grounds.push({ dim: "论据", quote: "", reason: "全场未给出可核查的来源，该项按基线计分" });
+  }
+  const firstAnswer = mine.find((turn) => turn.kind === "answer");
+  if (firstAnswer) {
+    grounds.push({
+      dim: "回应",
+      quote: Array.from(firstAnswer.text).slice(0, 24).join(""),
+      reason: `完成 ${pairedAnswers}/${questionsToMine} 组对应问答；降级模式不以对方是否接受判断回答质量`,
+    });
   }
   grounds.push({ dim: "表达", quote: "", reason: `场均发言 ${avgLen} 字，结构完整度中等` });
 

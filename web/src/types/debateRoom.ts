@@ -1,7 +1,7 @@
 /**
  * 辩论间类型（v0.7 · 真实多人房间）
  *
- * 对照：docs/design/debate-room-PRD.md（v0.6 规则）+ debate-room-ROLLOUT.md（v0.7 落地方案）
+ * 对照：docs/design/debate-room-PRD.md（v0.7 规则）+ debate-room-ROLLOUT.md（v0.7 落地方案）
  *
  * 红线在类型层的体现：
  *  - **全程无 `winner` / `rank` / `胜负` 字段**。段位是参与度，画像不排名。
@@ -217,7 +217,7 @@ export interface RoomReport {
   /** 六维结构画像（不排名） */
   profiles: Record<SeatId, number[] | null>;
   /** 六维评估依据（每条引用原话） */
-  grounds: { dim: string; quote: string; reason: string }[];
+  grounds: { seat?: SeatId; dim: string; quote: string; reason: string }[];
   /** 六维评估总结（不含胜负判定） */
   verdict: string;
   /** 段位结算 */
@@ -340,9 +340,8 @@ export const TIERS: readonly (readonly [string, number])[] = [
   ["和鸣", 350],
 ] as const;
 
-/** MP 变动规则（PRD §7）——只有这三条，**没有任何胜负奖励** */
+/** MP 变动规则（PRD §7）——只看完成/离席，不消费对手的接受动作 */
 export const MP_RULES = {
   completeRoom: 10,
-  answerAccepted: 2,
   leavePenalty: -5,
 } as const;

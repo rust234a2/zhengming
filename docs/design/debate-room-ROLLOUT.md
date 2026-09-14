@@ -106,7 +106,7 @@ export type RoomAction =
   | { kind: "submitOpening"; text: string; evidence?: string }
   | { kind: "ask"; targetItem: BriefItemKey; question: string }
   | { kind: "answer"; text: string }
-  | { kind: "react"; reaction: "accept" | "press" | "evade"; text?: string }
+  | { kind: "react"; reaction: "accept" | "press"; text?: string }
   | { kind: "freeSpeak"; freeType: FreeType; text: string }
   | { kind: "submitClosing"; text: string; revision?: { from: string; to: string } }
   | { kind: "leave" };
@@ -115,8 +115,9 @@ export function transition(state: RoomState, actor: SeatId, action: RoomAction)
   : { ok: true; state: RoomState } | { ok: false; code: string; message: string };
 ```
 
-**不变量**（写单测）：理由至少 1 条 · 继续追问限 1 次 · 每方自由发言 1 次 · 质询一问一答 ·
-轮次走满即 `settled` · **无 `winner`/`rank`/胜负字段** · 禁用词不入库。
+**不变量**（写单测）：理由至少 1 条 · 每方最多 2 问（首次 + 1 次追问）· 提问方接受后提前结束 ·
+第 2 问被回答后自动推进 · 每方自由发言 1 次 · 质询一问一答 · 轮次走满即 `settled` ·
+人工不判断回避，服务端在 `settled` 后分别以正/反方视角调用 Host `evaluate`，对照问答 transcript 在「回应」维度评分，合并双方画像后再落盘与广播 · **无 `winner`/`rank`/胜负字段** · 禁用词不入库。
 
 **纯函数**：`rankCandidates()`（画像相近度，D-1）、`settleMp()`（段位结算）、`buildReport()`（对局报告）、`tierOf()`。
 
