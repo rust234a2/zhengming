@@ -3,12 +3,18 @@
  *
  * 和「辩论树」的区别 —— 也是这张图存在的理由：
  *   树是层级结构，一个节点只能有一个父节点，只能表达「一场辩论内部」的论证。
- *   地图是网状结构：同一主张可以横跨多个议题（cluster 节点），
- *   这才是力导向不可替代的地方 —— 缩进树物理上无法表达多父关系。
+ *   地图是网状结构：同一主张可以横跨多个议题（cluster 节点），同一个论点也可以
+ *   同时归属多个主张簇（多父），这才是力导向不可替代的地方。
+ *
+ * 图上只有「主张簇 + 论点」两类节点 —— 议题（知乎问题）层已移除，两者直接相连。
+ *   骨架视图：只画主张簇，连线是簇间的「共享成员」与「对抗」（视图层推导）；
+ *   展开视图：主张簇 + 论点，连线是 member（归属）与论点间的 rebuts（冲突）。
+ *   未被任何主张簇收编的论点不参与渲染 —— 它们唯一的边是「议题包含论点」，
+ *   议题层消失后就成了孤点（原始数据 244 个论点里只有 99 个有簇归属）。
  *
  * 布局目标不是"排版好看"，而是"让聚类自己浮现"：
  *   不同语义的边配不同的力（见 FORCE 配置），结构就会自己长出来。
- *   例如 cluster→topic 的 bridge 边用强吸引，同一主张缝合的议题就会自动靠近。
+ *   例如 member 边用强吸引，同一主张的成员论点就会紧贴成团。
  *
  * d3 与 React 混用的两个经典坑（同 DebateForceTree）：
  *   1. d3 会就地改写传入对象（x/y/vx/vy、link.source/target 由 id 变对象引用），
@@ -23,7 +29,7 @@ import { CONTROVERSY_MAP } from "../data/controversyMap";
 import type {
   DebateSideLike,
   MapEdgeRelation,
-  MapNodeKind,
+  MapGraphKind,
   MapResolvedLink,
   MapSimLink,
   MapSimNode,
@@ -38,10 +44,9 @@ const ZOOM_STEP = 1.25;
 /** 拖拽期间把模拟「温度」钉在 0.45（原型 d3.drag 的 alphaTarget(0.45) 等效）。 */
 const DRAG_ALPHA_TARGET = 0.45;
 
-/** 半径：cluster 是骨架要显眼，topic 次之，claim 最小（与原型 demo 一致）。 */
-function radiusFor(kind: MapNodeKind, weight: number, topicCount: number): number {
+/** 半径：主张簇是骨架要显眼（横跨议题越多越大），论点小而密。 */
+function radiusFor(kind: MapGraphKind, weight: number, topicCount: number): number {
   if (kind === "cluster") return 13 + Math.min(topicCount * 2, 16);
-  if (kind === "topic") return 10;
   return 5.5;
 }
 
@@ -49,27 +54,23 @@ function radiusFor(kind: MapNodeKind, weight: number, topicCount: number): numbe
 function linkDistanceFor(relation: MapEdgeRelation): number {
   switch (relation) {
     case "bridge":
-      return 165; // 缝合线：同一主张跨议题，要拉近
+      return 175; // 骨架视图的簇间共享线：两簇共享同一论点，要拉近
     case "member":
-      return 78; // 论点归属主张簇，紧贴
-    case "contains":
-      return 118; // 议题包含论点
+      return 78; // 论点归属于主张簇，紧贴成团
     case "rebuts":
-      return 250; // 矛盾：刻意拉远，让冲突在视觉上张开
+      return 250; // 冲突：刻意拉远，让对抗在视觉上张开
     default:
       return 130;
   }
 }
 
-/** 每类边的强度：bridge/member 强吸引，contains 中等，rebuts 弱（避免被硬拉近）。 */
+/** 每类边的强度：member 是硬归属要强吸引，簇间共享/对抗都偏弱。 */
 function linkStrengthFor(relation: MapEdgeRelation): number {
   switch (relation) {
     case "bridge":
-      return 0.55;
+      return 0.45;
     case "member":
       return 0.9;
-    case "contains":
-      return 0.32;
     case "rebuts":
       return 0.08;
     default:
@@ -77,49 +78,36 @@ function linkStrengthFor(relation: MapEdgeRelation): number {
   }
 }
 
-/** 斥力按层级分层：骨架节点撑开空间，论点紧凑。 */
-function chargeFor(kind: MapNodeKind): number {
-  if (kind === "cluster") return -1150;
-  if (kind === "topic") return -560;
-  return -170;
+/** 斥力按层级分层：主张簇撑开空间，论点紧凑。 */
+function chargeFor(kind: MapGraphKind): number {
+  return kind === "cluster" ? -1150 : -170;
 }
 
 /* ────────── 视觉常量 ────────── */
 
-const KIND_LABEL: Record<MapNodeKind, string> = {
-  topic: "议题",
-  claim: "论点",
-  cluster: "共识主张",
-};
-
-/** 三类节点用不同形状承载身份 —— 用户一眼能分辨自己在看什么。 */
+/** 两类节点用不同形状承载身份 —— 用户一眼能分辨自己在看什么。 */
 function fillForNode(node: MapSimNode): string {
   if (node.kind === "cluster") {
     return node.side === "positive" ? "#0f6fe5" : node.side === "negative" ? "#d9574d" : "#64748b";
   }
-  if (node.kind === "topic") return "#111827";
   if (node.side === "positive") return "#7fb0f2";
   if (node.side === "negative") return "#eda49c";
   return "#a8b6c8";
 }
 
 function strokeForNode(node: MapSimNode): string {
-  if (node.kind === "cluster") return "#0b3f80";
-  if (node.kind === "topic") return "#111827";
-  return "#ffffff";
+  return node.kind === "cluster" ? "#0b3f80" : "#ffffff";
 }
 
-/** 跨议题矛盾边用醒目的橙红 —— 它是最有信息量的关系。 */
+/** 簇间共享线用金色（这张图的核心），簇间/论点间冲突用醒目的橙红。 */
 function strokeForLink(relation: MapEdgeRelation): string {
   switch (relation) {
     case "bridge":
-      return "#e8a33d"; // 缝合线：金色高亮（这张图的核心）
+      return "#e8a33d";
     case "rebuts":
-      return "#d9574d"; // 矛盾：红
+      return "#d9574d";
     case "member":
       return "#b9c6d4";
-    case "contains":
-      return "#dbe3ec";
     default:
       return "#dbe3ec";
   }
@@ -169,11 +157,109 @@ interface RenderSnapshot {
   links: { id: string; relation: MapEdgeRelation; sourceId: string; targetId: string; aggregated?: number }[];
 }
 
-/** 由数据层构造 d3 工作副本的深度：cluster=0（骨架）、topic=1、claim=2。 */
-const DEPTH_BY_KIND: Record<MapNodeKind, number> = { cluster: 0, topic: 1, claim: 2 };
+/** 由数据层构造 d3 工作副本的深度：cluster=0（骨架）、claim=1。 */
+const DEPTH_BY_KIND: Record<MapGraphKind, number> = { cluster: 0, claim: 1 };
 
-/** 数据层节点索引（模块级常量）：骨架聚合议题间冲突时查 claim.topicId 用。 */
-const nodeByIdStatic = new Map(CONTROVERSY_MAP.nodes.map((n) => [n.id, n]));
+/* ────────── 视图子集（议题层已从图上移除） ────────── */
+
+/**
+ * 论点 → 它归属的主张簇（可能多个：同一论点可以同时属于几个簇）。
+ * 只有出现在这里的论点才算"有归属"；其余论点唯一的边是「议题包含论点」，
+ * 议题层移除后就是孤点，因而不进图。
+ */
+const claimClustersStatic = new Map<string, Set<string>>();
+for (const e of CONTROVERSY_MAP.edges) {
+  if (e.relation !== "member") continue;
+  if (!claimClustersStatic.has(e.source)) claimClustersStatic.set(e.source, new Set());
+  claimClustersStatic.get(e.source)!.add(e.target);
+}
+
+/** 视图可见节点：全部主张簇 + 有簇归属的论点。 */
+const VISIBLE_NODE_IDS = new Set<string>([
+  ...CONTROVERSY_MAP.nodes.filter((n) => n.kind === "cluster").map((n) => n.id),
+  ...claimClustersStatic.keys(),
+]);
+
+/** 视图可见边：member（论点→簇）与两端都在可见集内的 rebuts（论点↔论点）。 */
+const VISIBLE_EDGES = CONTROVERSY_MAP.edges.filter(
+  (e) =>
+    VISIBLE_NODE_IDS.has(e.source) &&
+    VISIBLE_NODE_IDS.has(e.target) &&
+    (e.relation === "member" || e.relation === "rebuts"),
+);
+
+/**
+ * 骨架视图的簇间关系（视图层推导，不在原始数据里）：
+ *   bridge —— 两簇共享同一论点（该论点的多归属把两个主张缝合起来）；
+ *   rebuts —— 两簇的成员论点之间存在冲突，聚合计数。
+ */
+const SKELETON_LINKS: {
+  a: string;
+  b: string;
+  relation: "bridge" | "rebuts";
+  count: number;
+}[] = (() => {
+  const share = new Map<string, { a: string; b: string; count: number }>();
+  for (const clusters of claimClustersStatic.values()) {
+    const arr = [...clusters];
+    for (let i = 0; i < arr.length; i += 1) {
+      for (let j = i + 1; j < arr.length; j += 1) {
+        const [lo, hi] = arr[i] < arr[j] ? [arr[i], arr[j]] : [arr[j], arr[i]];
+        const key = `${lo}|${hi}`;
+        const cur = share.get(key);
+        if (cur) cur.count += 1;
+        else share.set(key, { a: lo, b: hi, count: 1 });
+      }
+    }
+  }
+  const conflict = new Map<string, { a: string; b: string; count: number }>();
+  for (const e of VISIBLE_EDGES) {
+    if (e.relation !== "rebuts") continue;
+    const ca = claimClustersStatic.get(e.source);
+    const cb = claimClustersStatic.get(e.target);
+    if (!ca || !cb) continue;
+    for (const a of ca) {
+      for (const b of cb) {
+        if (a === b) continue;
+        const [lo, hi] = a < b ? [a, b] : [b, a];
+        const key = `${lo}|${hi}`;
+        const cur = conflict.get(key);
+        if (cur) cur.count += 1;
+        else conflict.set(key, { a: lo, b: hi, count: 1 });
+      }
+    }
+  }
+  return [
+    ...[...share.values()].map((x) => ({ ...x, relation: "bridge" as const })),
+    ...[...conflict.values()].map((x) => ({ ...x, relation: "rebuts" as const })),
+  ];
+})();
+
+/** 顶栏用的规模数字：图里实际呈现的部分（不是原始数据的全量）。 */
+const GRAPH_STATS = {
+  clusters: CONTROVERSY_MAP.nodes.filter((n) => n.kind === "cluster").length,
+  claims: claimClustersStatic.size,
+  member: VISIBLE_EDGES.filter((e) => e.relation === "member").length,
+  rebuts: VISIBLE_EDGES.filter((e) => e.relation === "rebuts").length,
+  sharePairs: SKELETON_LINKS.filter((l) => l.relation === "bridge").length,
+  conflictPairs: SKELETON_LINKS.filter((l) => l.relation === "rebuts").length,
+};
+
+/**
+ * 视图子集的只读摘要 ——「图上到底有什么」的唯一口径。
+ * 组件渲染与测试都从这里取，避免两边各写一套推导逻辑而悄悄漂移。
+ */
+export const CONTROVERSY_GRAPH = {
+  /** 可见节点 id（全部主张簇 + 有簇归属的论点） */
+  nodeIds: VISIBLE_NODE_IDS,
+  /** 可见边（member / rebuts） */
+  edges: VISIBLE_EDGES,
+  /** 骨架视图的簇间线（视图层推导） */
+  skeletonLinks: SKELETON_LINKS,
+  /** 论点 → 所属主张簇 */
+  claimClusters: claimClustersStatic,
+  stats: GRAPH_STATS,
+};
 
 /* ────────── 聚焦视图（下钻） ────────── */
 
@@ -214,12 +300,11 @@ export function ControversyMap() {
   const [showAllLabels, setShowAllLabels] = useState(false);
   /**
    * 显示层级开关：
-   *   骨架视图（默认）—— 只画 簇 + 议题 + 缝合线，外加「议题间冲突」聚合线；
-   *   全量视图 —— 展开全部论点，此时归属边（member/contains）默认隐藏、可单独打开。
-   * 数据量到 106 题 / 244 论点后全量铺开会糊成一片，骨架先行是主要解法。
+   *   骨架视图（默认）—— 只画主张簇 + 簇间共享成员 / 立场对抗线；
+   *   展开视图 —— 主张簇直接连到它的成员论点，并显示论点之间的冲突。
+   * 39 个主张簇已经能看清「哪些主张天然结盟、哪些天然对立」；要追到具体论点再展开。
    */
   const [showClaims, setShowClaims] = useState(false);
-  const [showStructEdges, setShowStructEdges] = useState(false);
   /**
    * 聚焦路径（root → … → 当前中心）：点节点下钻一层，只显示「该节点 + 一跳邻居」。
    * 数组即层级栈 —— 「返回上一级」弹一层，面包屑可跳级，空数组 = 全图。
@@ -250,10 +335,10 @@ export function ControversyMap() {
   /* ---------- 数据 → 工作副本 ---------- */
 
   /**
-   * @param withClaims false = 骨架视图：只保留 簇 + 议题；
-   *                   论点级 rebuts 聚合成「议题间冲突」线（claim.topicId 归并），不丢冲突信号。
-   * @param focusedId  非空 = 聚焦视图：只保留该节点 + 一跳邻居（用完整边集，
-   *                   所以骨架模式下聚焦也会把论点层带出来 —— 这是下钻的信息增量）。
+   * @param withClaims false = 骨架视图：只画主张簇 + 簇间关系（共享成员 / 对抗）；
+   *                   true  = 展开视图：主张簇 + 论点 + 归属边 + 论点间冲突。
+   * @param focusedId  非空 = 聚焦视图：只保留该节点 + 一跳邻居（用完整可见边集，
+   *                   所以骨架模式下聚焦也会把论点带出来 —— 这是下钻的信息增量）。
    */
   const buildGraph = useCallback(
     (
@@ -262,16 +347,18 @@ export function ControversyMap() {
     ): { nodes: MapSimNode[]; links: MapSimLink[]; focus: FocusState | null } => {
       const prev = new Map(nodesRef.current.map((n) => [n.id, n]));
 
+      /** 只对 cluster / claim 调用（topic 节点在进入这里之前就被过滤掉了）。 */
       const toSimNode = (n: (typeof CONTROVERSY_MAP.nodes)[number]): MapSimNode => {
         const old = prev.get(n.id);
+        const kind = n.kind as MapGraphKind;
         return {
           id: n.id,
-          kind: n.kind,
+          kind,
           label: n.label,
           fullLabel: n.fullLabel ?? n.label,
           side: (n.side ?? "neutral") as DebateSideLike,
-          depth: DEPTH_BY_KIND[n.kind],
-          radius: radiusFor(n.kind, n.weight ?? 0, n.topicCount ?? 0),
+          depth: DEPTH_BY_KIND[kind],
+          radius: radiusFor(kind, n.weight ?? 0, n.topicCount ?? 0),
           topicCount: n.topicCount ?? 0,
           votes: n.votes ?? 0,
           x: old?.x ?? 0,
@@ -283,86 +370,73 @@ export function ControversyMap() {
         };
       };
 
-      const makeLink = (
-        id: string,
-        e: (typeof CONTROVERSY_MAP.edges)[number],
-        byId: Map<string, MapSimNode>,
-      ): MapSimLink | null => {
-        const s = byId.get(e.source);
-        const t = byId.get(e.target);
-        if (!s || !t) return null;
-        return {
-          id,
-          source: e.source,
-          target: e.target,
-          relation: e.relation,
-          sourceDepth: s.depth,
-          targetDepth: t.depth,
-        };
-      };
-
-      /* ── 聚焦视图：该节点 + 一跳邻居（诱导子图） ── */
+      /* ── 聚焦视图：该节点 + 一跳邻居（可见边集上的诱导子图） ── */
       if (focusedId) {
         const inView = new Set<string>([focusedId]);
-        for (const e of CONTROVERSY_MAP.edges) {
+        for (const e of VISIBLE_EDGES) {
           if (e.source === focusedId) inView.add(e.target);
           if (e.target === focusedId) inView.add(e.source);
         }
         const nodes = CONTROVERSY_MAP.nodes.filter((n) => inView.has(n.id)).map(toSimNode);
         const byId = new Map(nodes.map((n) => [n.id, n]));
         const links: MapSimLink[] = [];
-        for (const [i, e] of CONTROVERSY_MAP.edges.entries()) {
+        for (const [i, e] of VISIBLE_EDGES.entries()) {
           if (!inView.has(e.source) || !inView.has(e.target)) continue;
-          const link = makeLink(`fl${i}-${e.relation}`, e, byId);
-          if (link) links.push(link);
+          const s = byId.get(e.source);
+          const t = byId.get(e.target);
+          if (!s || !t) continue;
+          links.push({
+            id: `fl${i}-${e.relation}`,
+            source: e.source,
+            target: e.target,
+            relation: e.relation,
+            sourceDepth: s.depth,
+            targetDepth: t.depth,
+          });
         }
         return {
           nodes,
           links,
-          focus: { id: focusedId, ring: ringRadiusFor(nodes.length - 1), neighborCount: nodes.length - 1 },
+          focus: {
+            id: focusedId,
+            ring: ringRadiusFor(nodes.length - 1),
+            neighborCount: nodes.length - 1,
+          },
         };
       }
 
-      /* ── 全图：骨架（默认）或全量 ── */
-      const nodes: MapSimNode[] = CONTROVERSY_MAP.nodes
-        .filter((n) => withClaims || n.kind !== "claim")
-        .map(toSimNode);
-
-      const byId = new Map(nodes.map((n) => [n.id, n]));
-      const links: MapSimLink[] = [];
-      // 骨架视图下的议题间冲突聚合：key = "topicA|topicB"（小 id 在前，保证无向唯一）
-      const topicConflicts = new Map<string, { a: string; b: string; count: number }>();
-
-      for (const [i, e] of CONTROVERSY_MAP.edges.entries()) {
-        if (!withClaims && e.relation === "rebuts") {
-          // 论点级冲突 → 归并到议题级（同议题内部的冲突不画线）
-          const idA = nodeByIdStatic.get(e.source)?.topicId;
-          const idB = nodeByIdStatic.get(e.target)?.topicId;
-          if (idA && idB && idA !== idB) {
-            const [lo, hi] = idA < idB ? [idA, idB] : [idB, idA];
-            const key = `${lo}|${hi}`;
-            const cur = topicConflicts.get(key);
-            if (cur) cur.count += 1;
-            else topicConflicts.set(key, { a: lo, b: hi, count: 1 });
-          }
-          continue;
-        }
-        const link = makeLink(`l${i}-${e.relation}`, e, byId);
-        if (link) links.push(link);
+      /* ── 骨架视图：只画主张簇，连线 = 簇间共享成员 + 簇间对抗 ── */
+      if (!withClaims) {
+        const nodes = CONTROVERSY_MAP.nodes.filter((n) => n.kind === "cluster").map(toSimNode);
+        const links: MapSimLink[] = SKELETON_LINKS.map((l) => ({
+          id: `sk-${l.relation}-${l.a}|${l.b}`,
+          source: l.a,
+          target: l.b,
+          relation: l.relation,
+          sourceDepth: 0,
+          targetDepth: 0,
+          aggregated: l.count,
+        }));
+        return { nodes, links, focus: null };
       }
 
-      for (const [key, { a, b, count }] of topicConflicts) {
-        const s = byId.get(a);
-        const t = byId.get(b);
+      /* ── 展开视图：主张簇 + 论点，连线 = member（归属）+ rebuts（论点间冲突） ── */
+      const nodes = CONTROVERSY_MAP.nodes
+        .filter((n) => VISIBLE_NODE_IDS.has(n.id))
+        .map(toSimNode);
+      const byId = new Map(nodes.map((n) => [n.id, n]));
+      const links: MapSimLink[] = [];
+      for (const [i, e] of VISIBLE_EDGES.entries()) {
+        const s = byId.get(e.source);
+        const t = byId.get(e.target);
         if (!s || !t) continue;
         links.push({
-          id: `tc-${key}`,
-          source: a,
-          target: b,
-          relation: "rebuts",
+          id: `l${i}-${e.relation}`,
+          source: e.source,
+          target: e.target,
+          relation: e.relation,
           sourceDepth: s.depth,
           targetDepth: t.depth,
-          aggregated: count,
         });
       }
       return { nodes, links, focus: null };
@@ -388,7 +462,7 @@ export function ControversyMap() {
       .force(
         "collide",
         d3.forceCollide<MapSimNode>()
-          .radius((n) => n.radius + (n.kind === "cluster" ? 34 : n.kind === "topic" ? 22 : 13))
+          .radius((n) => n.radius + (n.kind === "cluster" ? 34 : 13))
           .strength(0.95),
       )
       // 立场分翼（v1 着色）：正/负立场的簇与论点被推向左右两翼（原型 forceX ±420 等效）。
@@ -397,15 +471,7 @@ export function ControversyMap() {
         "polarity",
         d3
           .forceX<MapSimNode>((n) =>
-            focusRef.current
-              ? 0
-              : n.kind === "claim" || n.kind === "cluster"
-                ? n.side === "positive"
-                  ? -420
-                  : n.side === "negative"
-                    ? 420
-                    : 0
-                : 0,
+            focusRef.current ? 0 : n.side === "positive" ? -420 : n.side === "negative" ? 420 : 0,
           )
           .strength(() => (focusRef.current ? 0 : 0.12)),
       )
@@ -786,19 +852,16 @@ export function ControversyMap() {
   }, [snapshot]);
 
   // 连线在下、节点在上：分两组渲染，保证层级正确。
-  // member/contains 是纯结构边，数量最大（429 条）——全量模式下默认藏起来、按需打开；
-  // 但聚焦视图里它们正是"为什么这些节点算相连"的依据，必须画。
-  const structVisible = focusId !== null || (showClaims && showStructEdges);
-  const linkLayer = resolvedLinks.filter(
-    (l) => (l.relation === "member" || l.relation === "contains") && structVisible,
-  );
+  // 连线在下、节点在上：分两组渲染，保证层级正确。
+  // member 是归属边（展开视图的结构骨架）走普通层；簇间共享/对抗与论点间冲突走强调层。
+  const linkLayer = resolvedLinks.filter((l) => l.relation === "member");
   const emphasisLayer = resolvedLinks.filter((l) => l.relation === "bridge" || l.relation === "rebuts");
 
   const stats = CONTROVERSY_MAP.stats;
   const nodeById = useMemo(() => new Map(CONTROVERSY_MAP.nodes.map((n) => [n.id, n])), []);
   const activeNode = activeId ? nodeById.get(activeId) ?? null : null;
 
-  /** 详情浮层：论点 / 议题 / 主张簇三种形态（与原型 #panel 一致，数据缺 author 时显示 —）。 */
+  /** 详情浮层：论点 / 主张簇两种形态（议题层已移除；数据缺 author 时显示 —）。 */
   const panel = useMemo(() => {
     if (!activeNode) return null;
     const full = (n: (typeof CONTROVERSY_MAP.nodes)[number]): string => n.fullLabel ?? n.label;
@@ -816,7 +879,7 @@ export function ControversyMap() {
           <div className="cm-meta">
             作者：— · 赞 {activeNode.votes ?? 0}
             <br />
-            所属议题：{topic ? trunc(full(topic), 60) : "—"}
+            来源问题：{topic ? trunc(full(topic), 60) : "—"}
           </div>
           {activeNode.url ? (
             <p style={{ marginTop: 8 }}>
@@ -826,31 +889,25 @@ export function ControversyMap() {
         </>
       );
     }
-    if (activeNode.kind === "topic") {
-      const claims = CONTROVERSY_MAP.nodes.filter((n) => n.kind === "claim" && n.topicId === activeNode.id);
-      return (
-        <>
-          <h2>{full(activeNode)}</h2>
-          <div className="cm-meta">论点数：{claims.length}（点击可下钻到该论点的聚焦视图）</div>
-          <ul>
-            {claims.map((c) => (
-              <li key={c.id} onClick={() => focusOn(c.id)}>{trunc(full(c), 44)}</li>
-            ))}
-          </ul>
-        </>
-      );
+    const members = [...claimClustersStatic.keys()].flatMap((cid) => {
+      if (!claimClustersStatic.get(cid)!.has(activeNode.id)) return [];
+      const n = nodeById.get(cid);
+      return n ? [n] : [];
+    });
+    // 当前视图里连到这个簇的其它簇（骨架视图的「共享成员 / 立场对抗」线）
+    const related = new Set<string>();
+    for (const l of SKELETON_LINKS) {
+      if (l.a === activeNode.id) related.add(l.b);
+      else if (l.b === activeNode.id) related.add(l.a);
     }
-    const touched = new Set(
-      CONTROVERSY_MAP.edges.filter((e) => e.relation === "bridge" && e.source === activeNode.id).map((e) => e.target),
-    );
-    const members = CONTROVERSY_MAP.nodes.filter(
-      (c) => c.kind === "claim" && CONTROVERSY_MAP.edges.some((e) => e.relation === "member" && e.source === c.id && e.target === activeNode.id),
-    );
     return (
       <>
         <h2>主张簇：{activeNode.label}</h2>
         <div className="cm-chips"><span className="cm-chip">{activeNode.summary ?? ""}</span></div>
-        <div className="cm-meta">缝合 {touched.size} 个议题 · 成员边 {activeNode.weight ?? 0}</div>
+        <div className="cm-meta">
+          横跨 {activeNode.topicCount ?? 0} 个议题 · 成员论点 {members.length}
+          {related.size > 0 ? ` · 与 ${related.size} 个主张簇相关` : ""}
+        </div>
         <ul>
           {members.map((c) => (
             <li key={c.id} onClick={() => focusOn(c.id)}>{trunc(full(c), 44)}</li>
@@ -866,9 +923,18 @@ export function ControversyMap() {
         <div className="controversy-map-hint">
           <strong>跨议题争议地图 · 真实数据</strong>
           <span>
-            {stats.topics} 题 / {stats.claims} 论点 / {stats.clusters} 主张簇 / {stats.edges} 边 ·{" "}
-            <em className="cm-em-bridge">{stats.bridge} 条跨议题缝合线</em> ·{" "}
-            <em className="cm-em-rebuts">{stats.rebuts} 处跨议题冲突</em>
+            源 {stats.topics} 个知乎问题 → {GRAPH_STATS.clusters} 主张簇 / {GRAPH_STATS.claims} 论点 ·{" "}
+            {showClaims ? (
+              <>
+                <em className="cm-em-bridge">{GRAPH_STATS.member} 条归属边</em> ·{" "}
+                <em className="cm-em-rebuts">{GRAPH_STATS.rebuts} 处论点冲突</em>
+              </>
+            ) : (
+              <>
+                <em className="cm-em-bridge">{GRAPH_STATS.sharePairs} 对共享成员</em> ·{" "}
+                <em className="cm-em-rebuts">{GRAPH_STATS.conflictPairs} 对立场对抗</em>
+              </>
+            )}
           </span>
         </div>
         <div className="controversy-map-actions">
@@ -881,17 +947,12 @@ export function ControversyMap() {
           >
             {showClaims ? "返回骨架视图" : "展开全部论点"}
           </button>
-          {showClaims && !focusId ? (
-            <button
-              type="button"
-              onClick={() => setShowStructEdges((v) => !v)}
-              title="member / contains 归属边数量最大（429 条），默认隐藏"
-            >
-              {showStructEdges ? "隐藏归属边" : "显示归属边"}
-            </button>
-          ) : null}
-          <button type="button" onClick={() => setShowAllLabels((v) => !v)}>
-            {showAllLabels ? "仅显示骨架标签" : "显示全部标签"}
+          <button
+            type="button"
+            onClick={() => setShowAllLabels((v) => !v)}
+            title="论点标签默认只在悬停 / 邻域高亮时显示"
+          >
+            {showAllLabels ? "隐藏全部标签" : "显示全部标签"}
           </button>
           <button type="button" onClick={fitView} title="缩放平移到全部节点可见">
             适配合
@@ -938,8 +999,9 @@ export function ControversyMap() {
         </div>
       ) : (
         <div className="cm-caption">
-          默认骨架视图（簇 + 议题 + 缝合线 + 议题间冲突聚合线）；点任一节点可下钻到「该节点 + 相连节点」的
-          聚焦视图，再从顶部返回。悬停查看详情；拖动节点可固定，双击取消固定。
+          默认骨架视图：只画主张簇，线 = 共享成员（同一个论点被两簇共有）/ 立场对抗。「展开全部论点」
+          后主张簇直接连到自己的成员论点。点任一节点可下钻到「该节点 + 相连节点」的聚焦视图，再从顶部返回。
+          悬停查看详情；拖动节点可固定，双击取消固定。
         </div>
       )}
 
@@ -950,18 +1012,17 @@ export function ControversyMap() {
           <span className="cm-lg"><i className="dot" style={{ background: "#64748b" }} />中性簇</span>
         </div>
         <div>
-          <span className="cm-lg"><i className="dot" style={{ background: "#111827" }} />议题</span>
           <span className="cm-lg"><i className="dot" style={{ background: "#7fb0f2" }} />正方论点</span>
           <span className="cm-lg"><i className="dot" style={{ background: "#eda49c" }} />反方论点</span>
-          <span className="cm-lg"><i className="dot" style={{ background: "#a8b6c8" }} />中性</span>
+          <span className="cm-lg"><i className="dot" style={{ background: "#a8b6c8" }} />中性论点</span>
         </div>
         <div>
-          <span className="cm-lg"><i className="ln g" />缝合线（跨议题共享主张）</span>
-          <span className="cm-lg"><i className="ln r" />rebuts 跨议题矛盾</span>
+          <span className="cm-lg"><i className="ln g" />簇间共享成员（共有论点）</span>
+          <span className="cm-lg"><i className="ln r" />立场对抗（成员论点冲突）</span>
         </div>
         <div>
           <span className="cm-lg" style={{ fontSize: 11, color: "#64748b" }}>
-            骨架视图下的红线 = 议题间冲突（由论点级 rebuts 聚合）
+            骨架视图的红线 = 主张簇间的对抗（由论点级 rebuts 聚合），不是单个论点的冲突
           </span>
         </div>
         <div>
@@ -1034,8 +1095,12 @@ export function ControversyMap() {
                     {l.relation === "rebuts" ? (
                       <title>
                         {l.aggregated
-                          ? `议题间冲突：${s ? s.fullLabel ?? s.label : ""}\n↔\n${t ? t.fullLabel ?? t.label : ""}\n（骨架视图：聚合自 ${l.aggregated} 条论点级 rebuts，展开论点后可见原始冲突线）`
-                          : `rebuts：跨议题矛盾\n${s ? s.fullLabel ?? s.label : ""}\n↔\n${t ? t.fullLabel ?? t.label : ""}`}
+                          ? `立场对抗：${s ? s.fullLabel ?? s.label : ""}\n↔\n${t ? t.fullLabel ?? t.label : ""}\n（聚合自 ${l.aggregated} 处成员论点之间的冲突）`
+                          : `rebuts：论点间冲突\n${s ? s.fullLabel ?? s.label : ""}\n↔\n${t ? t.fullLabel ?? t.label : ""}`}
+                      </title>
+                    ) : l.relation === "bridge" && l.aggregated ? (
+                      <title>
+                        {`共享成员：${s ? s.fullLabel ?? s.label : ""}\n↔ ${t ? t.fullLabel ?? t.label : ""}\n（两簇共有 ${l.aggregated} 个论点 —— 同一个论点同时归属这两个主张）`}
                       </title>
                     ) : null}
                   </line>
@@ -1094,7 +1159,7 @@ export function ControversyMap() {
                         r={n.radius}
                         fill={fillForNode(n)}
                         stroke={strokeForNode(n)}
-                        strokeWidth={n.kind === "cluster" ? 2 : n.kind === "topic" ? 1.6 : 0}
+                        strokeWidth={n.kind === "cluster" ? 2 : 0}
                       />
                       {/* 中心/选中环：中心环是结构标记（常驻脉冲），选中环是交互态，两者不同时出现 */}
                       {isCenter ? (
@@ -1122,7 +1187,7 @@ export function ControversyMap() {
                           textAnchor="middle"
                           y={n.radius + 13}
                           fill={n.kind === "cluster" ? "#7a4b00" : "#334155"}
-                          fontSize={n.kind === "cluster" ? 11.5 : n.kind === "topic" ? 10.5 : 10}
+                          fontSize={n.kind === "cluster" ? 11.5 : 10}
                           fontWeight={n.kind === "cluster" ? 600 : 400}
                         >
                           {text}
