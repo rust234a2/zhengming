@@ -5,6 +5,8 @@ import {
   buildEndingPayload,
   createHttpEventReplayClient,
   findCanonKeys,
+  ledgerToEntries,
+  relationsToEntries,
   type AdvanceParams,
 } from "../src/ui/event-replay/eventReplayClient";
 import type { EventReplay } from "../src/types/eventReplay";
@@ -23,8 +25,9 @@ const event: EventReplay = {
     {
       id: "teacher",
       name: "当事人",
+      role: "收到异地邀请的教师",
       stake: "职业与家庭",
-      visible: "聘用条件，家庭安排",
+      visible: ["聘用条件", "家庭安排"],
       resources: "积蓄与专业经验",
       canDo: ["协商", "接受"],
       relations: [{ to: "partner", attitude: 20 }],
@@ -50,6 +53,7 @@ const event: EventReplay = {
 const advanceParams: AdvanceParams = {
   header: event.header,
   position: event.positions[0],
+  positions: event.positions,
   acts: event.acts,
   actIndex: 0,
   ledger: { time: 0, money: 0, relation: 0, health: 0, opportunity: 0 },
@@ -92,16 +96,52 @@ describe("buildAdvancePayload / buildEndingPayload（隔离白名单）", () => 
     expect(payload.history).toHaveLength(1);
     expect(Object.keys(payload.history[0]).sort()).toEqual([
       "actIndex",
+      "month",
       "moveId",
       "moveLabel",
       "moveText",
       "outcome",
+    ]);
+    // month 取自 acts 时间表（PlayedAct 本身不带 month）
+    expect(payload.history[0].month).toBe("2023-03");
+  });
+
+  /**
+   * 这条是本次事故的直接守卫：服务端 `requireArray(params.ledger)` 只接受数组，
+   * 而前端曾把累加态对象直接塞进请求体 → 第一发请求就 400 VALIDATION。
+   */
+  it("请求体按契约 §0.7 发条目数组，而不是累加对象", () => {
+    const payload = buildAdvancePayload({
+      ...advanceParams,
+      ledger: { time: -2, money: 0, relation: 0, health: 0, opportunity: 0 },
+      relations: { teacher: 30 },
+    }) as { ledger: unknown; relations: unknown };
+
+    expect(Array.isArray(payload.ledger)).toBe(true);
+    expect(Array.isArray(payload.relations)).toBe(true);
+    expect(payload.ledger).toEqual([{ key: "时间", value: -2 }]);
+    // target 用角色位名而非 id——模型更容易对齐，解析回 id 由 applyRelations 负责
+    expect(payload.relations).toEqual([{ target: "当事人", value: 30 }]);
+  });
+
+  it("累加态 → 条目列表只放非零项（零维度不占提示词）", () => {
+    expect(
+      ledgerToEntries({ time: -2, money: 0, relation: 1, health: 0, opportunity: 0 }),
+    ).toEqual([
+      { key: "时间", value: -2 },
+      { key: "关系", value: 1 },
+    ]);
+    // target 优先用角色位名；该 id 不在 positions 里时回退成 id 本身（不静默丢弃）
+    expect(relationsToEntries({ teacher: 30, partner: -5 }, event.positions)).toEqual([
+      { target: "当事人", value: 30 },
+      { target: "partner", value: -5 },
     ]);
   });
 
   it("replayEnding 请求体同样不含 canon", () => {
     const payload = buildEndingPayload({
       position: event.positions[0],
+      positions: event.positions,
       history: advanceParams.history,
       ledger: advanceParams.ledger,
       relations: advanceParams.relations,
@@ -142,7 +182,7 @@ describe("createHttpEventReplayClient（HTTP seam，注入 fetch）", () => {
       nextScene: { month: "2023-05", text: "报到期限临近。", visibleFacts: ["聘用条件"] },
       moves: [],
       relationDeltas: [],
-      ledgerDeltas: [{ time: -2 }],
+      ledgerDeltas: [{ key: "时间", delta: -2, note: "搬迁准备" }],
       atEnding: false,
     };
     const { impl, calls } = mockFetch({

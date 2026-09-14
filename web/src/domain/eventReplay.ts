@@ -4,6 +4,7 @@ import type {
   EventReplay,
   Ledger,
   LedgerDelta,
+  LedgerKey,
   Move,
   Position,
   RelationDelta,
@@ -17,6 +18,87 @@ const EMPTY_LEDGER: Ledger = {
   health: 0,
   opportunity: 0,
 };
+
+/** 五维的固定顺序 —— UI 渲染与请求体构造共用，保证顺序稳定。 */
+export const LEDGER_KEYS: LedgerKey[] = ["time", "money", "relation", "health", "opportunity"];
+
+/**
+ * 五维的中文名 —— 也是发给 Host 的 `LedgerEntry.key` 取值（契约 §0.7）。
+ *
+ * 传中文有两个好处：模型看得懂，且回参倾向于沿用同一组词，归一化命中率显著更高。
+ */
+export const LEDGER_KEY_LABELS: Record<LedgerKey, string> = {
+  time: "时间",
+  money: "钱",
+  relation: "关系",
+  health: "健康",
+  opportunity: "机会",
+};
+
+/** 归一化别名表：中文标签 / 英文键 / 模型常见变体 → 五维。 */
+const LEDGER_KEY_ALIASES: Record<string, LedgerKey> = {
+  时间: "time",
+  time: "time",
+  钱: "money",
+  金钱: "money",
+  费用: "money",
+  花费: "money",
+  money: "money",
+  关系: "relation",
+  人情: "relation",
+  人际: "relation",
+  relation: "relation",
+  健康: "health",
+  身体: "health",
+  health: "health",
+  机会: "opportunity",
+  机遇: "opportunity",
+  机会成本: "opportunity",
+  opportunity: "opportunity",
+};
+
+/**
+ * 把模型给出的账本维度归一到五维。
+ *
+ * 契约 §0.7：PRD 把账本定死为五维，模型不得自造；**归一化不了就返回 null**，
+ * 由调用方丢弃该条——绝不静默塞进别的维度（那会伪造出一条玩家没付过的代价）。
+ */
+export function normalizeLedgerKey(raw: string): LedgerKey | null {
+  const key = String(raw ?? "").trim();
+  if (!key) return null;
+  const direct = LEDGER_KEY_ALIASES[key];
+  if (direct) return direct;
+  const lower = key.toLowerCase();
+  if (LEDGER_KEY_ALIASES[lower]) return LEDGER_KEY_ALIASES[lower];
+  // 兜底：条目名里包含维度词（如「时间成本」「金钱支出」）
+  const hit = (Object.keys(LEDGER_KEY_ALIASES) as string[]).find((alias) => key.includes(alias));
+  return hit ? LEDGER_KEY_ALIASES[hit] : null;
+}
+
+/**
+ * 把模型给出的关系对象解析成角色位 id。
+ *
+ * 契约 §0.7 的 `RelationEntry.target` / `relationDeltas[].target` 由模型自由给出，
+ * 实测可能是 id、角色名、或「配偶（partner）」这类混合写法，故三级匹配。
+ * 全部落空返回 null，由调用方丢弃该条（不阻断整幕）。
+ */
+export function resolveRelationTarget(target: string, positions: Position[]): string | null {
+  const value = String(target ?? "").trim();
+  if (!value) return null;
+  const byId = positions.find((position) => position.id === value);
+  if (byId) return byId.id;
+  const byName = positions.find((position) => position.name === value);
+  if (byName) return byName.id;
+  const fuzzy = positions.find(
+    (position) => value.includes(position.name) || position.name.includes(value),
+  );
+  return fuzzy ? fuzzy.id : null;
+}
+
+/** 角色位 id → 名字（发给 Host 时用名字，模型更容易对齐）。 */
+export function positionName(positionId: string, positions: Position[]): string {
+  return positions.find((position) => position.id === positionId)?.name ?? positionId;
+}
 
 function error(path: string, message: string) {
   return { path, message };
@@ -43,11 +125,17 @@ export function validateEventReplay(event: EventReplay): ValidationResult {
   if (!header.admission.reviewedAt.trim()) errors.push(error("header.admission.reviewedAt", "缺少审核时间"));
   if (header.endingCondition.actCount < 2) errors.push(error("header.endingCondition.actCount", "至少需要两幕"));
   if (positions.length < 2) errors.push(error("positions", "至少需要两个角色位"));
-  const signatures = new Set(positions.map((position) => `${position.visible}\n${position.resources}`));
+  const signatures = new Set(
+    positions.map((position) => `${position.visible.join("|")}\n${position.resources}`),
+  );
   if (positions.length >= 2 && signatures.size < 2) errors.push(error("positions", "角色位的信息范围与资源必须有差异"));
   const positionIds = new Set(positions.map((position) => position.id));
   positions.forEach((position, index) => {
     if (!position.id.trim()) errors.push(error(`positions[${index}].id`, "角色 id 不能为空"));
+    if (!position.name.trim()) errors.push(error(`positions[${index}].name`, "角色位名称不能为空"));
+    if (!position.visible.length || position.visible.some((item) => !item.trim())) {
+      errors.push(error(`positions[${index}].visible`, "可见信息范围必须逐条列出，不能为空"));
+    }
     position.relations.forEach((relation, relationIndex) => {
       if (!positionIds.has(relation.to)) errors.push(error(`positions[${index}].relations[${relationIndex}].to`, "关系指向未知角色"));
       if (relation.attitude < -100 || relation.attitude > 100) errors.push(error(`positions[${index}].relations[${relationIndex}].attitude`, "关系值必须在 -100 到 100"));
@@ -72,7 +160,6 @@ export function validateEventReplay(event: EventReplay): ValidationResult {
 
 export function validateActAdvanceResult(
   result: ActAdvanceResult,
-  positionIds: string[],
   actIndex: number,
   endingActCount: number,
 ): ValidationResult {
@@ -81,10 +168,9 @@ export function validateActAdvanceResult(
   if (!result.nextScene.month.trim()) errors.push(error("nextScene.month", "下一幕时间不能为空"));
   if (!result.nextScene.text.trim()) errors.push(error("nextScene.text", "下一幕处境不能为空"));
   if (result.moves.length < 2 || result.moves.length > 3) errors.push(error("moves", "每幕必须有 2 到 3 个动作"));
-  const known = new Set(positionIds);
-  result.relationDeltas.forEach((delta, index) => {
-    if (!known.has(delta.positionId)) errors.push(error(`relationDeltas[${index}].positionId`, "关系变化指向未知角色"));
-  });
+  // 关系目标完整性**不在此处校验**：契约 §6 的硬拒收清单里没有这一项，且 `target` 由模型
+  // 自由给出（真机实测会给「林女士」这类简称）。解析不了的条目由 applyRelations 丢弃——
+  // 少一条态度变化，远好过因为一个称谓就废掉整幕（玩家只能干等重试）。
   if (hasCanonField(result)) errors.push(error("$", "幕推进结果不得包含 canon"));
   const shouldEnd = actIndex + 1 >= endingActCount;
   if (result.atEnding !== shouldEnd) errors.push(error("atEnding", "结局标记与幕数不一致"));
@@ -101,34 +187,77 @@ export function assertNoCanonLeak(text: string, canon: CanonEntry[]): string[] {
   return [...new Set(terms.filter((term) => text.includes(term)))];
 }
 
+/**
+ * 归一化一条可见事实，用于比对：去掉空白与中英文标点、统一小写。
+ *
+ * 模型的「逐字摘取」几乎不会是字节级相同——常多一个句号、少一个顿号，
+ * 所以必须在归一化之后比对，否则会把同一句话判成越界，整幕白跑。
+ */
+function normalizeFact(text: string): string {
+  return String(text ?? "")
+    .replace(/[\s\u3000]+/g, "")
+    .replace(/[，。、；：！？·．,.;:!?"'（）()\[\]【】「」『』—-]/g, "")
+    .toLowerCase();
+}
+
+/** 反向包含（模型把原文精简了）只在足够长时启用，避免「条件」这种短串误放。 */
+const MIN_REVERSE_MATCH_LENGTH = 4;
+
+/**
+ * 角色位信息范围校验（契约 §6 硬约束、§0.7 形状）。
+ *
+ * `visibleFacts` 的每一条都必须落在 `position.visible` 内，判定规则：
+ * 归一化后**互相包含**——模型照抄、带标点差异、或适度精简都算通过；
+ * 只有范围外的内容才判越界。判宽一点是对的：这是「防越界剧透」的闸门，
+ * 不是字符串复读机，而整幕失败的代价远高于放行一句标点略有差异的合法事实。
+ */
 export function assertWithinVisible(
   result: ActAdvanceResult,
   position: Position,
 ): ValidationResult {
-  const allowed = new Set(position.visible.split(/[，、；\n]+/).map((item) => item.trim()).filter(Boolean));
-  const errors = result.nextScene.visibleFacts
-    .filter((fact) => !allowed.has(fact))
-    .map((fact, index) => error(`nextScene.visibleFacts[${index}]`, `信息越界: ${fact}`));
+  const allowed = position.visible.map(normalizeFact).filter(Boolean);
+  const errors: ValidationResult["errors"] = [];
+  result.nextScene.visibleFacts.forEach((fact, index) => {
+    const needle = normalizeFact(fact);
+    const hit =
+      needle.length > 0 &&
+      allowed.some(
+        (item) =>
+          needle.includes(item) ||
+          (needle.length >= MIN_REVERSE_MATCH_LENGTH && item.includes(needle)),
+      );
+    if (!hit) errors.push(error(`nextScene.visibleFacts[${index}]`, `信息越界: ${fact}`));
+  });
   return { ok: errors.length === 0, errors };
 }
 
-export function applyLedger(ledger: Partial<Ledger>, deltas: LedgerDelta[]): Ledger {
-  return deltas.reduce<Ledger>((next, delta) => ({
-    time: next.time + (delta.time ?? 0),
-    money: next.money + (delta.money ?? 0),
-    relation: next.relation + (delta.relation ?? 0),
-    health: next.health + (delta.health ?? 0),
-    opportunity: next.opportunity + (delta.opportunity ?? 0),
-  }), { ...EMPTY_LEDGER, ...ledger });
+/** 应用本幕账本增量。key 先归一到五维，归一化不了的条目按契约 §0.7 丢弃。 */
+export function applyLedger(ledger: Ledger, deltas: LedgerDelta[]): Ledger {
+  const next: Ledger = { ...EMPTY_LEDGER, ...ledger };
+  deltas.forEach((delta) => {
+    const key = normalizeLedgerKey(delta.key);
+    if (!key) return;
+    next[key] = next[key] + (Number(delta.delta) || 0);
+  });
+  return next;
 }
 
+/**
+ * 应用本幕关系增量。
+ *
+ * `target` 先解析成角色位 id，解析不了则丢弃该条；态度值钳制在 -100..100
+ * （与种子数据、`relationGate` 的取值范围一致）。
+ */
 export function applyRelations(
   relations: Record<string, number>,
   deltas: RelationDelta[],
+  positions: Position[],
 ): Record<string, number> {
   const next = { ...relations };
   deltas.forEach((delta) => {
-    next[delta.positionId] = Math.max(-100, Math.min(100, (next[delta.positionId] ?? 0) + delta.amount));
+    const id = resolveRelationTarget(delta.target, positions);
+    if (!id) return;
+    next[id] = Math.max(-100, Math.min(100, (next[id] ?? 0) + (Number(delta.delta) || 0)));
   });
   return next;
 }

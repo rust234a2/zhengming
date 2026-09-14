@@ -21,8 +21,9 @@ const event: EventReplay = {
     {
       id: "teacher",
       name: "当事人",
+      role: "收到异地邀请的教师",
       stake: "职业与家庭",
-      visible: "聘用条件，家庭安排",
+      visible: ["聘用条件", "家庭安排"],
       resources: "积蓄与专业经验",
       canDo: ["协商", "接受"],
       relations: [{ to: "partner", attitude: 20 }],
@@ -30,8 +31,9 @@ const event: EventReplay = {
     {
       id: "partner",
       name: "伴侣",
+      role: "当事人的伴侣",
       stake: "家庭稳定",
-      visible: "家庭安排，孩子近况",
+      visible: ["家庭安排", "孩子近况"],
       resources: "家庭否决权",
       canDo: ["沟通", "拒绝"],
       relations: [{ to: "teacher", attitude: 30 }],
@@ -114,8 +116,11 @@ describe("事件推演 reducer", () => {
       type: "ADVANCE_SUCCEEDED",
       chosenMoveId: "a",
       result: advance("你签了意向书。", [moveA, moveB], {
-        ledgerDeltas: [{ time: -2, money: -3 }],
-        relationDeltas: [{ positionId: "partner", amount: 5 }],
+        ledgerDeltas: [
+          { key: "时间", delta: -2, note: "搬迁准备" },
+          { key: "钱", delta: -3, note: "搬迁开销" },
+        ],
+        relationDeltas: [{ target: "伴侣", delta: 5 }],
       }),
     });
     expect(state.history).toHaveLength(1);

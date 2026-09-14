@@ -40,8 +40,9 @@ const EVENT: EventReplayData = {
     {
       id: "teacher",
       name: "当事人 · 陈老师（化名）",
+      role: "任教二十年的骨干教师",
       stake: "职业上升空间与孩子的教育机会",
-      visible: "聘用条件、家庭安排、孩子升学节点",
+      visible: ["聘用条件", "家庭安排", "孩子升学节点"],
       resources: "二十年教龄与业内口碑",
       canDo: ["协商条件", "接受邀请", "放弃邀请"],
       relations: [{ to: "partner", attitude: 20 }],
@@ -49,8 +50,9 @@ const EVENT: EventReplayData = {
     {
       id: "partner",
       name: "伴侣 · 林女士（化名）",
+      role: "当事人的伴侣",
       stake: "家庭稳定与自己的职业连续性",
-      visible: "家庭收支、孩子近况",
+      visible: ["家庭收支", "孩子近况"],
       resources: "自己的工作与家庭否决权",
       canDo: ["沟通", "提出条件", "拒绝搬迁"],
       relations: [{ to: "teacher", attitude: 30 }],
@@ -90,8 +92,12 @@ const ADVANCE: ActAdvanceResult[] = [
       { id: "m4", text: "带家人一起搬过去", costHint: "两地生活成本", implicitAssumption: "家人愿意同行", label: "move-family" },
       { id: "m5", text: "自己先去，家人留一学期", costHint: "长期分居", implicitAssumption: "分居不会影响孩子备考", label: "move-alone" },
     ],
-    relationDeltas: [{ positionId: "partner", amount: -5 }],
-    ledgerDeltas: [{ time: -2, money: -1 }],
+    // target 用简称（不带「· 林女士（化名）」后缀），顺带验证模糊匹配能命中
+    relationDeltas: [{ target: "伴侣", delta: -5 }],
+    ledgerDeltas: [
+      { key: "时间", delta: -2, note: "往返看校的差旅与请假" },
+      { key: "钱", delta: -1, note: "搬迁前期的看房与定金" },
+    ],
     atEnding: false,
   },
   {
@@ -101,8 +107,13 @@ const ADVANCE: ActAdvanceResult[] = [
       { id: "m6", text: "把课备到极致，等一个机会", costHint: "时间与健康", implicitAssumption: "成绩能被看见", label: "grind" },
       { id: "m7", text: "主动找校长谈带毕业班", costHint: "人情与风险", implicitAssumption: "校长愿意给机会", label: "ask" },
     ],
-    relationDeltas: [{ positionId: "partner", amount: -8 }],
-    ledgerDeltas: [{ time: -3, health: -1, opportunity: 1 }],
+    // target 用全名，验证精确匹配路径
+    relationDeltas: [{ target: "伴侣 · 林女士（化名）", delta: -8 }],
+    ledgerDeltas: [
+      { key: "时间", delta: -3, note: "安顿与手续占掉的时间" },
+      { key: "健康", delta: -1, note: "连续加班的消耗" },
+      { key: "机会", delta: 1, note: "带毕业班的机会" },
+    ],
     atEnding: true,
   },
 ];

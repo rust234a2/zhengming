@@ -52,8 +52,9 @@ export const eventReplays: EventReplay[] = [
       {
         id: "teacher",
         name: "当事人 · 陈老师（化名）",
+        role: "任教二十年的骨干教师",
         stake: "职业上升空间与孩子的教育机会",
-        visible: "聘用条件，家庭安排，孩子升学节点",
+        visible: ["聘用条件：编制、安家补贴、子女随迁就读", "答复期限：本学期结束前", "孩子正处于升学节点", "家里对搬迁意见不一"],
         resources: "二十年教龄与业内口碑",
         canDo: ["协商条件", "接受邀请", "放弃邀请"],
         relations: [
@@ -64,8 +65,9 @@ export const eventReplays: EventReplay[] = [
       {
         id: "partner",
         name: "伴侣 · 林女士（化名）",
+        role: "当事人的伴侣，自己的职业需要连续性",
         stake: "家庭稳定与自己的职业连续性",
-        visible: "家庭安排，家庭收支，孩子升学节点",
+        visible: ["家庭收支状况", "孩子正处于升学节点", "搬迁会打断自己的职业连续性", "配偶（当事人）尚未表态"],
         resources: "自己的工作与家庭否决权",
         canDo: ["沟通", "提出条件", "拒绝搬迁"],
         relations: [
@@ -76,8 +78,9 @@ export const eventReplays: EventReplay[] = [
       {
         id: "school",
         name: "邀请方 · 新建校负责人（化名）",
+        role: "新建校负责招聘的负责人",
         stake: "开学前配齐骨干师资",
-        visible: "招聘进度，岗位编制，本地政策",
+        visible: ["开学前的师资缺口", "可用的编制与安家补贴额度", "本地随迁入学政策", "招聘进度"],
         resources: "编制与安家补贴的裁量空间",
         canDo: ["加码条件", "设定期限", "撤回邀请"],
         relations: [
@@ -173,8 +176,9 @@ export const eventReplays: EventReplay[] = [
       {
         id: "insider",
         name: "当事人 · 六年资历的员工（化名）",
+        role: "事业单位六年资历的员工",
         stake: "确定性的现金流与技能不贬值",
-        visible: "岗位职责，收入水平，同业动向",
+        visible: ["自己的岗位职责六年几乎没变", "收入可预期但技能增长停滞", "同期入职者陆续转岗或离开"],
         resources: "六年资历与内部人脉",
         canDo: ["争取内部转岗", "接受外部机会", "维持现状"],
         relations: [
@@ -185,8 +189,9 @@ export const eventReplays: EventReplay[] = [
       {
         id: "unit",
         name: "所在单位 · 直属负责人（化名）",
+        role: "当事人所在单位的直属负责人",
         stake: "新业务线开得起来、老组不出事",
-        visible: "岗位调整方案，组内人员去向",
+        visible: ["新一轮岗位调整方案", "本组可能被合并的意向", "可动用的转岗名额"],
         resources: "转岗名额与绩效评价权",
         canDo: ["给转岗机会", "压任务留人", "维持现状"],
         relations: [
@@ -197,8 +202,9 @@ export const eventReplays: EventReplay[] = [
       {
         id: "newco",
         name: "外部机会方 · 小公司负责人（化名）",
+        role: "递出岗位意向的小公司负责人",
         stake: "招到能独立扛事的人",
-        visible: "岗位职责，团队规模，融资进度",
+        visible: ["岗位职责与团队规模", "融资进度不确定", "薪资结构中一半是期权", "答复期限为一个月"],
         resources: "薪资与期权的裁量空间",
         canDo: ["给出条件", "设定期限", "撤回机会"],
         relations: [
@@ -286,8 +292,9 @@ export const eventReplays: EventReplay[] = [
       {
         id: "graduate",
         name: "当事人 · 应届毕业生（化名）",
+        role: "同时拿到两份机会的应届毕业生",
         stake: "起步方向与往后的可选项",
-        visible: "两份机会的条件，家庭意见，行业动向",
+        visible: ["稳定岗位的条件与节奏", "内容岗位的收入与项目前景", "家人倾向稳定岗位", "两方都要求两周内答复"],
         resources: "应届身份与可迁移的实习经历",
         canDo: ["接受稳定岗位", "接受内容岗位", "两边拖延"],
         relations: [
@@ -298,8 +305,9 @@ export const eventReplays: EventReplay[] = [
       {
         id: "family",
         name: "家人 · 出资方（化名）",
+        role: "为当事人提供过渡期支持的家庭出资方",
         stake: "孩子先站稳，再谈理想",
-        visible: "家庭收支，两份机会的收入对比",
+        visible: ["家庭收支状况", "两份机会的收入差距", "自己能提供的过渡期支持额度"],
         resources: "过渡期的生活费支持",
         canDo: ["给过渡期支持", "提出条件", "撤回过桥资金"],
         relations: [
@@ -310,8 +318,9 @@ export const eventReplays: EventReplay[] = [
       {
         id: "studio",
         name: "内容团队 · 负责人（化名）",
+        role: "预算有限的内容团队负责人",
         stake: "用有限预算招到真的想做的人",
-        visible: "项目进度，预算期限，团队规模",
+        visible: ["项目上线时间已推迟", "可用的人头预算", "团队当前规模"],
         resources: "合作方式与人头预算的裁量空间",
         canDo: ["改为兼职合作", "给出分成方案", "撤回机会"],
         relations: [

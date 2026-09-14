@@ -22,9 +22,12 @@ import type {
   EndingCard,
   EventHeader,
   Ledger,
+  LedgerEntry,
   PlayedAct,
   Position,
+  RelationEntry,
 } from "../../types/eventReplay";
+import { LEDGER_KEYS, LEDGER_KEY_LABELS, positionName } from "../../domain/eventReplay";
 
 export interface HostCallResult<T> {
   ok: boolean;
@@ -37,6 +40,13 @@ export interface HostCallResult<T> {
 export interface AdvanceParams {
   header: EventHeader;
   position: Position;
+  /**
+   * 该事件的全部角色位。
+   *
+   * 契约 §0.7 的关系条目用**角色位名**作为 `target`（模型更容易对齐），
+   * 而内部态度表以 id 为键，故构造请求体时必须有整表做映射。
+   */
+  positions: Position[];
   acts: Act[];
   actIndex: number;
   ledger: Ledger;
@@ -48,6 +58,7 @@ export interface AdvanceParams {
 
 export interface EndingParams {
   position: Position;
+  positions: Position[];
   history: PlayedAct[];
   ledger: Ledger;
   relations: Record<string, number>;
@@ -65,6 +76,47 @@ export interface EventReplayClient {
   canon(eventId: string): Promise<HostCallResult<CanonEntry[]>>;
 }
 
+/* ────────── 累加态 → 契约 §0.7 的条目列表 ────────── */
+
+/**
+ * 账本累加态 → `LedgerEntry[]`（契约 §0.7）。
+ *
+ * 只放非零维度（零维度不携带信息，白占提示词）；`key` 用中文维度名，
+ * 模型因此倾向于沿用同一组词，回参归一化的命中率显著更高。
+ */
+export function ledgerToEntries(ledger: Ledger): LedgerEntry[] {
+  return LEDGER_KEYS.filter((key) => Number(ledger[key]) !== 0).map((key) => ({
+    key: LEDGER_KEY_LABELS[key],
+    value: Number(ledger[key]) || 0,
+  }));
+}
+
+/** 态度累加态 → `RelationEntry[]`（契约 §0.7）。`target` 用角色位名，同样只放非零项。 */
+export function relationsToEntries(
+  relations: Record<string, number>,
+  positions: Position[],
+): RelationEntry[] {
+  return Object.entries(relations)
+    .filter(([, value]) => Number(value) !== 0)
+    .map(([positionId, value]) => ({
+      target: positionName(positionId, positions),
+      value: Number(value) || 0,
+    }));
+}
+
+/** 角色位按契约 §0.7 的字段序列化（白名单，不放种子数据里的额外字段）。 */
+function serializePosition(position: Position): Record<string, unknown> {
+  return {
+    id: position.id,
+    name: position.name,
+    role: position.role ?? "",
+    stake: position.stake,
+    visible: position.visible,
+    resources: position.resources,
+    canDo: position.canDo,
+  };
+}
+
 /**
  * 构造 `actAdvance` 请求体。
  *
@@ -72,7 +124,8 @@ export interface EventReplayClient {
  * 这样即便日后给 `EventReplay` 加了新字段，也不会被动地漏进请求体。
  */
 export function buildAdvancePayload(params: AdvanceParams): Record<string, unknown> {
-  const { header, position, acts, actIndex, ledger, relations, history, chosenMoveId } = params;
+  const { header, position, positions, acts, actIndex, ledger, relations, history, chosenMoveId } =
+    params;
   return {
     header: {
       id: header.id,
@@ -80,13 +133,14 @@ export function buildAdvancePayload(params: AdvanceParams): Record<string, unkno
       background: header.background,
       endingCondition: header.endingCondition,
     },
-    position,
+    position: serializePosition(position),
     acts: acts.map((act) => ({ index: act.index, month: act.month, text: act.text })),
     actIndex,
-    ledger,
-    relations,
+    ledger: ledgerToEntries(ledger),
+    relations: relationsToEntries(relations, positions),
     history: history.map((item) => ({
       actIndex: item.actIndex,
+      month: acts[item.actIndex]?.month ?? "",
       moveId: item.moveId,
       moveText: item.moveText,
       moveLabel: item.moveLabel,
@@ -98,12 +152,12 @@ export function buildAdvancePayload(params: AdvanceParams): Record<string, unkno
 
 /** 构造 `replayEnding` 请求体（同为白名单）。 */
 export function buildEndingPayload(params: EndingParams): Record<string, unknown> {
-  const { position, history, ledger, relations } = params;
+  const { position, positions, history, ledger, relations } = params;
   return {
-    position,
+    position: serializePosition(position),
     history: history.map((item) => ({ moveText: item.moveText, outcome: item.outcome })),
-    ledger,
-    relations,
+    ledger: ledgerToEntries(ledger),
+    relations: relationsToEntries(relations, positions),
   };
 }
 

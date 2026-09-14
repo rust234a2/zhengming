@@ -152,7 +152,8 @@ export function replayReducer(
         actIndex: nextActIndex,
         history: [...state.history, played],
         ledger: applyLedger(state.ledger, result.ledgerDeltas),
-        relations: applyRelations(state.relations, result.relationDeltas),
+        // target 由模型自由给出，需角色位表才能解析回 id（契约 §0.7）
+        relations: applyRelations(state.relations, result.relationDeltas, event.positions),
         ended,
         // 收束后不再提供动作——避免"结局之后还能点"
         currentMoves: ended ? [] : result.moves,

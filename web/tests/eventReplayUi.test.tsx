@@ -43,8 +43,9 @@ const event: EventReplayData = {
     {
       id: "teacher",
       name: "当事人",
+      role: "收到异地邀请的教师",
       stake: "职业与家庭",
-      visible: "聘用条件，家庭安排",
+      visible: ["聘用条件", "家庭安排"],
       resources: "积蓄与专业经验",
       canDo: ["协商", "接受"],
       relations: [{ to: "partner", attitude: 20 }],
@@ -52,8 +53,9 @@ const event: EventReplayData = {
     {
       id: "partner",
       name: "伴侣",
+      role: "当事人的伴侣",
       stake: "家庭稳定",
-      visible: "家庭安排，孩子近况",
+      visible: ["家庭安排", "孩子近况"],
       resources: "家庭否决权",
       canDo: ["沟通"],
       relations: [{ to: "teacher", attitude: 30 }],
@@ -88,7 +90,7 @@ function advanceResult(overrides: Partial<ActAdvanceResult> = {}): ActAdvanceRes
       { id: "m2", text: "继续协商", costHint: "消耗人情", implicitAssumption: "条件仍可变化", label: "negotiate" },
     ],
     relationDeltas: [],
-    ledgerDeltas: [{ time: -2 }],
+    ledgerDeltas: [{ key: "时间", delta: -2, note: "搬迁准备" }],
     atEnding: false,
     ...overrides,
   };
@@ -126,6 +128,16 @@ describe("事件推演 UI · 沉浸式隔离（红线 3）", () => {
     expect(client.canon).not.toHaveBeenCalled();
   });
 
+  it("知识范围（visible 数组）在界面上带分隔符渲染，不糊成一串", () => {
+    const { client } = mockClient();
+    render(<EventReplay client={client} events={[event]} />);
+
+    // teacher.visible = ["聘用条件", "家庭安排"]
+    expect(screen.getAllByText("聘用条件；家庭安排").length).toBeGreaterThan(0);
+    // 缺分隔符的拼接形态绝不该出现
+    expect(document.body.textContent).not.toContain("聘用条件家庭安排");
+  });
+
   it("选位后进入推演：外部事件可见、原作不可见，且界面标注「架空推演」", async () => {
     const { client, advance } = mockClient();
     advance.mockResolvedValue(ok(advanceResult()));
@@ -145,7 +157,7 @@ describe("事件推演 UI · 沉浸式隔离（红线 3）", () => {
     const { client, advance, ending, canon } = mockClient();
     // 剧本：#1 开局幕 → #2 回应第 1 幕的选择（未收束）→ #3 回应第 2 幕的选择（收束）
     advance.mockResolvedValueOnce(
-      ok(advanceResult({ atEnding: false, ledgerDeltas: [{ time: -1 }] })),
+      ok(advanceResult({ atEnding: false, ledgerDeltas: [{ key: "时间", delta: -1, note: "排队与往返" }] })),
     );
     advance.mockResolvedValueOnce(
       ok(

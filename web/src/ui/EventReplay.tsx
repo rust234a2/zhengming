@@ -24,6 +24,8 @@ import { useCallback, useMemo, useRef, useState } from "react";
 
 import { EVENT_LIBRARY_REVIEW_NOTE, eventReplays } from "../data/eventReplays";
 import {
+  LEDGER_KEYS,
+  LEDGER_KEY_LABELS,
   assertNoCanonLeak,
   assertWithinVisible,
   validateActAdvanceResult,
@@ -34,17 +36,24 @@ import {
   relationGateReason,
   replayReducer,
 } from "../domain/eventReplayReducer";
-import type { EventReplay as EventReplayData, Move, ReplayAction, ReplayState } from "../types/eventReplay";
+import type {
+  EventReplay as EventReplayData,
+  LedgerKey,
+  Move,
+  ReplayAction,
+  ReplayState,
+} from "../types/eventReplay";
 import { createHttpEventReplayClient, type EventReplayClient } from "./event-replay/eventReplayClient";
 import "./eventReplay.css";
 
-const LEDGER_LABELS: { key: keyof ReplayState["ledger"]; label: string }[] = [
-  { key: "time", label: "时间" },
-  { key: "money", label: "钱" },
-  { key: "relation", label: "关系" },
-  { key: "health", label: "健康" },
-  { key: "opportunity", label: "机会" },
-];
+/**
+ * 账本五维的展示顺序与标签 —— 全部取自 domain，避免标签在 UI 与服务端契约两处各写一份
+ * （请求体里的 `LedgerEntry.key` 用的就是同一组中文名）。
+ */
+const LEDGER_LABELS: { key: LedgerKey; label: string }[] = LEDGER_KEYS.map((key) => ({
+  key,
+  label: LEDGER_KEY_LABELS[key],
+}));
 
 export interface EventReplayProps {
   client?: EventReplayClient;
@@ -97,6 +106,8 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
       const response = await injectedClient.ending(
         {
           position: currentPosition,
+          // 关系条目用角色位名做 target，需要整表做 id→名 映射（契约 §0.7）
+          positions: eventRef.current.positions,
           history: base.history,
           ledger: base.ledger,
           relations: base.relations,
@@ -132,6 +143,7 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
         {
           header: currentEvent.header,
           position: currentPosition,
+          positions: currentEvent.positions,
           acts: currentEvent.acts,
           actIndex: base.actIndex,
           ledger: base.ledger,
@@ -152,7 +164,6 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
       // 结构字段的三道闸门：结构 → 角色位信息范围 → 原作关键词黑名单
       const structural = validateActAdvanceResult(
         result,
-        currentEvent.positions.map((item) => item.id),
         base.actIndex,
         currentEvent.header.endingCondition.actCount,
       );
@@ -373,7 +384,7 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
                         <dt>在乎什么</dt>
                         <dd>{item.stake}</dd>
                         <dt>知道什么</dt>
-                        <dd>{item.visible}</dd>
+                        <dd>{item.visible.join("；")}</dd>
                         <dt>能动用什么</dt>
                         <dd>{item.resources}</dd>
                         <dt>能做什么</dt>
@@ -543,7 +554,7 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
                   <br />
                   在乎：{position.stake}
                   <br />
-                  知道：{position.visible}
+                  知道：{position.visible.join("；")}
                   <br />
                   能动用：{position.resources}
                 </p>

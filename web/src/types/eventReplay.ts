@@ -18,10 +18,19 @@ export interface EventHeader {
 export interface Position {
   id: string;
   name: string;
+  /** 一句话身份说明，供 Host 提示词使用（可选） */
+  role?: string;
   stake: string;
-  visible: string;
+  /**
+   * 该角色位**只能知道**什么。
+   *
+   * 形状是数组（Host 契约 §0.7）：服务端把整份列表拼进提示词，并用它做
+   * `nextScene.visibleFacts` 的越界判定，所以必须是逐条一项的集合，不是长句。
+   */
+  visible: string[];
   resources: string;
   canDo: string[];
+  /** 角色位的初始态度（种子数据；运行期态度见 `ReplayState.relations`） */
   relations: { to: string; attitude: number }[];
 }
 
@@ -60,19 +69,46 @@ export interface Move {
   relationGate?: { positionId: string; minimum: number };
 }
 
-export interface LedgerDelta {
-  time?: number;
-  money?: number;
-  relation?: number;
-  health?: number;
-  opportunity?: number;
+/** 账本五维（PRD §F3）——与 Host 契约 §0.7 的 `LedgerEntry.key` 枚举一一对应。 */
+export type LedgerKey = "time" | "money" | "relation" | "health" | "opportunity";
+
+/** 账本累加态（前端内部表示；进出 Host 时在 client/domain 边界转换）。 */
+export type Ledger = Record<LedgerKey, number>;
+
+/** Host 契约 §0.7 · 入参：账本条目（累加态快照），`key` 用中文维度名。 */
+export interface LedgerEntry {
+  key: string;
+  value: number;
 }
 
-export type Ledger = Required<LedgerDelta>;
+/** Host 契约 §0.7 · 入参：关系条目（累加态快照），`target` 用角色位名。 */
+export interface RelationEntry {
+  target: string;
+  value: number;
+}
 
+/**
+ * Host 契约 §0.7 · 能力 5 出参：本幕账本增量。
+ *
+ * `key` 由模型给出，**可能是五维之外的自造词**（服务端只保证它是字符串）。
+ * 归一化（映射到 `LedgerKey`，映射不上则丢弃该条）在 `domain/eventReplay.ts`
+ * 的 `applyLedger` 内完成，UI 永远看不到未归一的 key。
+ */
+export interface LedgerDelta {
+  key: string;
+  delta: number;
+  note: string;
+}
+
+/**
+ * Host 契约 §0.7 · 能力 5 出参：本幕关系增量。
+ *
+ * `target` 可能是角色位 **id 或名字**（由模型自由给出），归一化在
+ * `applyRelations` 内完成；匹配不上任何角色位的条目被丢弃（不阻断整幕）。
+ */
 export interface RelationDelta {
-  positionId: string;
-  amount: number;
+  target: string;
+  delta: number;
 }
 
 export interface ActAdvanceResult {
