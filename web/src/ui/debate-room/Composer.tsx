@@ -22,7 +22,7 @@ import type {
 } from "../../types/debateRoom";
 import { EVIDENCE_STATUSES } from "../../types/debateRoom";
 import type { ComposerSpec } from "../debateRoomUi";
-import { canSubmitAction, describeBriefItem } from "../debateRoomUi";
+import { briefItemLabel, canSubmitAction, describeBriefItem } from "../debateRoomUi";
 import { findBannedWords } from "../../domain/roomClient";
 
 /* ═══════════════ 通用小件 ═══════════════ */
@@ -80,7 +80,7 @@ function BriefForm({ presetClaim, presetAuthor, presetUrl, onSubmit, disabled }:
   const ok = canSubmitAction(action);
   const banned = findBannedWords([definition, conclusion, reason1, reason2, evidence].join(" "));
 
-  /** 把预设论点用进结论框（用户仍需自己确认/改写，不是自动提交） */
+  /** 把预设论点用进观点框（用户仍需自己确认/改写，不是自动提交） */
   function usePreset() {
     if (presetClaim) setConclusion(presetClaim);
   }
@@ -101,7 +101,7 @@ function BriefForm({ presetClaim, presetAuthor, presetUrl, onSubmit, disabled }:
           <p>{presetClaim}</p>
           <div className="dr-preset-actions">
             <button type="button" className="dr-mini" onClick={usePreset} disabled={disabled}>
-              用它作结论起点
+              用它作观点起点
             </button>
             {presetUrl ? (
               <a className="dr-mini ghost" href={presetUrl} target="_blank" rel="noreferrer noopener">
@@ -127,7 +127,7 @@ function BriefForm({ presetClaim, presetAuthor, presetUrl, onSubmit, disabled }:
 
       <label className="dr-field">
         <span className="dr-field-label">
-          核心结论 <i>必填</i>
+          核心观点 <i>必填</i>
         </span>
         <input
           value={conclusion}
@@ -144,7 +144,7 @@ function BriefForm({ presetClaim, presetAuthor, presetUrl, onSubmit, disabled }:
         <input
           value={reason1}
           onChange={(event) => setReason1(event.target.value)}
-          placeholder="支撑结论的第一条理由"
+          placeholder="支撑观点的第一条理由"
           disabled={disabled}
         />
       </label>
@@ -194,9 +194,9 @@ function BriefForm({ presetClaim, presetAuthor, presetUrl, onSubmit, disabled }:
       {touched && !ok && !banned.length ? (
         <p className="dr-hint-line">
           {!conclusion.trim()
-            ? "Host：核心结论不能为空——你最终主张什么？"
+            ? "Host：核心观点不能为空——你最终主张什么？"
             : reasons.length < 1
-              ? "Host：至少需要一条理由——结论不会因为重复而成立。"
+              ? "Host：至少需要一条理由——重复观点不能代替论证。"
               : "Host：填了依据就请标注它的证据状态。"}
         </p>
       ) : null}
@@ -215,47 +215,66 @@ function BriefForm({ presetClaim, presetAuthor, presetUrl, onSubmit, disabled }:
 
 interface AskFormProps {
   targets: { key: BriefItemKey; text: string }[];
-  onAsk: (targetItem: BriefItemKey, question: string) => void;
-  onRequestHint: (targetItem: BriefItemKey, draft: string) => void;
+  onAsk: (targetItems: BriefItemKey[], question: string) => void;
+  onRequestHint: (targetItems: BriefItemKey[], draft: string) => void;
   hint?: string | null;
   hintLoading?: boolean;
   disabled?: boolean;
 }
 
 function AskForm({ targets, onAsk, onRequestHint, hint, hintLoading, disabled }: AskFormProps) {
-  const [target, setTarget] = useState<BriefItemKey | null>(targets[0]?.key ?? null);
+  const [selectedTargets, setSelectedTargets] = useState<BriefItemKey[]>([]);
   const [question, setQuestion] = useState("");
 
   const marks = (question.match(/[?？]/g) ?? []).length;
-  const action: RoomAction | null = target ? { kind: "ask", targetItem: target, question } : null;
+  const action: RoomAction | null = selectedTargets.length ? { kind: "ask", targetItems: selectedTargets, question } : null;
   const ok = Boolean(action && canSubmitAction(action));
-  const targetText = targets.find((item) => item.key === target)?.text ?? "";
+  const selected = targets.filter((item) => selectedTargets.includes(item.key));
   const tooMany = marks > 1;
+
+  function toggleTarget(key: BriefItemKey) {
+    setSelectedTargets((current) =>
+      current.includes(key) ? current.filter((item) => item !== key) : [...current, key],
+    );
+  }
 
   return (
     <div className="dr-form">
       <div className="dr-form-head">
         <b>② 质询轮 · 提问</b>
-        <span>选对方立论结构里的一个条目发问。一问一答——只问一个问题，不许打包追问。</span>
+        <span>可同时选择对方的观点和多条理由，再围绕这些内容提出一个明确问题。</span>
       </div>
 
       <div className="dr-targets">
         {targets.map((item) => (
-          <button
+          <label
             key={item.key}
-            type="button"
-            className={`dr-target ${target === item.key ? "on" : ""}`}
-            onClick={() => setTarget(item.key)}
-            disabled={disabled}
+            className={`dr-target ${selectedTargets.includes(item.key) ? "on" : ""} ${disabled ? "disabled" : ""}`}
           >
-            <b>{item.key}</b>
-            <span>{item.text}</span>
-          </button>
+            <input
+              type="checkbox"
+              checked={selectedTargets.includes(item.key)}
+              onChange={() => toggleTarget(item.key)}
+              disabled={disabled}
+            />
+            <span className="dr-target-copy">
+              <b>{briefItemLabel(item.key)}</b>
+              <span>{item.text}</span>
+            </span>
+          </label>
         ))}
       </div>
 
-      {target ? <p className="dr-target-note">{describeBriefItem(target)}</p> : null}
-      {targetText ? <blockquote className="dr-quote">{targetText}</blockquote> : null}
+      {selected.length ? (
+        <p className="dr-target-note">已选 {selected.length} 项：{selected.map((item) => describeBriefItem(item.key)).join("；")}</p>
+      ) : (
+        <p className="dr-target-note">请至少选择一项质询目标。</p>
+      )}
+      {selected.length ? (
+        <blockquote className="dr-quote">
+          {selected.map((item) => <p key={item.key}><b>{briefItemLabel(item.key)}</b>{item.text}</p>)}
+        </blockquote>
+      ) : null}
 
       <label className="dr-field">
         <span className="dr-field-label">你的问题 <i>恰好一个问号</i></span>
@@ -263,7 +282,7 @@ function AskForm({ targets, onAsk, onRequestHint, hint, hintLoading, disabled }:
           rows={2}
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
-          placeholder="针对上面这个条目，问一个具体的问题。"
+          placeholder="针对选中的观点或理由，提出一个具体问题。"
           disabled={disabled}
         />
       </label>
@@ -275,12 +294,12 @@ function AskForm({ targets, onAsk, onRequestHint, hint, hintLoading, disabled }:
         <button
           type="button"
           className="dr-mini"
-          onClick={() => target && onRequestHint(target, question)}
-          disabled={disabled || !target || hintLoading}
+          onClick={() => selectedTargets.length && onRequestHint(selectedTargets, question)}
+          disabled={disabled || !selectedTargets.length || hintLoading}
         >
           {hintLoading ? "Host 正在看…" : "让 Host 给个结构提示"}
         </button>
-        <button type="button" className="dr-submit" onClick={() => target && onAsk(target, question)} disabled={disabled || !ok}>
+        <button type="button" className="dr-submit" onClick={() => selectedTargets.length && onAsk(selectedTargets, question)} disabled={disabled || !ok}>
           提交质询
         </button>
       </div>
@@ -294,7 +313,7 @@ function AskForm({ targets, onAsk, onRequestHint, hint, hintLoading, disabled }:
 
 function AnswerForm({
   prompt,
-  targetItem,
+  targetItems,
   onSubmit,
   hint,
   hintLoading,
@@ -302,7 +321,7 @@ function AnswerForm({
   disabled,
 }: {
   prompt: string;
-  targetItem?: BriefItemKey;
+  targetItems?: BriefItemKey[];
   onSubmit: (text: string) => void;
   hint?: string | null;
   hintLoading?: boolean;
@@ -319,7 +338,9 @@ function AnswerForm({
       </div>
 
       <blockquote className="dr-quote">
-        {targetItem ? <span className="dr-quote-tag">瞄准「{targetItem}」</span> : null}
+        {targetItems?.length ? (
+          <span className="dr-quote-tag">质询「{targetItems.map(briefItemLabel).join("、")}」</span>
+        ) : null}
         {prompt}
       </blockquote>
 
@@ -497,7 +518,7 @@ function ClosingForm({
         rows={5}
         value={text}
         onChange={(event) => setText(event.target.value)}
-        placeholder="回顾本场：你的结论有没有变化？质询里哪个问题最关键？"
+        placeholder="回顾本场：你的观点有没有变化？质询里哪个问题最关键？"
         disabled={disabled}
       />
 
@@ -531,18 +552,18 @@ function ClosingForm({
 export interface ComposerProps {
   spec: ComposerSpec;
   preset?: { claim?: string | null; author?: string; url?: string };
-  currentBriefTarget?: BriefItemKey;
+  currentBriefTargets?: BriefItemKey[];
   hostHint?: string | null;
   hostHintLoading?: boolean;
   disabled?: boolean;
   onBrief: (brief: OpeningBrief) => void;
   onOpening: (text: string) => void;
-  onAsk: (targetItem: BriefItemKey, question: string) => void;
+  onAsk: (targetItems: BriefItemKey[], question: string) => void;
   onAnswer: (text: string) => void;
   onReact: (reaction: Reaction) => void;
   onFree: (freeType: FreeType, text: string, revisedTo?: string) => void;
   onClosing: (text: string, revision?: { from: string; to: string }) => void;
-  onRequestHint: (context: string, targetItem?: BriefItemKey) => void;
+  onRequestHint: (context: string, targetItems?: BriefItemKey[]) => void;
 }
 
 /**
@@ -573,7 +594,7 @@ export function Composer(props: ComposerProps) {
           <AskForm
             targets={spec.targets ?? []}
             onAsk={props.onAsk}
-            onRequestHint={(targetItem, draft) => props.onRequestHint(draft ? `question:${draft}` : "question", targetItem)}
+            onRequestHint={(targetItems, draft) => props.onRequestHint(draft ? `question:${draft}` : "question", targetItems)}
             hint={props.hostHint}
             hintLoading={props.hostHintLoading}
             disabled={disabled}
@@ -583,7 +604,7 @@ export function Composer(props: ComposerProps) {
         return (
           <AnswerForm
             prompt={spec.prompt ?? ""}
-            targetItem={props.currentBriefTarget}
+            targetItems={props.currentBriefTargets}
             onSubmit={props.onAnswer}
             hint={props.hostHint}
             hintLoading={props.hostHintLoading}
@@ -630,11 +651,11 @@ function OpeningForm({
     <div className="dr-form">
       <div className="dr-form-head">
         <b>① 开篇陈述</b>
-        <span>按「定义 → 结论 → 理由 → 依据 → 判断标准」把立论讲完整。Host 只做结构提示，不代写。</span>
+        <span>按「定义 → 观点 → 理由 → 依据 → 判断标准」把立论讲完整。Host 只做结构提示，不代写。</span>
       </div>
 
       <div className="dr-outline">
-        {["定义", "结论", "理由", "依据", "判断标准"].map((item) => (
+        {["定义", "观点", "理由", "依据", "判断标准"].map((item) => (
           <span key={item}>{item}</span>
         ))}
       </div>

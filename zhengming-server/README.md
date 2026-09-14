@@ -107,8 +107,11 @@ curl -X POST http://127.0.0.1:5300/api/host/structureHint \
 ```jsonc
 { "type": "join",   "roomId": "room-xxx", "seatToken": "可选，重连用", "side": "pro|con", "name": "显示名" }
 { "type": "action", "roomId": "room-xxx", "action": { "kind": "pickSide|submitBrief|submitOpening|ask|answer|react|freeSpeak|submitClosing|leave", "payload": {} } }
+{ "type": "action", "action": { "kind": "ask", "targetItems": ["结论", "理由 1"], "question": "这条理由如何支持你的观点？" } }
 { "type": "leave",  "roomId": "room-xxx" }
 ```
+
+`ask.targetItems` 可同时选择多个立论条目；内部键 `"结论"` 在界面统一显示为“观点”。旧客户端的单值 `targetItem` 仍兼容。
 
 **服务端 → 客户端**
 
@@ -122,6 +125,8 @@ curl -X POST http://127.0.0.1:5300/api/host/structureHint \
 **规则**：所有动作先过 `transition()`；不合法则回 `error` 且**不动状态**。
 
 进入 `settled` 后，服务端会分别从正方、反方视角调用 `evaluate`，合并两边六维画像与引用依据，再落盘并广播最终报告。「接受回答」只结束当前质询，不作为评分或 MP 依据；是否切题由 Host 对照 question/answer 原文判断。真实上游超时或失败时，两侧会自动改用启发式评分并明确标记 `hostDegraded: true`，不会留下空画像或伪装成真实模型结果。
+
+AI 对辩中的 `opponentTurn` 与终局 `evaluate` 不设置模型请求时限；真人操作调用的普通 Host 接口仍保留 30 秒保护。
 
 ---
 

@@ -15,6 +15,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type {
+  BriefItemKey,
   DebateTopic,
   EvidenceStatus,
   FreeType,
@@ -28,13 +29,13 @@ import type {
 } from "../types/debateRoom";
 import { forgetCreatedRoom, readCreatedRoom, readRoomFromUrl, rememberCreatedRoom } from "./debate-room/roomStorage";
 import { forgetSeatToken, seatLabel } from "../domain/roomClient";
-import { briefItems } from "../domain/debateRoom";
+import { briefItems, targetItemsOf } from "../domain/debateRoom";
 
 import { Composer } from "./debate-room/Composer";
 import { RoomReportCard } from "./debate-room/RoomReportCard";
 import { ProfileRadar } from "./debate-room/ProfileRadar";
 import { requestMakeQuestion, requestStructureHint } from "./debate-room/hostClient";
-import { composerFor, matchUiFor, stageProgress, topicBadges } from "./debateRoomUi";
+import { briefItemLabel, composerFor, matchUiFor, stageProgress, topicBadges } from "./debateRoomUi";
 import { createMatch, useRoom, useTopics } from "./useRoom";
 
 /* ═══════════════ 小件 ═══════════════ */
@@ -167,7 +168,7 @@ interface PendingFeedback {
   stateAtSubmit: RoomState | null;
 }
 
-function pendingActionView(action: RoomAction): { label: string; text: string; targetItem?: string } | null {
+function pendingActionView(action: RoomAction): { label: string; text: string; targetItems?: string[] } | null {
   switch (action.kind) {
     case "submitBrief":
       return {
@@ -177,7 +178,11 @@ function pendingActionView(action: RoomAction): { label: string; text: string; t
     case "submitOpening":
       return { label: "开篇立论", text: action.text };
     case "ask":
-      return { label: "质询", text: action.question, targetItem: action.targetItem };
+      return {
+        label: "质询",
+        text: action.question,
+        targetItems: targetItemsOf(action).map(briefItemLabel),
+      };
     case "answer":
       return { label: "回答", text: action.text };
     case "react":
@@ -326,14 +331,22 @@ export function DebateRoom() {
 
   /* ── Host 结构提示 ── */
   const requestHint = useCallback(
-    async (context: string, targetItem?: ReturnType<typeof briefItems>[number]["key"]) => {
+    async (context: string, targetItems?: BriefItemKey[]) => {
       setHostHintLoading(true);
       setHintDegraded(false);
       try {
         if (context.startsWith("question:") || context === "question") {
           const draft = context.startsWith("question:") ? context.slice("question:".length) : "";
-          const label = targetItem ?? "结论";
-          const claimText = draft || (state ? briefItems(state.briefs[opponentsOf(effectiveSide)]).find((i) => i.key === label)?.text ?? "" : "");
+          const selectedKeys = targetItems?.length ? targetItems : ["结论" as const];
+          const opponentItems = state ? briefItems(state.briefs[opponentsOf(effectiveSide)]) : [];
+          const selected = selectedKeys
+            .map((key) => opponentItems.find((item) => item.key === key))
+            .filter((item): item is { key: BriefItemKey; text: string } => Boolean(item));
+          const label = selectedKeys.map(briefItemLabel).join("、");
+          const sourceText = selected.map((item) => `${briefItemLabel(item.key)}：${item.text}`).join("\n");
+          const claimText = [sourceText || "（对方未提供所选条目原文）", draft ? `已有问题草稿：${draft}` : ""]
+            .filter(Boolean)
+            .join("\n");
           const result = await requestMakeQuestion({ label, text: claimText || "（对方未提供该条目原文）" });
           setHintDegraded(result.degraded);
           setHostHint(result.ok ? result.result : result.error ?? "Host 暂时给不出提示。");
@@ -355,10 +368,10 @@ export function DebateRoom() {
   const pendingView = pendingFeedback ? pendingActionView(pendingFeedback.action) : null;
   const showAiThinking = aiThinking || Boolean(pendingFeedback && state?.match.mode === "ai");
 
-  const turnTarget = useMemo(() => {
+  const turnTargets = useMemo(() => {
     if (!state || !effectiveSide) return undefined;
     const last = state.crossRecords[state.crossRecords.length - 1];
-    return last?.targetItem;
+    return last ? targetItemsOf(last) : undefined;
   }, [state, effectiveSide]);
 
   /* ── 再来一局：清掉本地房间记忆，回启动台重选 ── */
@@ -497,7 +510,9 @@ export function DebateRoom() {
                       <b>{isHost ? "Host" : seat?.name ?? (turn.authorId === "pro" ? "正方" : "反方")}</b>
                       {!isHost ? <span className={`dr-tag ${turn.authorId}`}>{seatLabel(turn.authorId as SeatId)}</span> : null}
                       <span className="dr-turn-kind">{TURN_KIND_LABEL[turn.kind] ?? turn.kind}</span>
-                      {turn.targetItem ? <span className="dr-turn-target">瞄准 {turn.targetItem}</span> : null}
+                      {targetItemsOf(turn).length ? (
+                        <span className="dr-turn-target">质询 {targetItemsOf(turn).map(briefItemLabel).join("、")}</span>
+                      ) : null}
                       {turn.freeType ? <span className={`dr-turn-free t-${turn.freeType}`}>{turn.freeType}</span> : null}
                       {turn.evidenceStatus ? <span className="dr-turn-ev">{turn.evidenceStatus}</span> : null}
                     </div>
@@ -519,7 +534,9 @@ export function DebateRoom() {
                   <b>{state?.seats[effectiveSide ?? "pro"]?.name ?? "我"}</b>
                   {effectiveSide ? <span className={`dr-tag ${effectiveSide}`}>{seatLabel(effectiveSide)}</span> : null}
                   <span className="dr-turn-kind">{pendingView.label}</span>
-                  {pendingView.targetItem ? <span className="dr-turn-target">瞄准 {pendingView.targetItem}</span> : null}
+                  {pendingView.targetItems?.length ? (
+                    <span className="dr-turn-target">质询 {pendingView.targetItems.join("、")}</span>
+                  ) : null}
                   <span className="dr-pending-label">发送中</span>
                 </div>
                 <p>{pendingView.text}</p>
@@ -543,13 +560,13 @@ export function DebateRoom() {
                 author: effectiveSide ? (effectiveSide === "pro" ? topic?.pro?.author : topic?.con?.author) : undefined,
                 url: effectiveSide ? (effectiveSide === "pro" ? topic?.pro?.url : topic?.con?.url) : undefined,
               }}
-              currentBriefTarget={turnTarget}
+              currentBriefTargets={turnTargets}
               hostHint={hostHint}
               hostHintLoading={hostHintLoading}
               disabled={connection !== "open" || Boolean(pendingFeedback)}
               onBrief={(brief: OpeningBrief) => act({ kind: "submitBrief", brief })}
               onOpening={(text: string) => act({ kind: "submitOpening", text })}
-              onAsk={(targetItem, question) => act({ kind: "ask", targetItem, question })}
+              onAsk={(targetItems, question) => act({ kind: "ask", targetItems, question })}
               onAnswer={(text: string) => act({ kind: "answer", text })}
               onReact={(reaction: Reaction) => act({ kind: "react", reaction })}
               onFree={(freeType: FreeType, text: string, revisedTo?: string) => act({ kind: "freeSpeak", freeType, text, revisedTo })}
@@ -595,7 +612,7 @@ export function DebateRoom() {
                       {revealed ? (
                         briefItems(brief).map((item) => (
                           <div key={item.key} className="dr-board-item">
-                            <b>{item.key}</b>
+                            <b>{briefItemLabel(item.key)}</b>
                             <span>{item.text}</span>
                           </div>
                         ))
@@ -617,7 +634,7 @@ export function DebateRoom() {
                   </div>
                   {state.crossRecords.map((record, index) => (
                     <div key={`${record.at}-${index}`} className="dr-board-item">
-                      <b>{record.targetItem}</b>
+                      <b>{targetItemsOf(record).map(briefItemLabel).join("、")}</b>
                       <span>{record.question}</span>
                       {record.closedBy === "questionLimit" ? <em className="dr-pressed">达到上限 · 自动结束</em> : null}
                       {record.pressed ? <em className="dr-pressed">追问过</em> : null}
@@ -962,7 +979,7 @@ function buildStatementFor(state: RoomState | null, side: SeatId | null, context
   if (!brief) return "（尚未填写立论结构）";
   const parts: string[] = [];
   if (brief.definition) parts.push(`定义：${brief.definition}`);
-  parts.push(`结论：${brief.conclusion}`);
+  parts.push(`观点：${brief.conclusion}`);
   (brief.reasons ?? []).forEach((reason, index) => parts.push(`理由 ${index + 1}：${reason}`));
   if (brief.evidence) parts.push(`依据：${brief.evidence}`);
   if (context === "answer") {

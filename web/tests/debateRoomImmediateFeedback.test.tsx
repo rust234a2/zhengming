@@ -1,9 +1,14 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createRoomState } from "../src/domain/debateRoom";
 import type { RoomState } from "../src/types/debateRoom";
 import { DebateRoom } from "../src/ui/DebateRoom";
+
+const styles = readFileSync(resolve("src/styles.css"), "utf8");
 
 const send = vi.fn();
 
@@ -37,12 +42,13 @@ const state: RoomState = {
     con: { conclusion: "程序员岗位会减少", reasons: ["常规编码可被自动化"] },
   },
 };
+let currentState = state;
 
 vi.mock("../src/ui/useRoom", () => ({
   createMatch: vi.fn(),
   useTopics: () => ({ topics: [], loading: false, error: null, hostConfigured: true, reload: vi.fn() }),
   useRoom: () => ({
-    state,
+    state: currentState,
     mySide: "pro",
     connection: "open",
     error: null,
@@ -58,6 +64,7 @@ vi.mock("../src/ui/useRoom", () => ({
 describe("辩论间即时反馈", () => {
   beforeEach(() => {
     send.mockClear();
+    currentState = state;
     window.sessionStorage.clear();
     window.history.replaceState(null, "", "/?view=room&room=room-ai-feedback&side=pro");
   });
@@ -74,5 +81,43 @@ describe("辩论间即时反馈", () => {
     expect(within(pendingTurn).getByText("发送中")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("AI 正在思考");
     expect(screen.getByRole("button", { name: "提交开篇陈述" })).toBeDisabled();
+  });
+
+  it("质询目标可多选，并把“结论”明确显示为“观点”", () => {
+    currentState = {
+      ...state,
+      phase: "crossAsk",
+      turnSeat: "pro",
+      briefs: {
+        ...state.briefs,
+        con: { conclusion: "程序员岗位会减少", reasons: ["常规编码可被自动化", "团队结构会变化"] },
+      },
+    };
+    render(<DebateRoom />);
+
+    const viewpoint = screen.getByRole("checkbox", { name: /观点/ });
+    const reasonOne = screen.getByRole("checkbox", { name: /理由 1/ });
+    fireEvent.click(viewpoint);
+    fireEvent.click(reasonOne);
+    fireEvent.change(screen.getByPlaceholderText("针对选中的观点或理由，提出一个具体问题。"), {
+      target: { value: "这条理由如何支持你的观点？" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "提交质询" }));
+
+    expect(viewpoint).toBeChecked();
+    expect(reasonOne).toBeChecked();
+    expect(send).toHaveBeenCalledWith({
+      kind: "ask",
+      targetItems: ["结论", "理由 1"],
+      question: "这条理由如何支持你的观点？",
+    });
+  });
+
+  it("中栏约束自身高度，让发言记录在框内独立滚动", () => {
+    const centerRule = styles.match(/\.dr-col-center\s*\{([^}]*)\}/)?.[1] ?? "";
+    const streamRule = styles.match(/\.dr-stream\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(centerRule).toMatch(/min-height:\s*0/);
+    expect(centerRule).toMatch(/overflow:\s*hidden/);
+    expect(streamRule).toMatch(/overflow-y:\s*auto/);
   });
 });

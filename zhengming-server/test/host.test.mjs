@@ -372,6 +372,19 @@ test("上游 5xx → UPSTREAM；超时 → TIMEOUT", async () => {
   assert.equal(to.error.code, ERROR_CODES.TIMEOUT);
 });
 
+test("timeoutMs=0 时不注册中止信号", async () => {
+  const capture = {};
+  const result = await invokeHost("structureHint", { statement: "abc" }, {
+    apiKey: "sk-test",
+    requestId: "r-no-timeout",
+    timeoutMs: 0,
+    fetchImpl: fakeFetch("陈述尚未给出判断标准。", { capture }),
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal("signal" in capture.init, false);
+});
+
 test("上游报错信息不把 key 透出", async () => {
   const res = await invokeHost("structureHint", { statement: "abc" }, {
     apiKey: "sk-super-secret",

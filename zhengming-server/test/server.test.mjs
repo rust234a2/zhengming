@@ -468,8 +468,10 @@ test("AI 思考尚未完成时先广播用户动作", async () => {
     releaseAi = resolve;
   });
   let opponentCalls = 0;
+  const opponentOptions = [];
   const delayedHost = async (capability, params, options) => {
     if (capability === "opponentTurn") {
+      opponentOptions.push(options);
       opponentCalls += 1;
       if (opponentCalls === 2) await aiGate;
     }
@@ -507,6 +509,8 @@ test("AI 思考尚未完成时先广播用户动作", async () => {
       { timeout: 250 },
     );
     assert.equal(immediate.state.turnSeat, "pro");
+    assert.ok(opponentOptions.length >= 2);
+    assert.ok(opponentOptions.every((options) => options.timeoutMs === 0), "AI 对手调用不应设置请求时限");
   } finally {
     releaseAi();
     client?.close();
@@ -554,6 +558,8 @@ test("终局分别调用 Host 评价双方，并把席位视角映射为 user", 
 
   assert.equal(calls.length, 2);
   assert.equal(calls[0].capability, "evaluate");
+  assert.equal(calls[0].options.timeoutMs, 0);
+  assert.equal(calls[1].options.timeoutMs, 0);
   assert.equal(calls[0].params.transcript[0].authorId, "user");
   assert.equal(calls[1].params.transcript[1].authorId, "user");
   assert.equal(evaluated.report.profiles.pro[3], 64);

@@ -1838,9 +1838,11 @@ textarea {
 .dr-col-right { border-left: 1px solid #e9edf3; }
 
 .dr-col-center {
+  min-height: 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: #ffffff;
 }
 
@@ -2335,6 +2337,11 @@ textarea {
 }
 
 .dr-target {
+  display: flex;
+  align-items: flex-start;
+  flex: 1 1 180px;
+  gap: 8px;
+  min-width: 0;
   max-width: 100%;
   padding: 7px 10px;
   border: 1px solid #e3e8ef;
@@ -2344,14 +2351,27 @@ textarea {
   cursor: pointer;
 }
 
-.dr-target b {
+.dr-target input {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin: 2px 0 0;
+  accent-color: var(--dr-blue);
+}
+
+.dr-target-copy {
+  display: block;
+  min-width: 0;
+}
+
+.dr-target-copy b {
   display: block;
   color: var(--dr-blue);
   font-size: 11px;
   font-weight: 600;
 }
 
-.dr-target span {
+.dr-target-copy > span {
   display: block;
   margin-top: 2px;
   color: #5a6478;
@@ -2368,7 +2388,7 @@ textarea {
   background: #f7faff;
 }
 
-.dr-target:disabled { cursor: not-allowed; opacity: 0.6; }
+.dr-target.disabled { cursor: not-allowed; opacity: 0.6; }
 
 .dr-target-note {
   margin: 0;
@@ -2386,6 +2406,15 @@ textarea {
   font-size: 13px;
   line-height: 1.65;
 }
+
+.dr-quote p {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+}
+
+.dr-quote p + p { margin-top: 5px; }
+.dr-quote p b { flex: none; color: var(--dr-blue); font-size: 11px; }
 
 .dr-quote-tag {
   display: inline-block;

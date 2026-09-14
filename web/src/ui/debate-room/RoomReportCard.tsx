@@ -13,7 +13,7 @@ import { useEffect } from "react";
 
 import type { RoomReport, SeatId } from "../../types/debateRoom";
 import { PROFILE_DIMS } from "../../types/debateRoom";
-import { reportSections } from "../debateRoomUi";
+import { compactEvaluationGrounds, reportSections } from "../debateRoomUi";
 import { ProfileRadar } from "./ProfileRadar";
 
 const SEAT_NAME: Record<SeatId, string> = { pro: "正方", con: "反方" };
@@ -44,6 +44,7 @@ export function RoomReportCard({
   }, [onClose]);
 
   const label = (seat: SeatId) => seatNames?.[seat] || SEAT_NAME[seat];
+  const evaluationGrounds = compactEvaluationGrounds(report.grounds);
 
   return (
     <div
@@ -89,7 +90,7 @@ export function RoomReportCard({
                             </p>
                           ) : null}
                           <p>
-                            <em>结论</em>
+                            <em>观点</em>
                             {brief.conclusion}
                           </p>
                           {(brief.reasons ?? []).map((reason, index) => (
@@ -144,14 +145,21 @@ export function RoomReportCard({
               ]}
             />
 
-            {report.grounds.length ? (
+            {evaluationGrounds.length ? (
               <section className="dr-end-sec">
-                <h3>六维评估依据</h3>
+                <h3>六维依据</h3>
                 <ul>
-                  {report.grounds.map((ground, index) => (
-                    <li key={`ground-${index}`}>
-                      <span className="dr-end-meta">{ground.seat ? `${label(ground.seat)} · ` : ""}{ground.dim}</span>
-                      <span>「{ground.quote}」——{ground.reason}</span>
+                  {evaluationGrounds.map((ground) => (
+                    <li
+                      key={ground.dim}
+                      title={ground.entries.map((entry) => `${entry.seat ? label(entry.seat) : "全场"}原话：${entry.quote}`).join("；")}
+                    >
+                      <span className="dr-end-meta">{ground.dim}</span>
+                      <span>
+                        {ground.entries
+                          .map((entry) => `${entry.seat ? label(entry.seat) : "全场"}：${entry.reason}`)
+                          .join("；")}
+                      </span>
                     </li>
                   ))}
                 </ul>

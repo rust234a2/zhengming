@@ -347,8 +347,9 @@ async function callStepFun({ system, user, temperature }, { capability, fetchImp
     body.response_format = { type: "json_object" };
   }
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const hasTimeout = Number.isFinite(timeoutMs) && timeoutMs > 0;
+  const controller = hasTimeout ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
 
   let response;
   try {
@@ -359,15 +360,15 @@ async function callStepFun({ system, user, temperature }, { capability, fetchImp
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify(body),
-      signal: controller.signal,
+      ...(controller ? { signal: controller.signal } : {}),
     });
   } catch (error) {
-    if (error?.name === "AbortError") {
+    if (controller && error?.name === "AbortError") {
       throw new HostError(ERROR_CODES.TIMEOUT, `upstream did not respond within ${timeoutMs}ms`);
     }
     throw new HostError(ERROR_CODES.UPSTREAM, `upstream request failed: ${error?.message || error}`);
   } finally {
-    clearTimeout(timer);
+    if (timer) clearTimeout(timer);
   }
 
   if (!response.ok) {
@@ -446,7 +447,7 @@ export function idempotencyCacheSize() {
  * @param {string} [options.requestId] 幂等键
  * @param {string|null} [options.apiKey] 显式注入 key（默认从 env 读；传 null 强制降级，测试用）
  * @param {Function} [options.fetchImpl] 注入 fetch（测试用）
- * @param {number} [options.timeoutMs]
+ * @param {number} [options.timeoutMs] 传 0 表示不设置请求时限
  * @returns {Promise<object>} 统一信封：{ok, capability, requestId, result} 或 {ok:false, error}
  */
 export async function invokeHost(capability, params = {}, options = {}) {

@@ -106,11 +106,11 @@ export function rankCandidates(myDims: number[] | null, candidates: Candidate[])
 /** 立论结构的条目数量是否达标（理由至少 1 条） */
 export function validateBrief(brief: OpeningBrief): { ok: boolean; message?: string } {
   if (!brief || typeof brief.conclusion !== "string" || !brief.conclusion.trim()) {
-    return { ok: false, message: "Host：核心结论不能为空——你最终主张什么？" };
+    return { ok: false, message: "Host：核心观点不能为空——你最终主张什么？" };
   }
   const reasons = (brief.reasons ?? []).filter((r) => typeof r === "string" && r.trim());
   if (reasons.length < 1) {
-    return { ok: false, message: "Host：至少需要一条理由——结论不会因为重复而成立。" };
+    return { ok: false, message: "Host：至少需要一条理由——重复观点不能代替论证。" };
   }
   if (reasons.length > 2) {
     return { ok: false, message: "Host：立论结构最多两条理由——把最重要的两条留下。" };
@@ -138,6 +138,12 @@ export function briefItems(brief: OpeningBrief | null): { key: BriefItemKey; tex
     });
   if (brief.evidence?.trim()) items.push({ key: "依据", text: brief.evidence.trim() });
   return items;
+}
+
+/** 读取新旧两版质询靶点，并保持选择顺序、去掉重复项。 */
+export function targetItemsOf(source: { targetItem?: BriefItemKey; targetItems?: readonly BriefItemKey[] }): BriefItemKey[] {
+  const items = source.targetItems?.length ? source.targetItems : source.targetItem ? [source.targetItem] : [];
+  return [...new Set(items)];
 }
 
 /* ═══════════════════ 内部工具 ═══════════════════ */
@@ -291,13 +297,16 @@ export function transition(state: RoomState, actor: SeatId, action: RoomAction):
       if (state.turnSeat !== actor) {
         return fail("NOT_YOUR_TURN", "还没轮到你提问。");
       }
-      if (!BRIEF_ITEM_KEYS.includes(action.targetItem)) {
-        return fail("VALIDATION", "质询靶点必须是立论结构的条目（定义/结论/理由 1/理由 2/依据）。");
+      const selectedTargets = targetItemsOf(action);
+      if (!selectedTargets.length || selectedTargets.some((item) => !BRIEF_ITEM_KEYS.includes(item))) {
+        return fail("VALIDATION", "质询目标必须是立论结构的条目（定义/观点/理由 1/理由 2/依据）。");
       }
       const opp = opponentOf(actor);
       const targets = briefItems(state.briefs[opp]);
-      if (!targets.some((item) => item.key === action.targetItem)) {
-        return fail("TARGET_NOT_FOUND", `对方的立论结构里没有「${action.targetItem}」这条。`);
+      const missingTarget = selectedTargets.find((selected) => !targets.some((item) => item.key === selected));
+      if (missingTarget) {
+        const label = missingTarget === "结论" ? "观点" : missingTarget;
+        return fail("TARGET_NOT_FOUND", `对方的立论结构里没有「${label}」这条。`);
       }
       if (!action.question?.trim()) {
         return fail("EMPTY_QUESTION", "Host：问题不能为空。");
@@ -310,12 +319,16 @@ export function transition(state: RoomState, actor: SeatId, action: RoomAction):
       }
       const record = {
         asker: actor,
-        targetItem: action.targetItem,
+        targetItem: selectedTargets[0],
+        targetItems: selectedTargets,
         question,
         pressed: false,
         at: new Date().toISOString(),
       };
-      const next = withTranscript(state, makeTurn(state.roomId, actor, "question", question, { targetItem: action.targetItem }));
+      const next = withTranscript(state, makeTurn(state.roomId, actor, "question", question, {
+        targetItem: selectedTargets[0],
+        targetItems: selectedTargets,
+      }));
       return {
         ok: true,
         state: { ...next, crossRecords: [...next.crossRecords, record], phase: "crossAnswer", turnSeat: opp },

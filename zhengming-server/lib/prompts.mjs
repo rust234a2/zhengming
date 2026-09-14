@@ -70,13 +70,13 @@ export const PROMPTS = {
 ${statement}
 """
 
-请判断这段话里，五个结构要素（判断标准 / 核心结论 / 理由 / 依据 / 关键定义）分别是否出现。
+请判断这段话里，五个结构要素（判断标准 / 核心观点 / 理由 / 依据 / 关键定义）分别是否出现。
 然后**只说一句**中文提示，指出**最值得补的一个**缺失要素，并说明它对论证的作用。
 
 硬要求：
 - ≤60 字，一句话，不带编号、不带分点、不带换行。
 - **绝不给出可直接粘贴的论证内容**，不要写出用户该说的理由是什么、证据是什么、定义是什么。
-- 只提结构要素本身，例如「你的陈述里有结论和一条理由，但没有给出判断标准——按什么标准衡量『该不该』？」
+- 只提结构要素本身，例如「你的陈述里有观点和一条理由，但没有给出判断标准——按什么标准衡量『该不该』？」
 - 不评判用户说得对不对，只描述结构。`,
       temperature: 0.5,
     };
@@ -139,7 +139,7 @@ ${transcriptText}
 硬要求：
 - 评估「回应」时，必须把每个 question 与对应的 answer 成对比较；没有回答、只重复立场或偏离问题焦点，都应在该维度如实体现。
 - reaction 中的「接受回答」只是提问方结束本轮的流程动作，不代表同意立场，也不证明回答切题；不得因出现「接受」而提高任何分数。
-- 每条依据（grounds）**必须引用发言记录里的原话片段**（quote 字段，原文摘录，不要改写）。引用不到原话的依据请删掉。
+- 每个维度最多给 1 条依据；quote 只摘最关键的原话（≤24 字），reason 用一句短说明（≤32 字）。引用不到原话的依据请删掉。
 - 综合得分（total）为六维**等权平均**，四舍五入取整。
 - **绝不出现胜负语义**，不要写「占上风」「更胜一筹」「谁赢」「谁错」之类表述。这是结构质量反馈，像教练复盘，不像裁判打分。
 - 分数不要全部集中在同一档，要按实际表现给出区分度。
@@ -302,7 +302,7 @@ ${historyText || "（无）"}
 
 const ELEMENT_LABELS = {
   standard: "判断标准",
-  conclusion: "核心结论",
+  conclusion: "核心观点",
   reason: "理由",
   evidence: "依据",
   definition: "关键定义",
@@ -329,7 +329,7 @@ export function heuristicStructureHint(statement) {
   const advice = {
     standard: "按什么标准衡量",
     evidence: "这条理由背后有没有可查证的东西",
-    reason: "结论为什么成立",
+    reason: "观点为什么成立",
     conclusion: "你最终主张什么",
     definition: "你使用的关键词是怎么界定的",
   };
@@ -363,7 +363,7 @@ export function heuristicOpponentTurn(context) {
     return { action: { kind: "ask", targetItem, question: `你提到「${Array.from(String(target || "这项主张")).slice(0, 16).join("")}」，它在什么条件下不成立？` } };
   }
   if (context.phase === "crossAnswer") {
-    return { action: { kind: "answer", text: `针对这个问题，我的依据仍是本方立论中的判断标准；在条件发生变化时，我也会相应缩小结论的适用范围。` } };
+    return { action: { kind: "answer", text: `针对这个问题，我的依据仍是本方立论中的判断标准；在条件发生变化时，我也会相应缩小观点的适用范围。` } };
   }
   if (context.phase === "crossReact") {
     return { action: { kind: "react", reaction: "accept" } };
@@ -371,7 +371,7 @@ export function heuristicOpponentTurn(context) {
   if (context.phase === "free") {
     return { action: { kind: "freeSpeak", freeType: "反驳", text: `对方给出的理由说明了一个条件，但还不足以覆盖本方所强调的实际影响。` } };
   }
-  return { action: { kind: "submitClosing", text: `本场分歧集中在判断标准与适用条件。我保留本方结论，同时承认仍需更多可查证材料来缩小争议范围。` } };
+  return { action: { kind: "submitClosing", text: `本场分歧集中在判断标准与适用条件。我保留本方观点，同时承认仍需更多可查证材料来缩小争议范围。` } };
 }
 
 /** 启发式质询生成：按靶点类型选一个固定的追问角度，套用靶点原文片段 */
@@ -380,9 +380,9 @@ export function heuristicMakeQuestion(targetClaim) {
   const snippet = Array.from(String(targetClaim?.text || "")).slice(0, 12).join("");
   const templates = {
     定义: `你把「${snippet}…」界定成这样——这是学术上的既定口径，还是你自己的用法？`,
-    结论: `你的结论「${snippet}…」在什么条件下会不成立？`,
-    "理由 1": `你给出的理由「${snippet}…」与结论之间，中间还差哪一步？`,
-    "理由 2": `你给出的理由「${snippet}…」与结论之间，中间还差哪一步？`,
+    结论: `你的观点「${snippet}…」在什么条件下会不成立？`,
+    "理由 1": `你给出的理由「${snippet}…」与观点之间，中间还差哪一步？`,
+    "理由 2": `你给出的理由「${snippet}…」与观点之间，中间还差哪一步？`,
     依据: `你引用的「${snippet}…」出自哪里，现在还能查到吗？`,
   };
   return templates[label] || `你提到的「${snippet}…」，依据是什么？`;

@@ -26,6 +26,7 @@ import {
   aggregateTopics,
   isDebatableQuestionTitle,
   matchUiFor,
+  compactEvaluationGrounds,
 } from "../src/ui/debateRoomUi";
 import type { DebateTopic, RoomReport, RoomState, SeatId } from "../src/types/debateRoom";
 import type { HostTopic } from "../src/types/debateRoom";
@@ -393,6 +394,7 @@ describe("canSubmitAction：提交按钮可用性", () => {
 
   it("质询必须带靶点与单个问句", () => {
     expect(canSubmitAction({ kind: "ask", targetItem: "结论", question: "为什么？" })).toBe(true);
+    expect(canSubmitAction({ kind: "ask", targetItems: ["结论", "理由 1"], question: "两者如何衔接？" })).toBe(true);
     expect(canSubmitAction({ kind: "ask", question: "为什么？" } as never)).toBe(false);
     expect(canSubmitAction({ kind: "ask", targetItem: "结论", question: "为什么？还有呢？" })).toBe(false);
     expect(canSubmitAction({ kind: "ask", targetItem: "结论", question: "为什么" })).toBe(false);
@@ -458,7 +460,7 @@ describe("reportSections：对局报告的栏目", () => {
     expect(cross.items).toHaveLength(2);
     // 结束原因（达到上限 / 已接受 / 已追问）出现在 meta 里，正文保留原始问答
     expect(cross.items[1].meta).toContain("达到质询上限后自动结束");
-    expect(cross.items[0].text).toContain("结论");
+    expect(cross.items[0].text).toContain("观点");
     expect(cross.items[0].meta).toContain("已接受回答");
   });
 
@@ -466,6 +468,19 @@ describe("reportSections：对局报告的栏目", () => {
     const revisions = reportSections(report).find((s) => s.id === "revisions")!;
     expect(revisions.items[0].text).toContain("会被取代");
     expect(revisions.items[0].text).toContain("部分环节会被取代");
+  });
+
+  it("六维依据合并为最多六行，并压缩每方的长文案", () => {
+    const grounds = (["立论", "论据", "逻辑", "回应", "表达", "规范"] as const).flatMap((dim) => [
+      { seat: "pro" as const, dim, quote: "这是一段非常长的正方原话引用，用来验证报告不会把整段原文全部铺开显示", reason: "这是一段非常长的正方分析理由，需要在报告中压缩成一句短说明" },
+      { seat: "con" as const, dim, quote: "这是一段非常长的反方原话引用，用来验证报告不会把整段原文全部铺开显示", reason: "这是一段非常长的反方分析理由，需要在报告中压缩成一句短说明" },
+    ]);
+    const compact = compactEvaluationGrounds(grounds);
+
+    expect(compact).toHaveLength(6);
+    expect(compact.every((item) => item.entries.length <= 2)).toBe(true);
+    expect(compact.flatMap((item) => item.entries).every((entry) => Array.from(entry.reason).length <= 33)).toBe(true);
+    expect(compact.flatMap((item) => item.entries).every((entry) => Array.from(entry.quote).length <= 25)).toBe(true);
   });
 
   it("报告不含胜负字段与胜负文案（红线）", () => {

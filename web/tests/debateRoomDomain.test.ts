@@ -366,6 +366,44 @@ describe("transition：非法规跃迁全部被拒且不动状态", () => {
     if (hit.ok) expect(hit.state.phase).toBe("crossAnswer");
   });
 
+  it("一次质询可同时选择观点和多条理由，并完整写入记录", () => {
+    const s = freshState({
+      phase: "crossAsk",
+      turnSeat: "pro",
+      briefs: {
+        pro: BRIEF,
+        con: { conclusion: "会消解", reasons: ["职能可分解", "岗位需求会收缩"] },
+      },
+    });
+    const result = transition(s, "pro", {
+      kind: "ask",
+      targetItems: ["结论", "理由 1", "理由 2"],
+      question: "这些理由如何共同支持你的观点？",
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.state.crossRecords[0].targetItems).toEqual(["结论", "理由 1", "理由 2"]);
+      expect(result.state.transcript.at(-1)?.targetItems).toEqual(["结论", "理由 1", "理由 2"]);
+    }
+  });
+
+  it("多选质询中任一目标不存在时整次拒收", () => {
+    const s = freshState({
+      phase: "crossAsk",
+      turnSeat: "pro",
+      briefs: { pro: BRIEF, con: { conclusion: "会消解", reasons: ["职能可分解"] } },
+    });
+    const result = transition(s, "pro", {
+      kind: "ask",
+      targetItems: ["结论", "理由 2"],
+      question: "这两项如何衔接？",
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe("TARGET_NOT_FOUND");
+  });
+
   it("打包追问（两个问号）被拒——追问权替代验证权", () => {
     let s = withBriefs();
     const o1 = transition(s, "pro", { kind: "submitOpening", text: "我方结论是继续存在。" });

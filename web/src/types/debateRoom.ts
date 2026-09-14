@@ -61,7 +61,7 @@ export const BRIEF_ITEM_KEYS: readonly BriefItemKey[] = ["定义", "结论", "�
 export interface OpeningBrief {
   /** 关键定义：可选；对方可在质询轮直接选中发问 */
   definition?: string;
-  /** 核心结论：默认预填所选边的预设论点，可改 */
+  /** 核心观点：默认预填所选边的预设论点，可改 */
   conclusion: string;
   /** 理由：至少 1 条 */
   reasons: string[];
@@ -121,6 +121,8 @@ export interface Turn {
   evidenceStatus?: EvidenceStatus;
   /** 质询靶点（kind 为 question 时有值） */
   targetItem?: BriefItemKey;
+  /** 多选质询靶点；targetItem 保留为首项以兼容旧快照 */
+  targetItems?: BriefItemKey[];
   at: string;
 }
 
@@ -174,6 +176,8 @@ export interface CrossRecord {
   asker: SeatId;
   /** 质询靶点 */
   targetItem: BriefItemKey;
+  /** 本次质询涉及的全部靶点；旧记录缺省时读取 targetItem */
+  targetItems?: BriefItemKey[];
   question: string;
   answer?: string;
   /** 提问方的反应；第二问回答后系统自动推进，不再产生反应动作 */
@@ -284,7 +288,7 @@ export type RoomAction =
   | { kind: "pickSide"; side: SeatId }
   | { kind: "submitBrief"; brief: OpeningBrief }
   | { kind: "submitOpening"; text: string; evidence?: string; evidenceStatus?: EvidenceStatus }
-  | { kind: "ask"; targetItem: BriefItemKey; question: string }
+  | { kind: "ask"; targetItem?: BriefItemKey; targetItems?: BriefItemKey[]; question: string }
   | { kind: "answer"; text: string }
   | { kind: "react"; reaction: Reaction }
   | { kind: "freeSpeak"; freeType: FreeType; text: string; revisedTo?: string }

@@ -26,7 +26,7 @@ import {
   type SeatId,
   type TopicClaim,
 } from "../types/debateRoom";
-import { briefItems, opponentOf } from "../domain/debateRoom";
+import { briefItems, opponentOf, targetItemsOf } from "../domain/debateRoom";
 import { findBannedWords } from "../domain/roomClient";
 import debateQuestionRules from "../data/debateQuestionRules.json";
 
@@ -119,7 +119,7 @@ export function composerFor(state: RoomState, me: SeatId | null): ComposerSpec {
       return {
         kind: "opening",
         canAct: myTurn || state.transcript.every((turn) => turn.authorId !== me || turn.kind !== "opening"),
-        hint: "按「定义 → 结论 → 理由 → 依据 → 判断标准」把立论讲完整。Host 只做结构提示，不代写。",
+        hint: "按「定义 → 观点 → 理由 → 依据 → 判断标准」把立论讲完整。Host 只做结构提示，不代写。",
       };
     }
 
@@ -350,7 +350,7 @@ export function canSubmitAction(action: RoomAction): boolean {
     case "submitClosing":
       return Boolean(text.trim());
     case "ask": {
-      if (!action.targetItem) return false;
+      if (!targetItemsOf(action).length) return false;
       const question = action.question ?? "";
       if (!question.trim()) return false;
       // 恰好一个问号（禁打包追问，与 Host 契约同一条硬约束）
@@ -375,17 +375,22 @@ export function canSubmitAction(action: RoomAction): boolean {
   }
 }
 
+/** 内部沿用旧键保证快照兼容，界面对用户统一称“观点”。 */
+export function briefItemLabel(key: BriefItemKey): string {
+  return key === "结论" ? "观点" : key;
+}
+
 /** 质询靶点的可读说明 */
 export function describeBriefItem(key: BriefItemKey): string {
   switch (key) {
     case "定义":
       return "关键定义：对方使用的核心词是怎么界定的";
     case "结论":
-      return "核心结论：对方最终主张什么";
+      return "核心观点：对方最终主张什么";
     case "理由 1":
-      return "理由 1：支撑结论的第一条理由";
+      return "理由 1：支撑观点的第一条理由";
     case "理由 2":
-      return "理由 2：支撑结论的第二条理由";
+      return "理由 2：支撑观点的第二条理由";
     case "依据":
       return "依据：支撑理由的事实或来源";
     default:
@@ -406,6 +411,38 @@ export interface ReportSection {
   /** 空栏目也保留（显式显示「暂无」而不是整个消失） */
   items: ReportItem[];
   emptyText: string;
+}
+
+export interface CompactEvaluationGround {
+  dim: string;
+  entries: { seat?: SeatId; quote: string; reason: string }[];
+}
+
+function shorten(text: string, max: number): string {
+  const chars = Array.from(text.trim());
+  return chars.length <= max ? chars.join("") : `${chars.slice(0, max - 1).join("")}…`;
+}
+
+/** 六维依据每维合并一行，每方最多一条，避免终局报告被长引用撑满。 */
+export function compactEvaluationGrounds(grounds: RoomReport["grounds"]): CompactEvaluationGround[] {
+  return PROFILE_DIMS.map((dim) => {
+    const seen = new Set<string>();
+    const entries = grounds
+      .filter((ground) => ground.dim === dim)
+      .filter((ground) => {
+        const key = ground.seat ?? "shared";
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, 2)
+      .map((ground) => ({
+        seat: ground.seat,
+        quote: shorten(ground.quote, 24),
+        reason: shorten(ground.reason || "见对应发言", 32),
+      }));
+    return { dim, entries };
+  }).filter((item) => item.entries.length > 0);
 }
 
 const SEAT_NAME: Record<SeatId, string> = { pro: "正方", con: "反方" };
@@ -438,8 +475,9 @@ export function reportSections(report: RoomReport): ReportSection[] {
               ? "已继续追问"
               : "等待回答";
         const answer = record.answer ? `｜回答：${record.answer}` : "";
+        const targets = targetItemsOf(record).map(briefItemLabel).join("、");
         return {
-          text: `【${record.targetItem}】${record.question}${answer}`,
+          text: `【${targets}】${record.question}${answer}`,
           meta: `${SEAT_NAME[record.asker]}提问 · ${reactionLabel}`,
         };
       }),

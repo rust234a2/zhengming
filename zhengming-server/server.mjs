@@ -98,7 +98,7 @@ export async function driveBotRoom(room, hostInvoker = invokeHost) {
     ].join("-");
     let envelope;
     try {
-      envelope = await hostInvoker("opponentTurn", context, { requestId });
+      envelope = await hostInvoker("opponentTurn", context, { requestId, timeoutMs: 0 });
     } catch (error) {
       envelope = { ok: false, error: { code: "UPSTREAM", message: error?.message || "opponentTurn failed" } };
     }
@@ -158,7 +158,7 @@ export async function evaluateSettledRoom(state, hostInvoker = invokeHost) {
         const envelope = await hostInvoker(
           "evaluate",
           { transcript },
-          { requestId: `${state.roomId}-evaluate-${seat}` },
+          { requestId: `${state.roomId}-evaluate-${seat}`, timeoutMs: 0 },
         );
         return { seat, transcript, envelope };
       } catch (error) {
