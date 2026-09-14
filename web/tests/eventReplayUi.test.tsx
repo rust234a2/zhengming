@@ -18,6 +18,7 @@ import { EventReplay } from "../src/ui/EventReplay";
 import type {
   ActAdvanceResult,
   CanonEntry,
+  ComposedEventScaffold,
   EndingCard,
   EventReplay as EventReplayData,
   ReplayState,
@@ -105,8 +106,9 @@ function mockClient() {
   const advance = vi.fn<(params: unknown, handlers?: { onDelta?: (t: string) => void }) => Promise<HostCallResult<ActAdvanceResult>>>();
   const ending = vi.fn<(params: unknown, handlers?: { onDelta?: (t: string) => void }) => Promise<HostCallResult<EndingCard>>>();
   const canon = vi.fn<(eventId: string) => Promise<HostCallResult<CanonEntry[]>>>();
-  const client: EventReplayClient = { advance, ending, canon };
-  return { client, advance, ending, canon };
+  const compose = vi.fn<(params: unknown) => Promise<HostCallResult<ComposedEventScaffold>>>();
+  const client: EventReplayClient = { advance, ending, canon, compose };
+  return { client, advance, ending, canon, compose };
 }
 
 /** 断言整份 DOM 里搜不到原作文本文案（红线 3）。 */
@@ -269,5 +271,118 @@ describe("事件推演 UI · 沉浸式隔离（红线 3）", () => {
     }
     // 代价账本存在
     expect(screen.getByText("代价账本")).toBeTruthy();
+  });
+});
+
+describe("事件推演 UI · 自定义事件生成（能力 9 · 契约 §0.8）", () => {
+  const scaffold: ComposedEventScaffold = {
+    title: "一次团队去留",
+    background: "一家 30 人的创业公司收到低估值收购意向，核心团队分歧很大。",
+    admission: { publiclyDiscussed: true, disasterOrCasualty: false },
+    positions: [
+      {
+        id: "founder",
+        name: "创始人（化名）",
+        role: "公司创始人",
+        stake: "团队存续",
+        visible: ["现金只能撑四个月", "收购意向已到账", "核心工程师倾向拒绝"],
+        resources: "决策权",
+        canDo: ["谈判", "接受", "拒绝"],
+        relations: [{ to: "engineer", attitude: 10 }],
+      },
+      {
+        id: "engineer",
+        name: "核心工程师（化名）",
+        role: "技术负责人",
+        stake: "技术路线延续",
+        visible: ["收购方将解散现有技术线", "自己手上有一个未交付的项目"],
+        resources: "离职选项",
+        canDo: ["沟通", "离职"],
+        relations: [{ to: "founder", attitude: -10 }],
+      },
+    ],
+    acts: [
+      { index: 0, month: "2024-01", text: "收购意向首次接触。" },
+      { index: 1, month: "2024-03", text: "投资人给出最后期限。" },
+    ],
+  };
+
+  it("落地页提供自定义事件入口；生成成功后切进新事件并可继续推演", async () => {
+    const { client, compose } = mockClient();
+    compose.mockResolvedValueOnce(ok(scaffold));
+    render(<EventReplay client={client} events={[event]} />);
+
+    // 入口存在（折叠态）
+    fireEvent.click(screen.getByText(/没有合适的事件？用 AI 生成一个自定义推演/));
+    fireEvent.change(screen.getByPlaceholderText(/创业公司/), {
+      target: { value: "一家创业公司收到收购意向" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "生成推演事件" }));
+
+    await waitFor(() => expect(compose).toHaveBeenCalledTimes(1));
+    // 生成成功 → 自动切入新事件：面包屑显示新标题，角色位是新事件的
+    await waitFor(() => expect(document.body.textContent).toContain("一次团队去留"));
+    expect(screen.getByRole("button", { name: /以创始人（化名）进入事件/ })).toBeTruthy();
+    // 生成事件的图层说明是组合事件专用文案（没有现实对照层）
+    expect(screen.getByText(/没有现实对照层/)).toBeTruthy();
+    // 请求体是白名单形状
+    const sent = compose.mock.calls[0][0] as { topic: string; timeline: string[]; actCount: number };
+    expect(sent.topic).toBe("一家创业公司收到收购意向");
+    expect(sent.actCount).toBe(3);
+  });
+
+  it("生成的组合事件在终局不提供「史实对照」揭示入口", async () => {
+    const { client, compose, advance, ending } = mockClient();
+    compose.mockResolvedValueOnce(ok(scaffold));
+    // 组合事件的两幕推进 + 结局
+    advance.mockResolvedValue(ok(advanceResult({ atEnding: true })));
+    ending.mockResolvedValue(ok({ title: "收束", text: "推演到这里收束了。" }));
+    render(<EventReplay client={client} events={[event]} />);
+
+    fireEvent.click(screen.getByText(/没有合适的事件？用 AI 生成一个自定义推演/));
+    fireEvent.change(screen.getByPlaceholderText(/创业公司/), {
+      target: { value: "一家创业公司收到收购意向" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "生成推演事件" }));
+    await waitFor(() => expect(document.body.textContent).toContain("一次团队去留"));
+
+    // 进入组合事件并走到终局（2 幕：开局 + 两次选择）
+    fireEvent.click(screen.getByRole("button", { name: /以创始人（化名）进入事件/ }));
+    await waitFor(() => expect(advance).toHaveBeenCalled());
+    // 「接受邀请」会同时出现在动作卡与路径 chip 里——永远点第一处（动作卡按钮）
+    const clickFirstMove = async () => {
+      const matches = await screen.findAllByText("接受邀请");
+      fireEvent.click(matches[0].closest("button")!);
+    };
+    await clickFirstMove();
+    await waitFor(() => expect(advance).toHaveBeenCalledTimes(2));
+    await clickFirstMove();
+    await waitFor(() => expect(ending).toHaveBeenCalled());
+
+    // 终局遮罩出现，但没有「历史上实际发生了什么」按钮，canon 通道绝不被触发
+    await waitFor(() => expect(screen.getByText(/推演结束 · 终局对照/)).toBeTruthy());
+    expect(screen.queryByText("历史上实际发生了什么")).toBeNull();
+    expect(client.canon).not.toHaveBeenCalled();
+  });
+
+  it("生成失败（如涉及灾难伤亡被拒收）显示服务端中文原因，不切换事件", async () => {
+    const { client, compose } = mockClient();
+    compose.mockResolvedValueOnce({
+      ok: false,
+      result: null,
+      degraded: false,
+      error: "涉及灾难或伤亡的事件不入推演（准入底线 2）",
+    });
+    render(<EventReplay client={client} events={[event]} />);
+
+    fireEvent.click(screen.getByText(/没有合适的事件？用 AI 生成一个自定义推演/));
+    fireEvent.change(screen.getByPlaceholderText(/创业公司/), {
+      target: { value: "某灾难事件" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "生成推演事件" }));
+
+    await waitFor(() => expect(screen.getByText(/涉及灾难或伤亡的事件不入推演/)).toBeTruthy());
+    // 仍在原事件上
+    expect(document.body.textContent).toContain("一次职业迁移（UI 夹具）");
   });
 });

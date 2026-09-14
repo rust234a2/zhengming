@@ -5,6 +5,8 @@ import {
   applyRelations,
   assertNoCanonLeak,
   filterWithinVisible,
+  isComposedEventId,
+  normalizeComposedEvent,
   normalizeLedgerKey,
   relationGate,
   resolveRelationTarget,
@@ -185,5 +187,80 @@ describe("Host 契约 §0.7 · 形状与归一化", () => {
     const outOfRange = structuredClone(result);
     outOfRange.nextScene.visibleFacts = ["配偶的内心活动"];
     expect(filterWithinVisible(outOfRange, event.positions[0])).toEqual(["配偶的内心活动"]);
+  });
+});
+
+describe("normalizeComposedEvent（能力 9 · 契约 §0.8）", () => {
+  const scaffold = {
+    title: "一次团队去留",
+    background: "一家 30 人的创业公司收到低估值收购意向，核心团队分歧很大。",
+    admission: { publiclyDiscussed: true, disasterOrCasualty: false },
+    positions: [
+      {
+        id: "founder",
+        name: "创始人（化名）",
+        role: "公司创始人",
+        stake: "团队存续",
+        visible: ["现金只能撑四个月", "收购意向已到账"],
+        resources: "决策权",
+        canDo: ["谈判", "接受"],
+        relations: [
+          { to: "engineer", attitude: 10 },
+          { to: "unknown-position", attitude: 99 }, // 指向未知 → 应被丢弃
+          { to: "founder", attitude: 50 }, // 指向自身 → 应被丢弃
+        ],
+      },
+      {
+        id: "engineer",
+        name: "核心工程师（化名）",
+        role: "技术负责人",
+        stake: "技术路线延续",
+        visible: ["收购方将解散现有技术线"],
+        resources: "离职选项",
+        canDo: ["沟通", "离职"],
+        relations: [{ to: "founder", attitude: -10 }],
+      },
+    ],
+    acts: [
+      { index: 5, month: "2024-01", text: "收购意向首次接触。" },
+      { index: 9, month: "2024-03", text: "投资人给出最后期限。" },
+    ],
+  };
+
+  it("归一化为标准事件：id 加前缀、幕序号重排、canon 恒为空", () => {
+    const composed = normalizeComposedEvent(scaffold);
+    expect(composed.header.id.startsWith("compose-")).toBe(true);
+    expect(composed.acts.map((act) => act.index)).toEqual([0, 1]);
+    expect(composed.header.endingCondition).toEqual({ kind: "actCount", actCount: 2 });
+    expect(composed.canon).toEqual([]);
+    expect(composed.header.adaptation).toEqual({
+      peopleAliased: true,
+      organizationsObscured: true,
+      timeGranularity: "month",
+    });
+    expect(composed.header.admission.reviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("关系只保留指向已知角色位的条目，且过完 validateEventReplay 准入校验", () => {
+    const composed = normalizeComposedEvent(scaffold);
+    expect(composed.positions[0].relations).toEqual([{ to: "engineer", attitude: 10 }]);
+
+    const checked = validateEventReplay(composed);
+    expect(checked.errors).toEqual([]);
+  });
+
+  it("模型申报非公开讨论时，准入校验必须拦下（底线 1）", () => {
+    const composed = normalizeComposedEvent({
+      ...scaffold,
+      admission: { publiclyDiscussed: false, disasterOrCasualty: false },
+    });
+    const checked = validateEventReplay(composed);
+    expect(checked.ok).toBe(false);
+    expect(checked.errors.some((item) => item.path === "header.admission.publiclyDiscussed")).toBe(true);
+  });
+
+  it("isComposedEventId 只认 compose- 前缀", () => {
+    expect(isComposedEventId("compose-1726000000000")).toBe(true);
+    expect(isComposedEventId("career-crossroads")).toBe(false);
   });
 });

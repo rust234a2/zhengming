@@ -309,8 +309,13 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
     setComposeTopic("");
     setComposeTimeline("");
     setCustomEvents((prev) => [event, ...prev]);
-    switchEvent(event.header.id);
-  }, [composeActCount, composeStatus, composeTimeline, composeTopic, injectedClient, switchEvent]);
+    // 不能走 switchEvent：它的 allEvents 闭包还不含刚入池的新事件（stale closure）
+    eventRef.current = event;
+    setEventId(event.header.id);
+    const fresh = createInitialReplayState(event);
+    stateRef.current = fresh;
+    setState(fresh);
+  }, [composeActCount, composeStatus, composeTimeline, composeTopic, injectedClient]);
 
   if (!activeEvent) {
     return (
@@ -437,7 +442,7 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
             </div>
             <p className="er-note">
               {composedActive
-                ? "本事件由 AI 依据你提供的材料生成：人物为虚构位置（化名 · 机构模糊 · 时间到月），没有史实对照层。"
+                ? "本事件由 AI 依据你提供的材料生成：人物为虚构位置（化名 · 机构模糊 · 时间到月），没有现实对照层。"
                 : EVENT_LIBRARY_REVIEW_NOTE}
             </p>
           </div>
@@ -529,7 +534,7 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
                   </button>
                   <p className="er-note">
                     生成的人物一律为虚构位置（化名 · 机构模糊 · 时间到月）；涉及灾难或伤亡的事件会被拒绝；
-                    生成事件没有「史实对照」层。
+                    生成事件没有「现实对照」层。
                   </p>
                   {composeStatus === "error" && composeError ? (
                     <div role="alert" className="er-error">

@@ -334,7 +334,9 @@ export function normalizeComposedEvent(scaffold: ComposedEventScaffold): EventRe
       background: String(scaffold.background ?? "").trim(),
       adaptation: { peopleAliased: true, organizationsObscured: true, timeGranularity: "month" },
       admission: {
-        publiclyDiscussed: scaffold.admission?.publiclyDiscussed !== false,
+        // 如实记录模型申报：非公开讨论的事件会在 validateEventReplay 被
+        // 「事件必须经过公开讨论」拦下（准入底线 1 在那一层统一执行）
+        publiclyDiscussed: (scaffold.admission?.publiclyDiscussed !== false) as true,
         disasterOrCasualty: false,
         reviewedAt: new Date().toISOString().slice(0, 10),
       },
