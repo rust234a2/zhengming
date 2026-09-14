@@ -138,6 +138,50 @@ describe("事件推演 UI · 沉浸式隔离（红线 3）", () => {
     expect(document.body.textContent).not.toContain("聘用条件家庭安排");
   });
 
+  it("舞台内铺开完整推演路径：每步选择 + 后果 + 代价/关系明细，进行中的选择即时挂入", async () => {
+    const { client, advance } = mockClient();
+    advance.mockResolvedValueOnce(ok(advanceResult())); // 开局（不落 history）
+    advance.mockResolvedValueOnce(
+      ok(
+        advanceResult({
+          outcome: "家里第一次坐下来谈这件事。",
+          ledgerDeltas: [{ key: "时间", delta: -2, note: "彻夜整理材料" }],
+          relationDeltas: [{ target: "伴侣", delta: -5 }],
+        }),
+      ),
+    );
+    render(<EventReplay client={client} events={[event]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /以当事人进入事件/ }));
+    await screen.findByRole("button", { name: /接受邀请/ });
+
+    // 开局推演中：路径块不出现（开局不是"决定"）
+    expect(screen.queryByLabelText("推演路径")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /接受邀请/ }));
+
+    // 选择一发出，路径块立刻出现并挂上「推演中」占位（不等模型返回）
+    expect(screen.getByLabelText("推演路径")).toBeTruthy();
+    expect(screen.getByText(/推演中/)).toBeTruthy();
+
+    await waitFor(() => expect(advance).toHaveBeenCalledTimes(2));
+
+    // 落定后：全文版路径 = 选择 + 完整后果 + 代价与关系明细
+    expect(screen.getByText("第 1 步")).toBeTruthy();
+    expect(screen.getByText(/你选择了：接受邀请/)).toBeTruthy();
+    // 后果全文在左栏时间轴与舞台路径块各出现一次（两处都该有）
+    expect(screen.getAllByText("家里第一次坐下来谈这件事。").length).toBe(2);
+    expect(screen.getByText(/时间 -2/)).toBeTruthy();
+    expect(screen.getByText(/彻夜整理材料/)).toBeTruthy();
+    // 关系 chip 显示角色位名字（不是 id）
+    expect(screen.getByText(/伴侣 -5/)).toBeTruthy();
+    // 占位消失，不再显示「推演中」
+    expect(screen.queryByText(/推演中/)).toBeNull();
+    // 路径是玩家路径 → 必须带架空标注，且搜不到任何原作内容（红线 3）
+    expect(screen.getAllByText("架空推演").length).toBeGreaterThan(0);
+    expectNoCanonInDom();
+  });
+
   it("选位后进入推演：外部事件可见、原作不可见，且界面标注「架空推演」", async () => {
     const { client, advance } = mockClient();
     advance.mockResolvedValue(ok(advanceResult()));

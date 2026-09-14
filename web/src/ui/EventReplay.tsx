@@ -28,6 +28,8 @@ import {
   LEDGER_KEY_LABELS,
   assertNoCanonLeak,
   assertWithinVisible,
+  normalizeLedgerKey,
+  resolveRelationTarget,
   validateActAdvanceResult,
 } from "../domain/eventReplay";
 import {
@@ -54,6 +56,17 @@ const LEDGER_LABELS: { key: LedgerKey; label: string }[] = LEDGER_KEYS.map((key)
   key,
   label: LEDGER_KEY_LABELS[key],
 }));
+
+/** 账本增量的展示标签：模型给的中文名归一回五维标准词，归一不了就原样展示。 */
+function ledgerLabel(rawKey: string): string {
+  const key = normalizeLedgerKey(rawKey);
+  return key ? LEDGER_KEY_LABELS[key] : rawKey;
+}
+
+/** 增量数值带符号（正数补 +），与代价账本的展示口径一致。 */
+function fmtDelta(delta: number): string {
+  return delta > 0 ? `+${delta}` : String(delta);
+}
 
 export interface EventReplayProps {
   client?: EventReplayClient;
@@ -422,6 +435,81 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
                 <p role="status" className="er-status">
                   正在推演这一步…
                 </p>
+              ) : null}
+
+              {/*
+                完整推演路径：把每一幕选过的动作、当时的后果与代价按序铺开。
+                与左栏「推演路径」时间轴的区别：这里是**全文版**（不截断后果与代价明细），
+                正在推演中的选择也会以「推演中…」占位即时挂进来。
+              */}
+              {state.history.length > 0 || (state.pending && state.pendingMoveId) ? (
+                <div className="er-pathfull" aria-label="推演路径">
+                  <div className="er-pathfull-label">
+                    推演路径 · 已做过的决定
+                    <span className="er-tag er-tag-fiction">架空推演</span>
+                  </div>
+                  <ol className="er-pathfull-steps">
+                    {state.history.map((played, index) => {
+                      const act = activeEvent.acts.find((item) => item.index === played.actIndex);
+                      return (
+                        <li key={played.actIndex} className="er-pathfull-step">
+                          <div className="er-pathfull-head">
+                            <span className="er-pathfull-no">第 {index + 1} 步</span>
+                            <span className="er-pathfull-month">{act?.month ?? ""}</span>
+                          </div>
+                          <div className="er-pathfull-move">你选择了：{played.moveText}</div>
+                          <div className="er-pathfull-outcome">{played.outcome}</div>
+                          {played.ledgerDeltas.some((delta) => delta.delta !== 0) ||
+                          played.relationDeltas.some((delta) => delta.delta !== 0) ? (
+                            <div className="er-pathfull-cost">
+                              {played.ledgerDeltas
+                                .filter((delta) => delta.delta !== 0)
+                                .map((delta, deltaIndex) => (
+                                  <span key={`l${deltaIndex}`} className="er-cost-chip">
+                                    {ledgerLabel(delta.key)} {fmtDelta(delta.delta)}
+                                    {delta.note ? <i>（{delta.note}）</i> : null}
+                                  </span>
+                                ))}
+                              {played.relationDeltas
+                                .filter((delta) => delta.delta !== 0)
+                                .map((delta, deltaIndex) => {
+                                // resolveRelationTarget 返回角色位 id；展示用回名字（解析不了就原样展示）
+                                const resolvedId = resolveRelationTarget(
+                                  delta.target,
+                                  activeEvent.positions,
+                                );
+                                const name = resolvedId
+                                  ? (positionNames.get(resolvedId) ?? resolvedId)
+                                  : delta.target;
+                                return (
+                                  <span key={`r${deltaIndex}`} className="er-cost-chip er-cost-rel">
+                                    {name} {fmtDelta(delta.delta)}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          ) : null}
+                        </li>
+                      );
+                    })}
+                    {state.pending && state.pendingMoveId ? (
+                      <li className="er-pathfull-step" data-state="pending">
+                        <div className="er-pathfull-head">
+                          <span className="er-pathfull-no">第 {state.history.length + 1} 步</span>
+                          <span className="er-pathfull-month">推演中…</span>
+                        </div>
+                        <div className="er-pathfull-move">
+                          你选择了：
+                          {state.currentMoves.find((item) => item.id === state.pendingMoveId)
+                            ?.text ?? ""}
+                        </div>
+                      </li>
+                    ) : null}
+                  </ol>
+                  <p className="er-note">
+                    走过的每一步都留在这条路径里——本版不回溯，代价不可撤销。
+                  </p>
+                </div>
               ) : null}
 
               {state.pendingError ? (

@@ -792,3 +792,100 @@
   margin: 0;
   color: var(--er-ink);
 }
+
+/* ── 舞台内完整推演路径（每一幕选过的动作 / 后果 / 代价，按序铺开） ──
+   与左栏「推演路径」时间轴的区别：这里是全文版——后果不截断、代价明细
+   （账本五维 + 关系变化）逐条列出；推演中的选择以「推演中…」占位即时挂入。 */
+
+.er-pathfull {
+  margin-top: 14px;
+  border: 1px solid var(--er-line);
+  border-radius: 10px;
+  background: var(--er-card);
+  padding: 12px 14px;
+  animation: er-fadein 0.4s;
+}
+
+.er-pathfull-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--er-blue);
+  margin-bottom: 8px;
+}
+
+.er-pathfull-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.er-pathfull-step {
+  border-left: 2px solid var(--er-line);
+  padding: 2px 0 2px 12px;
+}
+
+.er-pathfull-step[data-state="pending"] {
+  border-left-color: var(--er-blue);
+}
+
+.er-pathfull-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.er-pathfull-no {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--er-blue);
+}
+
+.er-pathfull-month {
+  font-size: 11px;
+  color: var(--er-sub);
+}
+
+.er-pathfull-move {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--er-ink);
+  margin-top: 2px;
+}
+
+.er-pathfull-outcome {
+  font-size: 12.5px;
+  color: var(--er-sub);
+  line-height: 1.7;
+  margin-top: 2px;
+}
+
+.er-pathfull-cost {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.er-cost-chip {
+  font-size: 11px;
+  color: var(--er-warn);
+  background: #fdf3ec;
+  border-radius: 12px;
+  padding: 1px 8px;
+}
+
+.er-cost-chip i {
+  font-style: normal;
+  color: var(--er-sub);
+}
+
+.er-cost-rel {
+  color: var(--er-blue);
+  background: var(--er-blue-soft);
+}
