@@ -13,7 +13,10 @@
 ## 快速开始
 
 ```bash
-# 1. 配置 key（不配也能跑：Host 会走降级启发式，响应里带 degraded:true）
+# 1. 配置 key（两种方式任选；不配也能跑：Host 走降级启发式，响应带 degraded:true）
+#    方式 A（推荐）：写进 zhengming-server/.env —— 服务端启动时自动加载，不必每次 export
+cp .env.example .env && vi .env        # 填 STEPFUN_API_KEY=sk-...
+#    方式 B：临时 export（已有环境变量优先，会覆盖 .env）
 export STEPFUN_API_KEY="sk-..."        # Windows PowerShell: $env:STEPFUN_API_KEY="sk-..."
 
 # 2. 启动（默认 127.0.0.1:5300）
@@ -24,13 +27,25 @@ node server.mjs
 curl http://127.0.0.1:5300/api/health
 ```
 
+### `.env` 的行为
+
+由 `lib/env.mjs` 加载（零依赖，不为一个小功能引入 dotenv）：
+
+- 查找顺序：`ZHENGMING_ENV` 指定路径 → `zhengming-server/.env`
+- **已有的环境变量优先**，文件不覆盖——临时覆盖行为不受影响
+- 支持 `#` 注释、`export KEY=VALUE`、单双引号包裹、`KEY=value # 行内注释`
+- **只打印文件名与键名，绝不打印值**；`.gitignore` 已排除 `.env`
+
 跑测试：
 
 ```bash
-node --test test/host.test.mjs test/server.test.mjs     # 41 项单测
+node --test test/host.test.mjs test/server.test.mjs   # 41 项单测（含 HTTP/WS 集成）
+node --test test/env.test.mjs                         # 5 项：.env 加载 + 真实 StepFun 连通性
 # 或
 npm test
 ```
+
+> `env.test.mjs` 里有一项**会真打 StepFun** 验证连通性与 key 不外泄；未配 key 时自动 SKIP，不判失败（离线可跑）。
 
 端到端对局冒烟（会真起服务、开两个 WS 客户端、走完五阶段并校验报告落盘）：
 

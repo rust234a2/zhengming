@@ -22,6 +22,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+// 副作用式加载 zhengming-server/.env（零依赖；只注入 process.env，不打印值）
+import "./lib/env.mjs";
+
 import { CAPABILITIES, ERROR_CODES, MAX_PAYLOAD_BYTES, findBannedWords } from "./lib/contract.mjs";
 import { invokeHost, readApiKey } from "./lib/host.mjs";
 import { RoomRegistry, SEAT_SIDES } from "./lib/room.mjs";
