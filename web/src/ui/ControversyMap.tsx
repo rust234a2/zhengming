@@ -35,15 +35,14 @@ const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 3;
 const ZOOM_STEP = 1.25;
 
-const DRAG_ALPHA_TARGET = 0.5;
-const DRAG_ALPHA_MIN = 0.45;
-const DRAG_NEIGHBOR_PULL = 0.35;
+/** 拖拽期间把模拟「温度」钉在 0.45（原型 d3.drag 的 alphaTarget(0.45) 等效）。 */
+const DRAG_ALPHA_TARGET = 0.45;
 
-/** 半径：cluster 是骨架要显眼，topic 次之，claim 最小。 */
+/** 半径：cluster 是骨架要显眼，topic 次之，claim 最小（与原型 demo 一致）。 */
 function radiusFor(kind: MapNodeKind, weight: number, topicCount: number): number {
-  if (kind === "cluster") return 16 + Math.min(topicCount, 6) * 2.6;
-  if (kind === "topic") return 11 + Math.min(weight, 5) * 1.1;
-  return 6.5;
+  if (kind === "cluster") return 13 + Math.min(topicCount * 2, 16);
+  if (kind === "topic") return 10;
+  return 5.5;
 }
 
 /** 每类边的自然长度：越"强"的关系越短，让语义结构在几何上可见。 */
@@ -150,17 +149,10 @@ function widthForLink(relation: MapEdgeRelation): number {
   }
 }
 
-/** 标签换行：中文按字符数切，最多两行。 */
-function wrapLabel(text: string, maxLen: number): string[] {
-  if (text.length <= maxLen) return [text];
-  const lines: string[] = [];
-  for (let i = 0; i < text.length && lines.length < 2; i += maxLen) {
-    lines.push(text.slice(i, i + maxLen));
-  }
-  if (lines.length === 2 && text.length > maxLen * 2) {
-    lines[1] = lines[1].slice(0, maxLen - 1) + "…";
-  }
-  return lines;
+/** 标签截断：与原型一致，单行截断（topic/cluster 20 字，论点按上下文 22/26 字）。 */
+function trunc(text: string, maxLen: number): string {
+  const s = text || "";
+  return s.length > maxLen ? s.slice(0, maxLen) + "…" : s;
 }
 
 /* ────────── 组件 ────────── */
@@ -220,6 +212,7 @@ export function ControversyMap() {
         id: n.id,
         kind: n.kind,
         label: n.label,
+        fullLabel: n.fullLabel ?? n.label,
         side: (n.side ?? "neutral") as DebateSideLike,
         depth: DEPTH_BY_KIND[n.kind],
         radius: radiusFor(n.kind, n.weight ?? 0, n.topicCount ?? 0),
@@ -273,21 +266,20 @@ export function ControversyMap() {
           .radius((n) => n.radius + (n.kind === "cluster" ? 34 : n.kind === "topic" ? 22 : 13))
           .strength(0.95),
       )
-      // 立场分离：同立场的簇/议题互相靠近，对立阵营自然分开
+      // 立场分翼（v1 着色）：正/负立场的簇与论点被推向左右两翼（原型 forceX ±420 等效）
       .force(
         "polarity",
         d3
-          .forceX<MapSimNode>((n) => (n.side === "positive" ? -420 : n.side === "negative" ? 420 : 0))
-          .strength((n) => (n.kind === "cluster" ? 0.1 : 0.035)),
-      )
-      .force(
-        "skeleton",
-        d3
-          .forceRadial<MapSimNode>((n) => (n.kind === "cluster" ? 520 : 0), 0, 0)
-          .strength((n) => (n.kind === "cluster" ? 0.08 : 0)),
+          .forceX<MapSimNode>((n) =>
+            (n.kind === "claim" || n.kind === "cluster") && n.side === "positive"
+              ? -420
+              : (n.kind === "claim" || n.kind === "cluster") && n.side === "negative"
+                ? 420
+                : 0,
+          )
+          .strength(0.12),
       )
       .alphaDecay(0.022)
-      .velocityDecay(0.42)
       .on("tick", () => syncDomPositions());
 
     simulationRef.current = simulation;
@@ -437,21 +429,6 @@ export function ControversyMap() {
     [size.height, size.width],
   );
 
-  const pushNeighbors = useCallback((node: MapSimNode, dx: number, dy: number): void => {
-    if (dx === 0 && dy === 0) return;
-    for (const link of linksRef.current) {
-      const s = typeof link.source === "string" ? null : link.source;
-      const t = typeof link.target === "string" ? null : link.target;
-      if (!s || !t) continue;
-      let neighbor: MapSimNode | null = null;
-      if (s.id === node.id) neighbor = t;
-      else if (t.id === node.id) neighbor = s;
-      if (!neighbor) continue;
-      neighbor.vx = (neighbor.vx ?? 0) + dx * DRAG_NEIGHBOR_PULL;
-      neighbor.vy = (neighbor.vy ?? 0) + dy * DRAG_NEIGHBOR_PULL;
-    }
-  }, []);
-
   const handleNodePointerDown = useCallback(
     (event: React.PointerEvent<SVGGElement>, nodeId: string): void => {
       event.stopPropagation();
@@ -467,10 +444,7 @@ export function ControversyMap() {
       };
       node.fx = node.x;
       node.fy = node.y;
-      if (simulation) {
-        simulation.alphaTarget(DRAG_ALPHA_TARGET).restart();
-        if (simulation.alpha() < DRAG_ALPHA_MIN) simulation.alpha(DRAG_ALPHA_MIN);
-      }
+      simulation?.alphaTarget(DRAG_ALPHA_TARGET).restart();
       (event.target as Element).setPointerCapture?.(event.pointerId);
     },
     [pointerToSimSpace],
@@ -484,26 +458,17 @@ export function ControversyMap() {
       const pointer = pointerToSimSpace(event);
       if (!node || !pointer) return;
       drag.moved = true;
-      const nx = pointer.x + drag.offsetX;
-      const ny = pointer.y + drag.offsetY;
-      const dx = nx - node.x;
-      const dy = ny - node.y;
-      node.fx = nx;
-      node.fy = ny;
-      node.x = nx;
-      node.y = ny;
-      pushNeighbors(node, dx, dy);
+      node.fx = pointer.x + drag.offsetX;
+      node.fy = pointer.y + drag.offsetY;
+      node.x = node.fx;
+      node.y = node.fy ?? node.y;
       syncDomPositions();
     };
     const onUp = (): void => {
       const drag = dragStateRef.current;
       if (!drag) return;
-      const node = nodesRef.current.find((n) => n.id === drag.nodeId);
-      if (node) {
-        node.fx = null;
-        node.fy = null;
-      }
-      if (!drag.moved) setSelectedId((cur) => (cur === drag.nodeId ? null : drag.nodeId));
+      // 与原型一致：松手后保持钉住（拖到哪固定到哪），双击才解除固定
+      if (!drag.moved) setSelectedId(drag.nodeId);
       dragStateRef.current = null;
       simulationRef.current?.alphaTarget(0);
     };
@@ -515,7 +480,7 @@ export function ControversyMap() {
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
     };
-  }, [pointerToSimSpace, pushNeighbors, syncDomPositions]);
+  }, [pointerToSimSpace, syncDomPositions]);
 
   /* ---------- 邻接计算（高亮用） ---------- */
 
@@ -575,14 +540,78 @@ export function ControversyMap() {
   const emphasisLayer = resolvedLinks.filter((l) => l.relation === "bridge" || l.relation === "rebuts");
 
   const stats = CONTROVERSY_MAP.stats;
+  const nodeById = useMemo(() => new Map(CONTROVERSY_MAP.nodes.map((n) => [n.id, n])), []);
+  const activeNode = activeId ? nodeById.get(activeId) ?? null : null;
+
+  /** 详情浮层：论点 / 议题 / 主张簇三种形态（与原型 #panel 一致，数据缺 author 时显示 —）。 */
+  const panel = useMemo(() => {
+    if (!activeNode) return null;
+    const full = (n: (typeof CONTROVERSY_MAP.nodes)[number]): string => n.fullLabel ?? n.label;
+    if (activeNode.kind === "claim") {
+      const topic = activeNode.topicId ? nodeById.get(activeNode.topicId) : undefined;
+      return (
+        <>
+          <h2>{full(activeNode)}</h2>
+          <div className="cm-chips">
+            <span className={`cm-chip ${activeNode.side === "positive" ? "pos" : activeNode.side === "negative" ? "neg" : ""}`}>
+              v1 立场：{activeNode.side}
+            </span>
+            <span className="cm-chip">理由类型：{activeNode.reasonType ?? "—"}</span>
+          </div>
+          <div className="cm-meta">
+            作者：— · 赞 {activeNode.votes ?? 0}
+            <br />
+            所属议题：{topic ? trunc(full(topic), 60) : "—"}
+          </div>
+          {activeNode.url ? (
+            <p style={{ marginTop: 8 }}>
+              <a href={activeNode.url} target="_blank" rel="noreferrer">查看知乎原文 ↗</a>
+            </p>
+          ) : null}
+        </>
+      );
+    }
+    if (activeNode.kind === "topic") {
+      const claims = CONTROVERSY_MAP.nodes.filter((n) => n.kind === "claim" && n.topicId === activeNode.id);
+      return (
+        <>
+          <h2>{full(activeNode)}</h2>
+          <div className="cm-meta">论点数：{claims.length}</div>
+          <ul>
+            {claims.map((c) => (
+              <li key={c.id} onClick={() => setSelectedId(c.id)}>{trunc(full(c), 44)}</li>
+            ))}
+          </ul>
+        </>
+      );
+    }
+    const touched = new Set(
+      CONTROVERSY_MAP.edges.filter((e) => e.relation === "bridge" && e.source === activeNode.id).map((e) => e.target),
+    );
+    const members = CONTROVERSY_MAP.nodes.filter(
+      (c) => c.kind === "claim" && CONTROVERSY_MAP.edges.some((e) => e.relation === "member" && e.source === c.id && e.target === activeNode.id),
+    );
+    return (
+      <>
+        <h2>主张簇：{activeNode.label}</h2>
+        <div className="cm-chips"><span className="cm-chip">{activeNode.summary ?? ""}</span></div>
+        <div className="cm-meta">缝合 {touched.size} 个议题 · 成员边 {activeNode.weight ?? 0}</div>
+        <ul>
+          {members.map((c) => (
+            <li key={c.id} onClick={() => setSelectedId(c.id)}>{trunc(full(c), 44)}</li>
+          ))}
+        </ul>
+      </>
+    );
+  }, [activeNode, nodeById]);
 
   return (
     <div className="controversy-map" ref={containerRef}>
       <div className="controversy-map-toolbar">
         <div className="controversy-map-hint">
-          <strong>跨议题争议地图</strong>
+          <strong>跨议题争议地图 · 真实数据</strong>
           <span>
-            {stats.topics} 个议题 · {stats.claims} 条论点 · {stats.clusters} 个共识主张 ·{" "}
+            {stats.topics} 题 / {stats.claims} 论点 / {stats.clusters} 主张簇 / {stats.edges} 边 ·{" "}
             <em className="cm-em-bridge">{stats.bridge} 条跨议题缝合线</em> ·{" "}
             <em className="cm-em-rebuts">{stats.rebuts} 处跨议题冲突</em>
           </span>
@@ -603,27 +632,27 @@ export function ControversyMap() {
         </div>
       </div>
 
+      <div className="cm-caption">
+        悬停或点击节点查看详情；拖动节点可固定到新位置，双击取消固定。rebuts（红长线）=
+        跨议题矛盾，是全图信息密度最高的边。
+      </div>
+
       <div className="controversy-map-legend">
-        <span className="cm-lg">
-          <svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="#0f6fe5" /></svg>
-          共识主张（跨议题）
-        </span>
-        <span className="cm-lg">
-          <svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="#111827" /></svg>
-          议题
-        </span>
-        <span className="cm-lg">
-          <svg width="14" height="14"><circle cx="7" cy="7" r="3.5" fill="#7fb0f2" /></svg>
-          论点
-        </span>
-        <span className="cm-lg">
-          <svg width="22" height="14"><line x1="1" y1="7" x2="21" y2="7" stroke="#e8a33d" strokeWidth="2" strokeDasharray="7 5" /></svg>
-          跨议题缝合线
-        </span>
-        <span className="cm-lg">
-          <svg width="22" height="14"><line x1="1" y1="7" x2="21" y2="7" stroke="#d9574d" strokeWidth="1.6" strokeDasharray="5 4" /></svg>
-          跨议题冲突
-        </span>
+        <div>
+          <span className="cm-lg"><i className="dot" style={{ background: "#0f6fe5" }} />正方主张簇</span>
+          <span className="cm-lg"><i className="dot" style={{ background: "#d9574d" }} />反方主张簇</span>
+          <span className="cm-lg"><i className="dot" style={{ background: "#64748b" }} />中性簇</span>
+        </div>
+        <div>
+          <span className="cm-lg"><i className="dot" style={{ background: "#111827" }} />议题</span>
+          <span className="cm-lg"><i className="dot" style={{ background: "#7fb0f2" }} />正方论点</span>
+          <span className="cm-lg"><i className="dot" style={{ background: "#eda49c" }} />反方论点</span>
+          <span className="cm-lg"><i className="dot" style={{ background: "#a8b6c8" }} />中性</span>
+        </div>
+        <div>
+          <span className="cm-lg"><i className="ln g" />缝合线（跨议题共享主张）</span>
+          <span className="cm-lg"><i className="ln r" />rebuts 跨议题矛盾</span>
+        </div>
       </div>
 
       <svg
@@ -663,27 +692,37 @@ export function ControversyMap() {
               ))}
             </g>
 
-            {/* 强调边：缝合线与冲突，置于普通边上、节点下 */}
+            {/* 强调边：冲突与缝合线，置于普通边上、节点下；rebuts 带 title 提示 */}
             <g className="cm-links-emphasis">
-              {emphasisLayer.map((l) => (
-                <line
-                  key={l.id}
-                  data-link-id={l.id}
-                  data-src={l.source.id}
-                  data-tgt={l.target.id}
-                  data-relation={l.relation}
-                  stroke={strokeForLink(l.relation)}
-                  strokeWidth={widthForLink(l.relation)}
-                  strokeDasharray={dashForLink(l.relation)}
-                  opacity={
-                    highlighted === null
-                      ? 0.85
-                      : highlighted.has(l.source.id) && highlighted.has(l.target.id)
-                        ? 1
-                        : 0.06
-                  }
-                />
-              ))}
+              {emphasisLayer.map((l) => {
+                const s = nodeById.get(l.source.id);
+                const t = nodeById.get(l.target.id);
+                return (
+                  <line
+                    key={l.id}
+                    data-link-id={l.id}
+                    data-src={l.source.id}
+                    data-tgt={l.target.id}
+                    data-relation={l.relation}
+                    stroke={strokeForLink(l.relation)}
+                    strokeWidth={widthForLink(l.relation)}
+                    strokeDasharray={dashForLink(l.relation)}
+                    opacity={
+                      highlighted === null
+                        ? 0.85
+                        : highlighted.has(l.source.id) && highlighted.has(l.target.id)
+                          ? 1
+                          : 0.06
+                    }
+                  >
+                    {l.relation === "rebuts" ? (
+                      <title>
+                        {`rebuts：跨议题矛盾\n${s ? s.fullLabel ?? s.label : ""}\n↔\n${t ? t.fullLabel ?? t.label : ""}`}
+                      </title>
+                    ) : null}
+                  </line>
+                );
+              })}
             </g>
 
             {/* 节点 */}
@@ -691,9 +730,17 @@ export function ControversyMap() {
               {snapshot.nodes.map((n) => {
                 const dim = isDim(n.id);
                 const isActive = activeId === n.id;
-                const showLabel =
-                  showAllLabels || n.kind !== "claim" || isActive || (highlighted?.has(n.id) ?? false);
-                const lines = wrapLabel(n.label, n.kind === "cluster" ? 9 : 12);
+                // 标签策略与原型一致：骨架节点常显（截 20 字）；
+                // 论点默认隐藏，仅邻域高亮 / 悬停 / 「显示全部标签」时显示
+                const text =
+                  n.kind === "claim"
+                    ? isActive
+                      ? trunc(n.fullLabel ?? n.label, 26)
+                      : highlighted?.has(n.id) || showAllLabels
+                        ? trunc(n.fullLabel ?? n.label, 22)
+                        : ""
+                    : trunc(n.label, 20);
+                const showLabel = text !== "";
                 return (
                   <g
                     key={n.id}
@@ -703,6 +750,16 @@ export function ControversyMap() {
                     className="cm-node"
                     opacity={dim ? 0.14 : 1}
                     onPointerDown={(e) => handleNodePointerDown(e, n.id)}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      const sim = simulationRef.current;
+                      const target = nodesRef.current.find((x) => x.id === n.id);
+                      if (target) {
+                        target.fx = null;
+                        target.fy = null;
+                      }
+                      sim?.alpha(0.3).restart();
+                    }}
                     onMouseEnter={() => setHoveredId(n.id)}
                     onMouseLeave={() => setHoveredId(null)}
                     style={{
@@ -734,11 +791,7 @@ export function ControversyMap() {
                         fontSize={n.kind === "cluster" ? 11.5 : n.kind === "topic" ? 10.5 : 10}
                         fontWeight={n.kind === "cluster" ? 600 : 400}
                       >
-                        {lines.map((line, i) => (
-                          <tspan key={i} x={0} dy={i === 0 ? 0 : 12}>
-                            {line}
-                          </tspan>
-                        ))}
+                        {text}
                       </text>
                     )}
                   </g>
@@ -748,6 +801,12 @@ export function ControversyMap() {
           </g>
         </g>
       </svg>
+
+      {activeNode ? (
+        <aside className="cm-panel" aria-label="节点详情">
+          {panel}
+        </aside>
+      ) : null}
     </div>
   );
 }

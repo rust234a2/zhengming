@@ -71,6 +71,8 @@ export interface MapSimNode {
   id: string;
   kind: MapNodeKind;
   label: string;
+  /** 完整标题（论点/议题的原始文本），渲染详情浮层与悬停标签用。 */
+  fullLabel?: string;
   side: DebateSideLike;
   /** 距「骨架」的层级：topic=0, cluster=1, claim=2 —— 用于分层斥力与半径 */
   depth: number;

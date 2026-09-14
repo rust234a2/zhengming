@@ -59,12 +59,22 @@ describe("辩论树交互原型", () => {
     fireEvent.click(screen.getByLabelText(/议题：43 岁县中物理老师/));
     fireEvent.click(screen.getByLabelText(/支持：43 岁是最后的窗口期/));
     fireEvent.click(screen.getByRole("button", { name: "以此追问" }));
-    expect(screen.getAllByText(/请回应这一点/)).toHaveLength(2);
-    expect(screen.getByText("待回应")).toBeInTheDocument();
+    expect(screen.getAllByText(/——请回应/)).toHaveLength(2);
+    expect(screen.queryByText("待回应")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "收起全树" }));
-    expect(within(screen.getByRole("region", { name: "辩论树" })).queryByText(/请回应这一点/)).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /请回应这一点/ })).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "辩论树" })).queryByText(/——请回应/)).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /——请回应/ })).toBeInTheDocument();
     expect(window.localStorage.getItem("zhengming.debateTree.expanded")).toBe("[]");
+  });
+
+  it("切换到争议地图视图：地图画布渲染，可切回缩进树", () => {
+    render(<DebateTreePrototype />);
+    fireEvent.click(screen.getByRole("button", { name: "争议地图" }));
+    expect(document.querySelector(".controversy-map")).toBeTruthy();
+    expect(screen.getByText(/跨议题争议地图/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "缩进树" }));
+    expect(screen.getByRole("region", { name: "辩论树" })).toBeInTheDocument();
+    expect(screen.getByText("树状缩略图")).toBeInTheDocument();
   });
 });

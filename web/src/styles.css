@@ -1085,6 +1085,129 @@ textarea {
 .dt-modal .dt-modal-hint { margin: 8px 0 14px; }
 .dt-modal .dt-modal-error { margin: -6px 0 12px; color: #c43d2f; }
 .dt-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.dt-stance-picker button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* 顶栏：事件推演入口 + 缩进树 / 关系图谱视图切换（对齐原型 header） */
+.dt-event-link {
+  padding: 6px 12px;
+  border: 1px solid var(--dt-line);
+  border-radius: 6px;
+  color: var(--dt-muted);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.dt-event-link:hover { color: var(--dt-blue); }
+
+.dt-vbtns { display: flex; gap: 2px; }
+.dt-vbtns button {
+  position: relative;
+  padding: 6px 14px;
+  border-radius: 0;
+  color: var(--dt-muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+.dt-vbtns button.on { color: var(--dt-blue); font-weight: 500; }
+.dt-vbtns button.on::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--dt-blue);
+}
+
+/* 折叠按钮（原型中是可点击按钮） */
+.dt-fold { cursor: pointer; }
+
+/* 详情：冲突节点列表（原型 .d-conflict） */
+.dt-conflict { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--dt-line); }
+.dt-conflict > span { color: var(--dt-muted); font-size: 12px; }
+.dt-conflict-item {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: #f7f8fa;
+  color: var(--dt-ink);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.dt-conflict-item:hover { color: var(--dt-blue); }
+
+/* 树状缩略图图例色块（原型 .mm-r） */
+.dt-mm-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 9px;
+  margin-right: 5px;
+  border: 1.5px solid #999;
+  border-radius: 2px;
+}
+.dt-mm-swatch.fill { background: #999; }
+
+/* ────────── 辩论树 · 关系图谱（对齐原型 #graph-panel / .g-*） ────────── */
+.dt-graph-panel { position: relative; min-width: 0; padding: 8px 4px; }
+.g-svg { width: 100%; height: 660px; display: block; border-radius: 8px; background: #fbfbfc; cursor: grab; }
+.g-svg.panning { cursor: grabbing; }
+
+.g-legend {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 2px 8px rgba(18, 18, 18, 0.06);
+  color: var(--dt-muted);
+  font-size: 11.5px;
+}
+.g-legend .dot { display: inline-block; width: 9px; height: 9px; margin-right: 4px; border-radius: 50%; vertical-align: -1px; }
+.g-legend-muted { color: #b0b8c8; }
+.g-legend-accent { color: var(--dt-blue); }
+
+.g-controls { position: absolute; right: 16px; bottom: 16px; display: flex; gap: 6px; }
+.g-ctrl {
+  padding: 5px 12px;
+  background: #ffffff;
+  color: var(--dt-ink);
+  font-size: 12px;
+  box-shadow: 0 1px 4px rgba(18, 18, 18, 0.08);
+}
+.g-ctrl:hover { background: #f0f2f5; color: var(--dt-blue); }
+
+.glink { fill: none; stroke: #d5dae4; stroke-width: 1.2; transition: opacity 0.15s; }
+.glink.cross { stroke-dasharray: 4 3; stroke: #c9cfdb; }
+.glink.dim { opacity: 0.12; }
+.glink.hl { stroke: var(--dt-blue); stroke-width: 1.8; }
+
+.gnode { cursor: grab; transition: opacity 0.15s; }
+.gnode:active { cursor: grabbing; }
+.gnode.dim { opacity: 0.13; }
+.gnode text {
+  fill: var(--dt-ink);
+  font-size: 10.5px;
+  text-anchor: middle;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  paint-order: stroke;
+  stroke: #fbfbfc;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.gnode.center circle { stroke: var(--dt-blue); stroke-width: 3; }
+.gnode.center text { fill: var(--dt-blue); font-weight: 600; }
+.gnode.cur circle { stroke: var(--dt-blue); stroke-width: 2.5; }
+.g-center-ring { fill: none; stroke: var(--dt-blue); stroke-width: 1.5; stroke-dasharray: 3 3; }
 
 @media (max-width: 760px) {
   .dt-topbar { height: auto; min-height: 52px; padding: 10px 16px; gap: 10px; flex-wrap: wrap; }
@@ -1196,24 +1319,129 @@ textarea {
 }
 
 .controversy-map-legend {
-  flex: 0 0 auto;
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 4;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 14px;
-  padding: 7px 16px;
-  font-size: 11.5px;
-  color: var(--debate-muted);
-  background: #ffffff;
-  border-bottom: 1px solid var(--debate-line);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--debate-line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #4b5563;
+  font-size: 11px;
+  line-height: 1.9;
 }
 
 .cm-lg {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  margin-right: 14px;
   white-space: nowrap;
 }
+
+.cm-lg .dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 5px;
+  border-radius: 50%;
+  vertical-align: -1px;
+}
+
+.cm-lg .ln {
+  display: inline-block;
+  width: 18px;
+  height: 0;
+  margin-right: 5px;
+  border-top: 2px solid #dbe3ec;
+  vertical-align: 3px;
+}
+
+.cm-lg .ln.g {
+  border-top: 2px dashed var(--cm-bridge);
+}
+
+.cm-lg .ln.r {
+  border-top: 2px dashed var(--cm-rebuts);
+}
+
+/* 提示条（原型 #caption）：常驻左上角的操作说明 */
+.cm-caption {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  z-index: 4;
+  max-width: 420px;
+  padding: 6px 10px;
+  border: 1px solid var(--debate-line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--debate-muted);
+  font-size: 11.5px;
+  pointer-events: none;
+}
+
+/* 详情浮层（原型 #panel）：悬停 / 点击钉住时出现在右上角 */
+.cm-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 6;
+  width: 330px;
+  max-height: calc(100% - 70px);
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid var(--debate-line);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.07);
+}
+
+.cm-panel h2 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.cm-meta {
+  color: var(--debate-muted);
+  font-size: 11.5px;
+  line-height: 1.7;
+}
+
+.cm-chips { margin: 8px 0; }
+
+.cm-chip {
+  display: inline-block;
+  margin: 2px 4px 2px 0;
+  padding: 2px 8px;
+  border: 1px solid var(--debate-line);
+  border-radius: 99px;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-size: 10.5px;
+}
+
+.cm-chip.pos { background: #e8f1fe; border-color: #bcd7f7; color: #0b3f80; }
+.cm-chip.neg { background: #fdeceb; border-color: #f6c8c3; color: #b8402f; }
+
+.cm-panel ul {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  color: #374151;
+  font-size: 11.5px;
+  line-height: 1.8;
+}
+
+.cm-panel li { cursor: pointer; }
+.cm-panel li:hover { color: #0f6fe5; text-decoration: underline; }
+
+.cm-panel a { color: #0f6fe5; font-size: 11px; text-decoration: none; }
 
 .controversy-map-svg {
   flex: 1 1 auto;
