@@ -13,7 +13,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import * as d3 from "d3";
 
 import { CONTROVERSY_MAP } from "../src/data/controversyMap";
-import { CONTROVERSY_DOMAINS } from "../src/data/controversyDomains";
 import type { MapSimLink, MapSimNode } from "../src/types/map";
 import { ControversyMap } from "../src/ui/ControversyMap";
 
@@ -266,36 +265,6 @@ function emphasisTotal(): number {
   return CONTROVERSY_MAP.stats.bridge + CONTROVERSY_MAP.stats.rebuts;
 }
 
-/* ── 域视图期望值（与 buildGraph 的聚合口径一致） ── */
-
-const topicOf = new Map(
-  CONTROVERSY_MAP.nodes.filter((n) => n.kind === "claim").map((n) => [n.id, n.topicId!]),
-);
-
-/** 域视图：簇→域 缝合线去重后的数量 */
-function expectedDomainBridgeCount(): number {
-  const pairs = new Set<string>();
-  for (const e of CONTROVERSY_MAP.edges) {
-    if (e.relation !== "bridge") continue;
-    const dom = CONTROVERSY_DOMAINS.topicToDomain[e.target];
-    if (dom) pairs.add(`${e.source}|${dom}`);
-  }
-  return pairs.size;
-}
-
-/** 域视图：域间冲突线去重后的数量 */
-function expectedDomainConflictCount(): number {
-  const pairs = new Set<string>();
-  for (const e of CONTROVERSY_MAP.edges) {
-    if (e.relation !== "rebuts") continue;
-    const da = CONTROVERSY_DOMAINS.topicToDomain[topicOf.get(e.source)!];
-    const db = CONTROVERSY_DOMAINS.topicToDomain[topicOf.get(e.target)!];
-    if (!da || !db || da === db) continue;
-    pairs.add(da < db ? `${da}|${db}` : `${db}|${da}`);
-  }
-  return pairs.size;
-}
-
 function renderMap() {
   const utils = render(<ControversyMap />);
   const svg = utils.container.querySelector("svg.controversy-map-svg") as SVGSVGElement;
@@ -320,28 +289,8 @@ describe("争议地图组件", () => {
     expect(svg.querySelector("[data-zoom-layer]")).toBeTruthy();
   });
 
-  it("域视图（默认）：大话题域 + 主张簇，议题与论点不进画布", () => {
+  it("骨架视图（默认）只渲染簇 + 议题，论点不进画布", () => {
     const { svg } = renderMap();
-    const expectedNodes = CONTROVERSY_DOMAINS.domains.length + CONTROVERSY_MAP.stats.clusters;
-    expect(svg.querySelectorAll("[data-node-id]").length).toBe(expectedNodes);
-    expect(svg.querySelectorAll('[data-node-kind="domain"]').length).toBe(
-      CONTROVERSY_DOMAINS.domains.length,
-    );
-    expect(svg.querySelectorAll('[data-node-kind="topic"]').length).toBe(0);
-    expect(svg.querySelectorAll('[data-node-kind="claim"]').length).toBe(0);
-  });
-
-  it("域视图连线 = 簇→域缝合线（去重） + 域间冲突线（去重），远小于全量边数", () => {
-    const { svg } = renderMap();
-    const expected = expectedDomainBridgeCount() + expectedDomainConflictCount();
-    const rendered = svg.querySelectorAll("[data-link-id]").length;
-    expect(rendered).toBe(expected);
-    expect(rendered).toBeLessThan(CONTROVERSY_MAP.edges.length);
-  });
-
-  it("骨架视图（点击切换）：簇 + 议题，论点不进画布", () => {
-    const { svg, container } = renderMap();
-    clickButton({ container }, "骨架视图");
     const skeletonCount = CONTROVERSY_MAP.nodes.filter((n) => n.kind !== "claim").length;
     expect(svg.querySelectorAll("[data-node-id]").length).toBe(skeletonCount);
     expect(svg.querySelectorAll('[data-node-kind="claim"]').length).toBe(0);
@@ -351,8 +300,7 @@ describe("争议地图组件", () => {
   });
 
   it("骨架视图的连线 = 缝合线 + 议题间冲突聚合线（不是全量 698 条）", () => {
-    const { svg, container } = renderMap();
-    clickButton({ container }, "骨架视图");
+    const { svg } = renderMap();
     const expected = CONTROVERSY_MAP.stats.bridge + expectedAggregatedCount();
     const rendered = svg.querySelectorAll("[data-link-id]").length;
     expect(rendered).toBe(expected);
@@ -388,29 +336,14 @@ describe("争议地图组件", () => {
     }
   });
 
-  it("强调层：域视图下缝合线/冲突线都是聚合线，数量与去重口径一致", () => {
+  it("强调层：缝合线全量出现；骨架模式下红线是议题间聚合冲突线", () => {
     const { svg } = renderMap();
     const emphasis = svg.querySelector(".cm-links-emphasis");
     expect(emphasis).toBeTruthy();
-    expect(emphasis!.querySelectorAll('[data-relation="bridge"]').length).toBe(
-      expectedDomainBridgeCount(),
-    );
-    expect(emphasis!.querySelectorAll('[data-relation="rebuts"]').length).toBe(
-      expectedDomainConflictCount(),
-    );
-  });
-
-  it("强调层：骨架视图下缝合线全量出现，红线是议题间聚合冲突线", () => {
-    const { svg, container } = renderMap();
-    clickButton({ container }, "骨架视图");
-    const emphasis = svg.querySelector(".cm-links-emphasis");
-    expect(emphasis).toBeTruthy();
-    expect(emphasis!.querySelectorAll('[data-relation="bridge"]').length).toBe(
-      CONTROVERSY_MAP.stats.bridge,
-    );
-    expect(emphasis!.querySelectorAll('[data-relation="rebuts"]').length).toBe(
-      expectedAggregatedCount(),
-    );
+    const bridge = emphasis!.querySelectorAll('[data-relation="bridge"]');
+    const rebuts = emphasis!.querySelectorAll('[data-relation="rebuts"]');
+    expect(bridge.length).toBe(CONTROVERSY_MAP.stats.bridge);
+    expect(rebuts.length).toBe(expectedAggregatedCount());
   });
 
   it("展开论点后，强调层出现全量论点级 rebuts", () => {
@@ -423,8 +356,7 @@ describe("争议地图组件", () => {
   });
 
   it("悬停骨架节点后，其邻域连线被强调、无关连线被淡化（按可见连线口径计算）", () => {
-    const { svg, container } = renderMap();
-    clickButton({ container }, "骨架视图");
+    const { svg } = renderMap();
     const cluster = svg.querySelector('[data-node-id^="cl-"]') as SVGGElement;
     expect(cluster).toBeTruthy();
     const id = cluster.getAttribute("data-node-id")!;
@@ -529,40 +461,6 @@ describe("争议地图组件", () => {
     clickButton({ container }, "标签");
     expect(svg.querySelectorAll("[data-link-id]").length).toBe(before);
     expect(svg.querySelectorAll("[data-node-id]").length).toBe(CONTROVERSY_MAP.nodes.length);
-  });
-
-  it("域面板列出下辖议题，点击议题自动下钻到骨架视图并选中", () => {
-    const { svg, container } = renderMap();
-    const domainNode = svg.querySelector('[data-node-id^="dm-"]') as SVGGElement;
-    expect(domainNode).toBeTruthy();
-    const domId = domainNode.getAttribute("data-node-id")!;
-
-    // pointerdown + pointerup（无位移）= 选中
-    act(() => {
-      fireEvent.pointerDown(domainNode, { clientX: 100, clientY: 100, pointerId: 1, button: 0 });
-      fireEvent.pointerUp(window, { clientX: 100, clientY: 100, pointerId: 1 });
-    });
-
-    const panel = container.querySelector("aside.cm-panel");
-    expect(panel).toBeTruthy();
-    expect(panel!.textContent).toContain("大话题域");
-
-    const firstTopicId = CONTROVERSY_DOMAINS.domains.find((d) => d.id === domId)!.topicIds[0];
-    const li = [...panel!.querySelectorAll("li")].find((el) =>
-      (el.textContent ?? "").length > 0,
-    )!;
-    expect(li).toBeTruthy();
-    act(() => {
-      fireEvent.click(li);
-    });
-
-    // 下钻后：骨架视图渲染出该议题节点，且处于选中态（高亮环 = 第二个 circle）
-    const topicNode = svg.querySelector(`[data-node-id="${firstTopicId}"]`);
-    expect(topicNode).toBeTruthy();
-    expect(svg.querySelectorAll('[data-node-kind="topic"]').length).toBe(
-      CONTROVERSY_MAP.stats.topics,
-    );
-    expect(topicNode!.querySelectorAll("circle").length).toBeGreaterThan(1);
   });
 
   it("卸载时移除 window 上的指针监听并停止模拟", () => {
