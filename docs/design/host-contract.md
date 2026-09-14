@@ -1,8 +1,15 @@
 # 争鸣 · Host 契约
 
-版本 v1.1（草稿） · 2026-09-13 · 对应任务卡 **0-1**（`IMPLEMENTATION-PATH.md`）
-状态：**待用户确认**——本卡完成标志是用户确认契约，这是一个闸口，不许跳过。
+版本 v1.2（草稿） · 2026-09-14 · 对应任务卡 **0-1**（`IMPLEMENTATION-PATH.md`）
+状态：**已确认**（2026-09-14 用户拍板接真实 LLM 并指定 StepFun 上游，闸口通过，可开卡 0-2）。
 
+> **v1.2 变更（2026-09-14，升级上游为 StepFun）**
+>
+> - **变更动因**：用户指定 Host 上游改用**阶跃星辰 StepFun**（原为 DeepSeek）。
+> - **本次改动**：① §0.3 参数基线改为 StepFun 的 OpenAI 兼容端点与 `step-3.7-flash`；② §0.2 密钥环境变量 `DEEPSEEK_API_KEY` → `STEPFUN_API_KEY`；③ 状态从「待用户确认」改为**已确认**（闸口通过）。
+> - **保留不动**：七个能力签名、统一信封、错误码枚举、幂等与重试、禁用词表、`Turn` 形状、隔离硬约束。
+> - **本条作废**：v1.1 中一切 DeepSeek 专有表述（`api.deepseek.com`、`deepseek-chat`、`DEEPSEEK_API_KEY`）。
+>
 > 能力编号与 `IMPLEMENTATION-PATH.md` 卡 0-1 能力表一致（2026-09-13 起为 **7 个能力**；原「概念对齐 `alignConcepts`」随辩论间 v0.5 移除、「承认校验 `checkRestatement`」随 **D6 拍板不落复述闸门** 移除，编号两轮整体前移）。签名如有出入，以该表为准并回改本文档。
 
 ---
@@ -32,15 +39,18 @@ Content-Type: application/json    # 请求体上限 256KB，超限拒收
 
 - 每次请求携带 `requestId`；同 `requestId` 重复到达必须返回缓存结果，不得二次计费/二次生成。
 - 客户端失败重试保留草稿（辩论间）/ 整幕重试（事件推演），不把半成品冒充结果。
-- 密钥（`DEEPSEEK_API_KEY`）只在服务端环境变量读取，**不落盘、不进日志、不下发前端**；日志脱敏一切 `Authorization` 头。
+- 密钥（`STEPFUN_API_KEY`）只在服务端环境变量读取，**不落盘、不进日志、不下发前端**；日志脱敏一切 `Authorization` 头。
 
 ### 0.3 模型参数基线
 
-已验证可复用的调用参数（参考 `research/controversy-map/extract-claims.mjs`）：
+已验证的调用参数（StepFun 阶跃星辰，OpenAI 兼容）：
 
-- endpoint `https://api.deepseek.com/chat/completions`，`model: "deepseek-chat"`
+- endpoint `https://api.stepfun.com/v1/chat/completions`
+- `model: "step-3.7-flash"`
+- 鉴权 `Authorization: Bearer $STEPFUN_API_KEY`
 - 需要结构化输出的能力（3/4/5/6/7）用 `response_format: {type:"json_object"}`
 - 能力 5/6 另开 `stream: true`（见 0.4）
+- 建议 `temperature: 0.5`（平台默认，收敛稳定）；结构化能力可下调至 0.3
 
 ### 0.4 流式（仅能力 5/6，D4 已拍板）
 
