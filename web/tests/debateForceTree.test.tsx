@@ -107,8 +107,39 @@ describe("辩论图谱数据层", () => {
 
 /* ────────── 2. 布局层：真实跑 d3 力模拟 ────────── */
 
+/**
+ * 固定 Math.random 为确定性 LCG。
+ * d3-force 内部（forceManyBody/forceCollide 的 jiggle）与初始坐标都会消费
+ * Math.random，不固定种子时「分居两侧」等几何断言偶发不收敛（实测 flaky）。
+ * 只在 runSimulation 执行期间替换，跑完恢复，不影响其他测试。
+ */
+function seedRandom(seed: number): () => void {
+  const original = Math.random;
+  let state = seed >>> 0;
+  Math.random = () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+  return () => {
+    Math.random = original;
+  };
+}
+
+/** 每次调用递增的种子：保证单次模拟确定、两次模拟互不相同（两条测试都要满足）。 */
+let simulationSeed = 20260914;
+
 /** 复刻组件里的力配置，用于离屏跑模拟并断言布局质量。 */
 function runSimulation(iterations = 400) {
+  simulationSeed += 1;
+  const restoreRandom = seedRandom(simulationSeed);
+  try {
+    return runSimulationInner(iterations);
+  } finally {
+    restoreRandom();
+  }
+}
+
+function runSimulationInner(iterations = 400) {
   const flat = flattenDebateTree(DEBATE_TREE);
   const meta = new Map<string, { depth: number }>();
   const walk = (node: typeof DEBATE_TREE, depth: number): void => {
