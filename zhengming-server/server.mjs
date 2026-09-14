@@ -171,6 +171,9 @@ export function buildTopics(claims) {
       title: entry.title,
       url: entry.url,
       paired,
+      // 同一议题的正反方 → 不标跨议题；数据实情见 README
+      crossPaired: false,
+      pairingNote: "同一议题下的真实正反论点（争议地图管线立场抽取）",
       // 成对：各取赞同数最高的一条；不成对：单侧也给出，前端标注「跨议题配对」
       pro: paired ? pro.slice().sort((a, b) => b.voteUp - a.voteUp)[0] : null,
       con: paired ? con.slice().sort((a, b) => b.voteUp - a.voteUp)[0] : null,

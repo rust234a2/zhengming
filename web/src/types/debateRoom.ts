@@ -112,11 +112,19 @@ export interface DebateTopic {
   questionId: string;
   title: string;
   url: string;
-  /** 是否天然同时有正反论点 */
+  /** 是否天然同时有正反论点（同一议题下的真实正反方） */
   paired: boolean;
-  /** 正方预设论点；跨议题配对时为 null */
+  /**
+   * 是否为**跨议题配对**：两侧论点来自不同议题。
+   * 数据实情——27 个真实议题里只有 2 个天然成对，其余按 reasonType 跨议题对撞。
+   * `crossPaired: true` 时 UI **必须显式标注**，不得假装是同一议题的正反方。
+   */
+  crossPaired?: boolean;
+  /** 配对说明（跨议题配对时必填，向用户解释这对张力从哪来） */
+  pairingNote?: string;
+  /** 正方预设论点；跨议题配对时同样有值 */
   pro: TopicClaim | null;
-  /** 反方预设论点；跨议题配对时为 null */
+  /** 反方预设论点 */
   con: TopicClaim | null;
 }
 
