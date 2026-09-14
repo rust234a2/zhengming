@@ -172,6 +172,23 @@ describe("辩论树 · 参与行为", () => {
     expect(screen.queryByText("Agent 追问建议")).not.toBeInTheDocument();
   });
 
+  it("详情面板不再提供进入辩论间的出口，顶栏模块导航保留", () => {
+    render(<DebateTreePrototype />);
+    expandRoot();
+    fireEvent.click(cardOf(proClaim.text));
+
+    // 节点详情面板只保留树内动作：没有任何指向辩论间的链接
+    const actions = document.querySelector(".dt-detail-actions") as HTMLElement;
+    expect(actions).toBeTruthy();
+    expect(actions.querySelectorAll("a")).toHaveLength(0);
+    expect(actions.textContent).not.toContain("开实时辩论间");
+    expect(within(actions).getByRole("button", { name: "添加支持论点" })).toBeInTheDocument();
+    expect(within(actions).getByRole("button", { name: "追问此节点" })).toBeInTheDocument();
+
+    // 顶栏的「辩论树 | 争议地图 | 辩论间」是模块级导航，不属于被删的定向入口
+    expect(screen.getByRole("link", { name: "辩论间" })).toHaveAttribute("href", "?view=room");
+  });
+
   it("争议地图视图可来回切换", () => {
     render(<DebateTreePrototype />);
     fireEvent.click(screen.getByRole("button", { name: "争议地图" }));

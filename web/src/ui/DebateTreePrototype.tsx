@@ -625,7 +625,6 @@ function TreeWorkspace({ seed, onPickSeed }: { seed: DebateTreeSeed; onPickSeed(
                       {selectedNode.type !== "question" ? (
                         <button type="button" className="dt-button ghost" onClick={() => openQuestion(selectedNode.id)}>追问此节点</button>
                       ) : null}
-                      <a className="dt-button ghost" href={`?view=room${seed.id ? `&topic=${seed.id}` : ""}`}>开实时辩论间 →</a>
                     </div>
 
                     {conflicts.length ? (

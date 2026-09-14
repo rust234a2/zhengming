@@ -3240,9 +3240,6 @@ textarea {
 .dt-answers a { color: var(--dt-blue); text-decoration: none; }
 .dt-answers a:hover { text-decoration: underline; }
 
-/* 详情区把 <a> 当按钮用（开实时辩论间） */
-.dt-detail-actions a.dt-button { display: block; box-sizing: border-box; text-align: center; text-decoration: none; line-height: 1.4; }
-
 @media (max-width: 940px) {
   .dt-crumb { max-width: none; }
   .dt-crumb-count { display: none; }

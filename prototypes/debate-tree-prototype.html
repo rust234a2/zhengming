@@ -430,7 +430,6 @@ function selectNode(id){
       <button class="btn btn-primary" onclick="openModal('${n.id}','pro')">添加支持论点</button>
       <button class="btn btn-ghost" onclick="openModal('${n.id}','con')">添加反对论点</button>
       ${n.type!=='question'?`<button class="btn btn-ghost" onclick="openQuestion('${n.id}')">追问此节点</button>`:''}
-      <button class="btn btn-ghost" onclick="location.href='debate-room-prototype.html'">开实时辩论间 →</button>
     </div>
     <div class="d-conflict ${conflict.length?'show':''}">
       <span style="font-size:12px;color:var(--sub)">与它冲突的节点</span>
@@ -871,7 +870,6 @@ function renderGraphDetail(){
     ${links.map(x=>`<div class="c-item" style="margin-bottom:5px" onclick="selectGraphTopic('${x.id}')">${x.t}</div>`).join('')}
     <div class="d-actions" style="margin-top:12px">
       <button class="btn btn-primary" onclick="switchView('tree')">进入这个议题的辩论树 →</button>
-      <button class="btn btn-ghost" onclick="location.href='debate-room-prototype.html'">开实时辩论间 →</button>
       <button class="btn btn-ghost" onclick="graphSetCenter('${n.id}')">${n.id===gCenterId?'◎ 已是中心':'◎ 设为中心'}</button>
     </div>`;
 }

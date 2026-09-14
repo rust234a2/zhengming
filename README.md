@@ -38,7 +38,7 @@ zhengming/
 ├── docs/design/                    产品文档（仅 Markdown）
 │   ├── README.md                   ★ 总纲（产品全景、核心洞察、三条红线、演示路线）
 │   ├── IMPLEMENTATION-PATH.md      ★ AI 执行手册（16 张任务卡 + 验收命令 + 7 个决策点，全部已拍板）
-│   ├── debate-tree-PRD.md          辩论树
+│   ├── debate-tree-PRD.md          v0.2 辩论树（不再提供进入辩论间的出口）
 │   ├── debate-room-PRD.md          v0.6 实时辩论间（选边制撮合 · 轮次制 · 去树化）＋ debate-room-PLAN.md
 │   ├── event-replay-PRD.md         事件推演
 │   └── controversy-map-PRD.md      跨议题争议地图

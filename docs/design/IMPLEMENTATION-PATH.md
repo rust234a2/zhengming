@@ -380,6 +380,14 @@ desktop ──POST /v1/sessions/{session_id}/turns──▶ core（持有 key，
 >
 > **仍未做**：卡 2-1 的持久化（树刷新即回种子态，参与者的增删改还不落盘）、卡 2-2 的 Host 追问（界面上已不再本地伪造「Agent 建议」，`agentHint` 目前恒为空）。
 
+> **2026-09-14 变更（移除「开实时辩论间 →」出口）**
+>
+> 详情面板的定向开局出口已删除（`debate-tree-PRD.md` v0.2）。动因：这是条**断链**——`App.tsx` 只按 `view` 路由，`roomStorage.readRoomFromUrl()` 只读 `room` / `side`（邀请链接用），房间侧**从不消费 `topic`**；两边议题池口径也不同（树 122 个种子 vs 房间 16 个可开局，交集仅 16），树里约 87% 的议题点过去必然落空。辩论间已于 2026-09-13 去树化，树/间本已无系统联动，树侧不该留一个假的接入口。
+>
+> 影响面：`DebateTreePrototype.tsx` 删链接、`styles.css` 删 `.dt-detail-actions a.dt-button` 死规则、`prototypes/debate-tree-prototype.html`（节点详情 + 图谱议题详情两处）与重建的 `prototypes/zhengming-app.html` 同步删除、`web/tests/debateTreePrototype.test.tsx` 加测试守门。**顶栏的模块级导航「辩论树 | 争议地图 | 辩论间」保留**——那是三模块互跳，不是本模块的定向出口。
+>
+> 此项**不新增决策点编号**：`D8`/`D9` 已被辩论间占用（见 `debate-room-ROLLOUT.md`），而本文件的决策点表仍列 D1–D7 并写「七个决策点」，该不一致**待单独收口**，本次不擅自改编号。
+
 ---
 
 ## 7. 阶段 3：地图 ↔ 树联动

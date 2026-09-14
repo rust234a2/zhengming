@@ -33,7 +33,7 @@
 
 | 模块 | 一句话 | PRD | 交互原型 |
 |---|---|---|---|
-| 辩论树 | 论点、证据、追问长成一棵人人可续写的树 | `debate-tree-PRD.md` | `prototypes/debate-tree-prototype.html`（缩进版）/ `prototypes/debate-tree-canvas.html`（画布版） |
+| 辩论树 | 论点、证据、追问长成一棵人人可续写的树（**v0.2 起不再提供进入辩论间的出口**——详情面板的「开实时辩论间 →」是条断链，已删；顶栏三模块导航保留） | `debate-tree-PRD.md` | `prototypes/debate-tree-prototype.html`（缩进版）/ `prototypes/debate-tree-canvas.html`（画布版） |
 | 议题图谱 | 聚类布局的真实议题关系网络，是树的索引页 | （辩论树 PRD F1 的一部分） | 同上（原型内「议题图谱」Tab） |
 | 实时辩论间 | 围绕知乎问题临时开间，**选边制开局**（预设论点对、真人优先 Bot 兜底），五阶段轮次制对局（定义随立论给出、可被质询），轮次结束产出对局报告（**v0.6 选边制；已去树化、去概念对齐**） | `debate-room-PRD.md` | `prototypes/debate-room-prototype.html` |
 | 事件推演 | **沉浸式历史角色扮演**：你是事件里的一个角色，你的决定改变走向；原作只在终局可选揭示 | `event-replay-PRD.md`（v0.5） | `prototypes/event-replay-prototype.html`（旧形态存档，**不再用于演示**） |
@@ -95,7 +95,7 @@
 docs/design/
 ├── README.md                        ← 本文件（总纲）
 ├── IMPLEMENTATION-PATH.md           ← ★ AI 执行手册（实施顺序 + 16 张任务卡 + 验收命令）
-├── debate-tree-PRD.md               ← v0.1 辩论树（含图谱）＋ debate-tree-PLAN.md
+├── debate-tree-PRD.md               ← v0.2 辩论树（含图谱；不再提供进入辩论间的出口）＋ debate-tree-PLAN.md
 ├── debate-room-PRD.md               ← v0.6 实时辩论间（选边制撮合 · 轮次制 · 去树化）＋ debate-room-PLAN.md
 ├── event-replay-PRD.md              ← v0.5 事件推演（沉浸式角色扮演）＋ event-replay-PLAN.md
 └── controversy-map-PRD.md           ← 跨议题争议地图（web ?view=map）

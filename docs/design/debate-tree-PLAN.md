@@ -4,7 +4,7 @@
 
 ## 目标与非目标
 
-目标是把 `?view=debate` 从内存演示升级为可长期保存、可继续参与的辩论树：支持渐进展开、三派论点、追问与回应、单用户投票、立场统计、真实 Host 追问建议，并为辩论间终局和知乎冷启动提供稳定导入接口。Agent 只指出可追问之处，不判断论点对错。
+目标是把 `?view=debate` 从内存演示升级为可长期保存、可继续参与的辩论树：支持渐进展开、三派论点、追问与回应、单用户投票、立场统计、真实 Host 追问建议，并为知乎冷启动提供稳定导入接口。（**2026-09-14**：原「为辩论间终局提供导入接口」已随卡 2-3 作废——辩论间 v0.4 去树化，对局产物改落独立对局报告。Agent 只指出可追问之处，不判断论点对错。）
 
 本计划不实现辩论间的匹配/实时对局、事件推演规则、用户认证或服务端密钥管理，也不涉及原 `?view=force` 力导向视图的 d3 布局（**该视图已于 2026-09-13 随 D3 拍板下线、代码移除**）。无限画布版留作后续视图；本期先完成移动端和桌面端均可用的缩进树。`prototypes/zhengming-app.html` 和其他生成文件不手改。
 
@@ -13,6 +13,7 @@
 - `web/src/App.tsx` 已将 `?view=debate` 路由到 `DebateTreePrototype.tsx`，相关样式集中在 `web/src/styles.css`。
 - **2026-09-14 更新**：组件内嵌的 `INITIAL_TREE` 已删除，改为 `web/src/data/debateTreeSeed.ts`（生成物，122 个真实知乎议题）。节点模型移到 `web/src/types/debateTree.ts`，遍历/统计/成树/投票语义抽到纯函数层 `web/src/ui/debateTreeUi.ts`（59 项单测），本地记忆在 `web/src/ui/debateTreeStorage.ts`（12 项单测）。**仍未做**：文档层（`DebateTreeDocument` + revision）、`debateTreeRepository.ts`、`debateTreeState.ts` 的 reducer——树的增删改还不落盘，刷新即回种子态。
 - 规则迁移（深度 ≤4、单节点子 ≤8、追问 ≤3、纯表态拦截）**仍未迁入**；`submitNode` 只校验非空。追问已改为「我自己追问」并由用户署名，禁用了本地伪造 `agentHint` 的那条路径（原实现会把模板字符串回写成「Agent 建议」，属伪造 Agent 输出）。
+- **2026-09-14 更新**：详情面板的「开实时辩论间 →」定向出口**已删除**（PRD v0.2）。它指向 `?view=room&topic=<议题>`，但房间侧从不消费 `topic`（`roomStorage.readRoomFromUrl()` 只读 `room` / `side`），且两边议题池口径不同（树 122 个种子 vs 房间 16 个可开局，交集仅 16），点过去只会落到启动台。已同步清理 `.dt-detail-actions a.dt-button` 死规则、两份原型（`prototypes/debate-tree-prototype.html` 与重建的 `zhengming-app.html`，节点详情 + 图谱议题详情共两处），并新增测试守门。**顶栏的模块级导航「辩论树 | 争议地图 | 辩论间」保留**——那是三模块互跳，不是本模块的定向出口。
 - `prototypes/debate-tree-v2.html` 已验证添加论点/追问、回应继承立场、深度 4、子节点 8、追问 3、投票、三派统计和失衡判定；`node prototypes/debate-tree-v2.test.mjs` 当前为 **40/40 通过**。它是规则迁移基线，不是生产数据源。
 - `web/src/data/debateGraph.ts` 使用另一套 `topic/side/argument/evidence/...` 图模型，原仅服务 `?view=force`（**该视图已于 2026-09-13 随 D3 拍板下线，文件已移除**），且本就不能直接作为辩论树 schema。
 - `docs/design/host-contract.md` 与 `zhengming-server/` 均已落地；树侧尚未接 Host（卡 2-2）。
