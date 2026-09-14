@@ -309,8 +309,13 @@ export function EventReplay({ client, events = eventReplays, initialEventId = nu
     setComposeTopic("");
     setComposeTimeline("");
     setCustomEvents((prev) => [event, ...prev]);
-    switchEvent(event.header.id);
-  }, [composeActCount, composeStatus, composeTimeline, composeTopic, injectedClient, switchEvent]);
+    // 不能走 switchEvent：它的 allEvents 闭包还不含刚入池的新事件（stale closure）
+    eventRef.current = event;
+    setEventId(event.header.id);
+    const fresh = createInitialReplayState(event);
+    stateRef.current = fresh;
+    setState(fresh);
+  }, [composeActCount, composeStatus, composeTimeline, composeTopic, injectedClient]);
 
   if (!activeEvent) {
     return (

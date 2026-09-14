@@ -242,4 +242,43 @@ describe("createHttpEventReplayClient（HTTP seam，注入 fetch）", () => {
     expect(response.result).toEqual(event.canon);
     expect(calls[0].url).toContain("/api/host/replayCanon");
   });
+
+  it("compose 请求体按契约 §0.8 白名单发出（topic/timeline/actCount， requestId 由 client 附上）", async () => {
+    const scaffold = {
+      title: "一次团队去留",
+      background: "创业公司收到收购意向。",
+      admission: { publiclyDiscussed: true, disasterOrCasualty: false },
+      positions: [],
+      acts: [],
+    };
+    const { impl, calls } = mockFetch({ body: JSON.stringify({ ok: true, result: scaffold }) });
+    const client = createHttpEventReplayClient({ fetchImpl: impl });
+    const response = await client.compose({
+      topic: "  一家创业公司收到收购意向  ",
+      timeline: [" 2024-01 意向接触 ", "", "2024-03 最后期限"],
+      actCount: 9,
+    });
+    expect(response.ok).toBe(true);
+    expect(response.result).toEqual(scaffold);
+    expect(calls[0].url).toContain("/api/host/replayCompose");
+    const sent = JSON.parse(calls[0].body);
+    expect(Object.keys(sent).sort()).toEqual(["actCount", "requestId", "timeline", "topic"]);
+    // buildComposePayload 的清洗：trim、去空行、actCount 钳制到 2..5
+    expect(sent.topic).toBe("一家创业公司收到收购意向");
+    expect(sent.timeline).toEqual(["2024-01 意向接触", "2024-03 最后期限"]);
+    expect(sent.actCount).toBe(5);
+  });
+
+  it("compose 的中文拒收原因（准入底线）直接透出给用户", async () => {
+    const { impl } = mockFetch({
+      body: JSON.stringify({
+        ok: false,
+        error: { code: "CONTENT_REJECTED", message: "涉及灾难或伤亡的事件不入推演（准入底线 2）" },
+      }),
+    });
+    const client = createHttpEventReplayClient({ fetchImpl: impl });
+    const response = await client.compose({ topic: "某灾难事件", timeline: [], actCount: 3 });
+    expect(response.ok).toBe(false);
+    expect(response.error).toContain("涉及灾难或伤亡");
+  });
 });

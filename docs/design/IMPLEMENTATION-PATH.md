@@ -241,10 +241,11 @@ desktop ──POST /v1/sessions/{session_id}/turns──▶ core（持有 key，
 | 5 | 幕推进 | `actAdvance(header, position, acts, actIndex, ledger, relations, history, chosenMoveId) → {outcome, nextScene:{month,text,visibleFacts}, moves:[{id,text,costHint,implicitAssumption,label}], relationDeltas[], ledgerDeltas[], atEnding}` | 事件推演（**核心**） |
 | 6 | 结局生成 | `replayEnding(position, history, ledger, relations) → {title, text}` | 事件推演终局叙述 |
 | 7 | 原作揭示 | `replayCanon(eventId) → {canon:[{actIndex, month, development, sources[]}]}` | 事件推演终局可选揭示（**独立通道**，推演期间不调用） |
+| 9 | 事件生成 | `replayCompose(topic, timeline?, actCount?) → {title, background, admission, positions[], acts[]}` | 事件推演落地页：把任意有明显时间线的社会事件改写成可推演脚本（§0.8）；**无启发式降级**，无 key 直接失败 |
 
 > **历史注记（2026-09-13）**：原能力「概念对齐 `alignConcepts`」「承认校验 `checkRestatement`」已分别随辩论间 v0.5 删除概念对齐阶段（卡 1-3 作废）与 **D6 拍板不落复述闸门**（卡 1-2 作废）而**彻底移除**（均无任何模块消费）；本表编号已两轮整体前移，其余能力编号以本表为准。
 
-- **硬约束**：能力 1/2/3/4/5/6/7 的返回文本必须过**禁用词表**：`错误 | 谬误 | 偷换 | 输赢 | 对错 | 你错了 | 赢了`
+- **硬约束**：能力 1/2/3/4/5/6/7/9 的返回文本必须过**禁用词表**：`错误 | 谬误 | 偷换 | 输赢 | 对错 | 你错了 | 赢了`
 - **隔离硬约束（事件推演）**：能力 5/6 的**入参中不得出现 `canon` / 真实人物真名**——沉浸式下模型本来就不需要原作，调用隔离是天然属性，但仍须写成单测断言（spy 捕获请求体）。原作只喂给能力 7，且能力 7 **仅在终局可选揭示时被调用**；能力 5 的 `visibleFacts` 不得越出所选角色位 `visible` 的范围（越界拒收）。
 - **验收**
   - `docs/design/host-contract.md` 存在，七个能力 schema 齐全，每个都有正/反例
@@ -446,7 +447,9 @@ desktop ──POST /v1/sessions/{session_id}/turns──▶ core（持有 key，
 
 ### 卡 4-3 · 角色扮演推演引擎走真 Host
 
-> **进度（2026-09-14，分支 `feat/event-simulation`）：✅ 真模型联调通过，本卡关闭。** 前端层已落地——`web/src/domain/eventReplayReducer.ts`（无回溯单轴 reducer）、`web/src/ui/event-replay/eventReplayClient.ts`（契约 §0.7 形状转换 + 流式读取 + 降级透传）、`web/src/ui/EventReplay.tsx` + `eventReplay.css`（`?view=event` 全流程界面，v0.6 按交互原型重做壳体，只借壳不借语义）。**首度联调报 `400 VALIDATION: ledger must be an array`**，根因是契约只引用未定义六个公共类型，前后端各自想象——已在 `host-contract.md` §0.7 以服务端实现为准钉死（入参 `LedgerEntry[]`/`RelationEntry[]` 累加态快照 vs 出参增量、账本五维枚举、visibleFacts 事实级粒度、两处宽容取舍），前端在 client 层完成形状转换并补三道归一化容错（`normalizeLedgerKey` / `resolveRelationTarget` / `assertWithinVisible` 归一化匹配）。服务端 `actAdvance` 提示词同步收紧（账本 key 限五维、target 照抄角色位名、visibleFacts 逐字摘取）。**验收实录**：Vitest 307 项全绿（含「请求体按契约 §0.7 发条目数组」守卫）；headless Chrome 实测两轮——选角色 → `POST /api/host/actAdvance` 200 → 真模型处境叙事 + 2-3 张动作卡渲染，页面无「请求参数不合法」，请求体 `ledger=[]`/`relations=[{target,value}]` 形状正确，两轮叙事内容不同（证实实时生成非缓存）。
+> **进度（2026-09-14，分支 `feat/event-simulation`）：✅ 真模型联调通过，本卡关闭。** 前端层已落地——`web/src/domain/eventReplayReducer.ts`（无回溯单轴 reducer）、`web/src/ui/event-replay/eventReplayClient.ts`（契约 §0.7 形状转换 + 流式读取 + 降级透传）、`web/src/ui/EventReplay.tsx` + `eventReplay.css`（`?view=event` 全流程界面，v0.6 按交互原型重做壳体，只借壳不借语义）。**首度联调报 `400 VALIDATION: ledger must be an array`**，根因是契约只引用未定义六个公共类型，前后端各自想象——已在 `host-contract.md` §0.7 以服务端实现为准钉死（入参 `LedgerEntry[]`/`RelationEntry[]` 累加态快照 vs 出参增量、账本五维枚举、visibleFacts 事实级粒度、三处宽容取舍），前端在 client 层完成形状转换并补三道归一化容错（`normalizeLedgerKey` / `resolveRelationTarget` / `assertWithinVisible` 归一化匹配）。服务端 `actAdvance` 提示词同步收紧（账本 key 限五维、target 照抄角色位名、visibleFacts 逐字摘取）。**验收实录**：Vitest 307 项全绿（含「请求体按契约 §0.7 发条目数组」守卫）；headless Chrome 实测两轮——选角色 → `POST /api/host/actAdvance` 200 → 真模型处境叙事 + 2-3 张动作卡渲染，页面无「请求参数不合法」，请求体 `ledger=[]`/`relations=[{target,value}]` 形状正确，两轮叙事内容不同（证实实时生成非缓存）。
+>
+> **泛化扩展（同日晚，能力 9 `replayCompose`）**：事件推演从「预置事件库」泛化为「任意有明显时间线的社会事件」——落地页新增自定义事件入口（主题 + 可选时间线 + 幕数），Host 按契约 §0.8 生成符合 §0.7 形状的事件脚本，前端归一化后过与种子事件同一份 `validateEventReplay` 准入校验再入池，`actAdvance`/`replayEnding` 零改动复用。红线落点：模型申报灾难/伤亡即拒收；**不生成 canon**（组合事件无现实对照揭示入口，id 以 `compose-` 前缀标识）；无 key 不硬凑（无启发式降级）。
 
 - 三个新能力：`actAdvance`（幕推进：处境 + 动作 + 后果 + 账本/关系增量）/ `replayEnding`（终局叙述）/ `replayCanon`（原作揭示，独立通道，仅终局调用）
 - **必须实现的机制**

@@ -16,7 +16,7 @@
 > - **保留不动**：原有能力签名、统一信封、错误码枚举、幂等与重试、禁用词表、`Turn` 形状、隔离硬约束。
 > - **本条作废**：v1.1 中一切 DeepSeek 专有表述（`api.deepseek.com`、`deepseek-chat`、`DEEPSEEK_API_KEY`）。
 >
-> 当前共 **8 个能力**。原「概念对齐 `alignConcepts`」与「承认校验 `checkRestatement`」已移除；`opponentTurn` 是 2026-09-14 新增的 AI 席位能力。
+> 当前共 **9 个能力**。原「概念对齐 `alignConcepts`」与「承认校验 `checkRestatement`」已移除；`opponentTurn` 是 2026-09-14 新增的 AI 席位能力；`replayCompose`（能力 9，事件生成）是同日晚补记的通用化入口，见 §0.8。
 
 ---
 
@@ -27,14 +27,14 @@
 通道按 **D1 已拍板：路线 A** 写死信封，`zhengming-server/` 承载：
 
 ```
-POST /api/host/:capability        # capability ∈ 能力 1..8 的机器名
+POST /api/host/:capability        # capability ∈ 能力 1..9 的机器名
 Content-Type: application/json    # 请求体上限 256KB，超限拒收
-超时：30s；生成式长文本能力（6 actAdvance / 7 replayEnding）90s
+超时：30s；生成式长文本能力（6 actAdvance / 7 replayEnding / 9 replayCompose）90s
 ```
 
 > **超时分级（2026-09-14 补记）**：真机实测 actAdvance 单幕生成 P50 ≈ 26s，带 history 的
 > 中后幕普遍越过 30s——30s 阈值下 TIMEOUT 是高频事件而非兜底，前端表现为
-> 「这一步暂时无法推进/模型响应超时」频发。故能力 6/7 放宽到 90s，其余能力维持 30s。
+> 「这一步暂时无法推进/模型响应超时」频发。故能力 6/7/9 放宽到 90s，其余能力维持 30s。
 
 ```jsonc
 // 成功
@@ -171,6 +171,41 @@ interface SceneLog {                  // 已锁定的一幕（既成事实，不
 | 能力 5 **出参** | `relationDeltas` | `{ target, delta }[]` | 本幕增量 |
 
 **客户端职责**：内部状态可自由表示（前端即用五维加法器 + `Record`），但**进出 `POST /api/host/*` 的边界必须完成上述转换**，且转换只发生在请求体的构造/解析层（`eventReplayClient.ts`），不得散落到 UI。
+
+### 0.8 事件生成 `replayCompose`（能力 9；2026-09-14 晚补记）
+
+> **动因**：事件推演原本只能玩事件库里预置的三例——「有明显时间线的社会事件」这个类目无法泛化。
+> 能力 9 把**事件脚本的起草**也交给 Host：用户给一段事件材料（+ 可选时间线节点 + 幕数），
+> 模型产出一份符合 §0.7 形状的事件脚本，前端归一化后与种子事件**同池进入同一运行时**；
+> `actAdvance` / `replayEnding` 零改动复用。
+
+**请求** `replayCompose({ topic: string, timeline?: string[], actCount?: number })`
+
+- `topic`：事件主题与背景（非空，≤2000 字符）；
+- `timeline`：明确的时间节点，每条 ≤200 字符、至多 8 条（可空——让模型自行提炼节拍）；
+- `actCount`：幕数，整数 ∈ [2,5]，缺省 3。**终局节奏由这个数定死**，与 §0.7 的 `atEnding` 前端归一化一致。
+
+**响应载荷**（结构化 JSON，服务端已规格化）：
+
+```jsonc
+{
+  "title": "事件短题（≤30 字，不含真实人名机构名）",
+  "background": "处境背景（时间粒度到月，人物化名）",
+  "admission": { "publiclyDiscussed": true, "disasterOrCasualty": false },
+  "positions": [ /* §0.7 的 Position 形状：id 为英文短横线 slug、visible 为事实级条目、
+                    relations[].to 必须指向已知角色位（服务端丢弃未知指向） */ ],
+  "acts": [ /* §0.7 的 Act 形状：index 由服务端重排为 0..n-1，month 为 YYYY-MM */ ]
+}
+```
+
+**红线落点（服务端 RESULT_CHECKS 硬执行）**：
+
+1. **准入底线 2**：模型按提示词如实申报 `admission.disasterOrCasualty`，置 `true` 即 `CONTENT_REJECTED`（中文原因直接透传给用户：涉及灾难或伤亡的事件不入推演）；
+2. **只生成「壳」**：角色位 / 幕节拍 / 信息范围。**不生成 canon**——史实对照必须有人工核实的来源（§7），生成事件一律 `canon: []`，前端据 `compose-` 前缀禁用终局的「现实对照」揭示入口；
+3. **不扮演真实个人**：角色位一律虚构位置、化名、机构模糊（提示词 + `validateEventReplay` 双闸）；
+4. **无 key 不硬凑**：`replayCompose` 没有启发式降级——降级硬凑只会产出廉价假结构，直接 `UPSTREAM` 失败。
+
+**前端归一化（`normalizeComposedEvent`）**：事件 id 由前端生成（`compose-<毫秒>`）；幕序号重排连续；幕数即结局条件；关系丢弃未知指向并钳制 ±100；空条目过滤。归一化后必须过与种子事件**同一份** `validateEventReplay`，不过不进推演。
 
 ---
 

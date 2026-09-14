@@ -452,3 +452,94 @@ test("assertIsolation 直接调用时能捕获嵌套键", () => {
   assert.throws(() => assertIsolation({ x: { deep: { realPath: "y" } } }), /isolation breach/);
   assert.doesNotThrow(() => assertIsolation({ history: [{ outcome: "正常叙事" }] }));
 });
+
+/* ─────────── 能力 9 · replayCompose（契约 §0.8） ─────────── */
+
+const VALID_SCAFFOLD = {
+  title: "一次团队去留",
+  background: "一家 30 人的创业公司收到低估值收购意向，核心团队分歧很大。",
+  admission: { publiclyDiscussed: true, disasterOrCasualty: false },
+  positions: [
+    {
+      id: "founder", name: "创始人（化名）", role: "公司创始人", stake: "团队存续",
+      visible: ["现金只能撑四个月", "收购意向已到账"],
+      resources: "决策权", canDo: ["谈判", "接受"],
+      relations: [{ to: "engineer", attitude: 10 }],
+    },
+    {
+      id: "engineer", name: "核心工程师（化名）", role: "技术负责人", stake: "技术路线延续",
+      visible: ["收购方将解散现有技术线", "手上项目未交付"],
+      resources: "离职选项", canDo: ["沟通", "离职"],
+      relations: [{ to: "nobody", attitude: 5 }],
+    },
+  ],
+  acts: [
+    { index: 0, month: "2024-01", text: "收购意向首次接触。" },
+    { index: 1, month: "2024-03", text: "投资人给出最后期限。" },
+  ],
+};
+
+test("replayCompose 入参校验：topic 必填、actCount ∈ [2,5]、timeline ≤ 8 条", async () => {
+  const bad = [
+    { topic: "  " },
+    { topic: "x".repeat(2001) },
+    { topic: "合法", actCount: 1 },
+    { topic: "合法", actCount: 6 },
+    { topic: "合法", timeline: Array.from({ length: 9 }, (_, i) => `节点${i}`) },
+    { topic: "合法", timeline: [""] },
+  ];
+  for (const [i, params] of bad.entries()) {
+    const res = await invokeHost("replayCompose", params, { apiKey: "sk-test", requestId: `r-rc-bad-${i}` });
+    assert.equal(res.ok, false, `case ${i} should fail`);
+    assert.equal(res.error.code, ERROR_CODES.VALIDATION, `case ${i} code`);
+  }
+});
+
+test("replayCompose 真实调用：输出规格化为事件脚本，未知关系指向被丢弃", async () => {
+  const capture = {};
+  const fetchImpl = fakeFetch(JSON.stringify(VALID_SCAFFOLD), { capture });
+  const res = await invokeHost(
+    "replayCompose",
+    { topic: "创业公司收购意向", timeline: ["2024-01 接触"], actCount: 2 },
+    { apiKey: "sk-test", requestId: "r-rc-ok", fetchImpl },
+  );
+  assert.equal(res.ok, true);
+  assert.equal(res.result.title, "一次团队去留");
+  assert.equal(res.result.positions.length, 2);
+  // unknown → 指向不存在的角色位，被服务端丢弃
+  assert.deepEqual(res.result.positions[1].relations, []);
+  assert.equal(res.result.acts[0].index, 0);
+  // 提示词里带上了用户的 topic 与时间线
+  assert.match(capture.body.messages[1].content, /创业公司收购意向/);
+  assert.match(capture.body.messages[1].content, /2024-01 接触/);
+});
+
+test("replayCompose 准入底线：模型申报灾难/伤亡 → CONTENT_REJECTED", async () => {
+  const fetchImpl = fakeFetch(
+    JSON.stringify({ ...VALID_SCAFFOLD, admission: { publiclyDiscussed: true, disasterOrCasualty: true } }),
+  );
+  const res = await invokeHost("replayCompose", { topic: "某灾难事件" }, { apiKey: "sk-test", requestId: "r-rc-dis", fetchImpl });
+  assert.equal(res.ok, false);
+  assert.equal(res.error.code, ERROR_CODES.CONTENT_REJECTED);
+  assert.match(res.error.message, /灾难或伤亡/);
+});
+
+test("replayCompose 结构不合规（角色位不足 / 缺 visible）→ CONTENT_REJECTED", async () => {
+  const onlyOne = { ...VALID_SCAFFOLD, positions: [VALID_SCAFFOLD.positions[0]] };
+  const missingVisible = {
+    ...VALID_SCAFFOLD,
+    positions: VALID_SCAFFOLD.positions.map((p) => ({ ...p, visible: ["唯一一条"] })),
+  };
+  for (const [i, scaffold] of [onlyOne, missingVisible].entries()) {
+    const fetchImpl = fakeFetch(JSON.stringify(scaffold));
+    const res = await invokeHost("replayCompose", { topic: "x" }, { apiKey: "sk-test", requestId: `r-rc-struct-${i}`, fetchImpl });
+    assert.equal(res.ok, false, `case ${i} should fail`);
+    assert.equal(res.error.code, ERROR_CODES.CONTENT_REJECTED, `case ${i} code`);
+  }
+});
+
+test("replayCompose 无 key 时不降级硬凑，直接失败（不假装能生成事件）", async () => {
+  const res = await invokeHost("replayCompose", { topic: "x" }, { apiKey: null, requestId: "r-rc-nk" });
+  assert.equal(res.ok, false);
+  assert.equal(res.error.code, ERROR_CODES.UPSTREAM);
+});
