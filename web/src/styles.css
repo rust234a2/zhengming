@@ -1627,7 +1627,8 @@ textarea {
 }
 
 .cm-links line,
-.cm-links-emphasis line {
+.cm-links-emphasis line,
+.cm-links-emphasis path {
   transition: opacity 140ms ease;
   animation: cm-fade-in 300ms ease-out;
 }

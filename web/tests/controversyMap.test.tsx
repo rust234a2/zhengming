@@ -14,7 +14,7 @@ import * as d3 from "d3";
 
 import { CONTROVERSY_MAP } from "../src/data/controversyMap";
 import type { MapSimLink, MapSimNode } from "../src/types/map";
-import { ControversyMap, HULL_GROUPS, hullPathFor } from "../src/ui/ControversyMap";
+import { ControversyMap, HULL_GROUPS, hullPathFor, labelTierFromK } from "../src/ui/ControversyMap";
 
 afterEach(() => {
   cleanup();
@@ -895,5 +895,129 @@ describe("争议地图凸包分组", () => {
     // 退回全图后包络恢复
     clickButton({ container }, "返回上一级");
     expect(svg.querySelectorAll("[data-hull-id]").length).toBeGreaterThan(0);
+  });
+});
+
+/* ────────── 6. 连线形态与透明度分层 ────────── */
+
+describe("争议地图连线分层", () => {
+  it("缝合线走弧线（path），冲突线保持直线（line）—— 跨议题关系一眼可辨", () => {
+    const { svg } = renderMap();
+    const bridgePaths = svg.querySelectorAll('.cm-links-emphasis path[data-relation="bridge"]');
+    const rebutLines = svg.querySelectorAll('.cm-links-emphasis line[data-relation="rebuts"]');
+    expect(bridgePaths.length).toBe(CONTROVERSY_MAP.stats.bridge);
+    expect(rebutLines.length).toBe(expectedAggregatedCount());
+
+    for (const p of [...bridgePaths]) {
+      const d = p.getAttribute("d") ?? "";
+      expect(d.startsWith("M")).toBe(true);
+      expect(d).toContain("Q");
+      expect(d).not.toContain("NaN");
+      // 弯向标记只有 ±1 两种，同一条无向边永远往同一侧弯
+      expect(p.getAttribute("data-bow")).toMatch(/^-?1$/);
+      // path 不能有填充，否则会画出半透明的色块
+      expect(p.getAttribute("fill")).toBe("none");
+    }
+  });
+
+  it("常态透明度按关系分层：bridge 0.75 / rebuts 0.6 / member 0.25 / contains 0.2", () => {
+    const { svg, container } = renderMap();
+    clickButton({ container }, "展开全部论点");
+    clickButton({ container }, "显示归属边");
+
+    expect(
+      svg.querySelector('.cm-links-emphasis path[data-relation="bridge"]')!.getAttribute("opacity"),
+    ).toBe("0.75");
+    expect(
+      svg.querySelector('.cm-links-emphasis line[data-relation="rebuts"]')!.getAttribute("opacity"),
+    ).toBe("0.6");
+    expect(
+      svg.querySelector('.cm-links line[data-relation="member"]')!.getAttribute("opacity"),
+    ).toBe("0.25");
+    expect(
+      svg.querySelector('.cm-links line[data-relation="contains"]')!.getAttribute("opacity"),
+    ).toBe("0.2");
+  });
+
+  it("弧线坐标由每帧热路径写入：tick 后 path 的 d 与节点坐标一致", () => {
+    const { svg } = renderMap();
+    const p = svg.querySelector(
+      '.cm-links-emphasis path[data-relation="bridge"]',
+    ) as SVGPathElement;
+    const s = p.getAttribute("data-src")!;
+    const t = p.getAttribute("data-tgt")!;
+    const byId = new Map(
+      [...svg.querySelectorAll("[data-node-id]")].map((el) => {
+        const m = /translate\(([^,]+),([^)]+)\)/.exec(el.getAttribute("transform") ?? "")!;
+        return [el.getAttribute("data-node-id")!, { x: Number(m[1]), y: Number(m[2]) }];
+      }),
+    );
+    const sn = byId.get(s)!;
+    const tn = byId.get(t)!;
+    // 路径起点与终点必须钉在两端节点上（贝塞尔只影响中段弧度）
+    const nums = (p.getAttribute("d") ?? "").match(/-?\d+(?:\.\d+)?(?:e-?\d+)?/gi) ?? [];
+    expect(Number(nums[0])).toBeCloseTo(sn.x, 3);
+    expect(Number(nums[1])).toBeCloseTo(sn.y, 3);
+    expect(Number(nums[nums.length - 2])).toBeCloseTo(tn.x, 3);
+    expect(Number(nums[nums.length - 1])).toBeCloseTo(tn.y, 3);
+  });
+});
+
+/* ────────── 7. 标签密度自适应（语义缩放） ────────── */
+
+describe("争议地图标签密度", () => {
+  it("档位划分：k≥1.2 → near，k<0.6 → far，其余 mid（边界值锁定）", () => {
+    expect(labelTierFromK(1.2)).toBe("near");
+    expect(labelTierFromK(3)).toBe("near");
+    expect(labelTierFromK(1.19)).toBe("mid");
+    expect(labelTierFromK(0.6)).toBe("mid");
+    expect(labelTierFromK(0.59)).toBe("far");
+    expect(labelTierFromK(0.25)).toBe("far");
+  });
+
+  it("滚轮放大跨过阈值后论点标签自动浮现，不必再找开关", async () => {
+    const { svg, container } = renderMap();
+    clickButton({ container }, "展开全部论点");
+
+    const claimLabelCount = (): number =>
+      [...svg.querySelectorAll('[data-node-kind="claim"]')].filter(
+        (n) => n.querySelector("text.cm-node-label") !== null,
+      ).length;
+
+    expect(claimLabelCount()).toBe(0);
+
+    // d3 对 wheel 有 150ms 去抖，等它落定再断言
+    await act(async () => {
+      for (let i = 0; i < 3; i += 1) {
+        fireEvent.wheel(svg, { deltaY: -120, cancelable: true });
+      }
+      await new Promise((r) => setTimeout(r, 300));
+    });
+
+    const transform = svg.querySelector("[data-zoom-layer]")?.getAttribute("transform") ?? "";
+    expect(transform).toMatch(/scale\(1\.\d+\)/);
+    expect(claimLabelCount()).toBe(CONTROVERSY_MAP.stats.claims);
+  });
+
+  it("缩得太小时只留主张簇标签（far 档去掉议题标签，骨架模式）", async () => {
+    const { svg } = renderMap();
+
+    const topicLabelCount = (): number =>
+      [...svg.querySelectorAll('[data-node-kind="topic"]')].filter(
+        (n) => n.querySelector("text.cm-node-label") !== null,
+      ).length;
+    expect(topicLabelCount()).toBe(CONTROVERSY_MAP.stats.topics);
+
+    await act(async () => {
+      // d3 的 wheel 增量是 2^(deltaY×0.002)：三次只到 k≈0.61，恰好停在 mid 档，得四次
+      for (let i = 0; i < 4; i += 1) {
+        fireEvent.wheel(svg, { deltaY: 120, cancelable: true });
+      }
+      await new Promise((r) => setTimeout(r, 300));
+    });
+
+    const transform = svg.querySelector("[data-zoom-layer]")?.getAttribute("transform") ?? "";
+    expect(transform).toMatch(/scale\(0\.\d+\)/);
+    expect(topicLabelCount()).toBe(0);
   });
 });

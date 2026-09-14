@@ -35,6 +35,20 @@ const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 3;
 const ZOOM_STEP = 1.25;
 
+/* ────────── 标签密度三档（语义缩放的标签侧） ──────────
+   缩得越远标签越少、放得越大标签越多；跨档才触发重渲染，缩放过程零 React 开销。 */
+const LABEL_ZOOM_NEAR = 1.2;
+const LABEL_ZOOM_FAR = 0.6;
+
+export type LabelTier = "far" | "mid" | "near";
+
+/** k≥1.2 出全量标签（含论点）；k<0.6 只留主张簇标签；中间档 = 簇 + 议题。 */
+export function labelTierFromK(k: number): LabelTier {
+  if (k >= LABEL_ZOOM_NEAR) return "near";
+  if (k < LABEL_ZOOM_FAR) return "far";
+  return "mid";
+}
+
 /** 拖拽期间把模拟「温度」钉在 0.45（原型 d3.drag 的 alphaTarget(0.45) 等效）。 */
 const DRAG_ALPHA_TARGET = 0.45;
 
@@ -147,6 +161,41 @@ function widthForLink(relation: MapEdgeRelation): number {
     default:
       return 0.8;
   }
+}
+
+/**
+ * 连线的常态透明度按关系类型分层（一致性原则优先于好看）：
+ * 同类关系永远同一种视觉，不同类之间拉开差距 —— bridge 是这张图的核心信息，
+ * member/contains 只是撑住结构的骨架，必须退到背景，否则 429 条结构边会淹没一切。
+ */
+function baseOpacityFor(relation: MapEdgeRelation): number {
+  switch (relation) {
+    case "bridge":
+      return 0.75;
+    case "rebuts":
+      return 0.6;
+    case "member":
+      return 0.25;
+    case "contains":
+      return 0.2;
+    default:
+      return 0.3;
+  }
+}
+
+/**
+ * 缝合线的弧线形态：二次贝塞尔，控制点沿中垂线外推。
+ * 弯向按两端 id 的字典序取符号 —— 同一条无向边永远往同一侧弯，
+ * 否则布局抖动时线会在两侧来回跳。骨架层的 177 条缝合线全部走这里。
+ */
+function curveLinkPath(sx: number, sy: number, tx: number, ty: number, bowSign: number): string {
+  const dx = tx - sx;
+  const dy = ty - sy;
+  const dist = Math.hypot(dx, dy) || 1;
+  const bow = Math.min(dist * 0.16, 64) * bowSign;
+  const mx = (sx + tx) / 2 - (dy / dist) * bow;
+  const my = (sy + ty) / 2 + (dx / dist) * bow;
+  return `M${sx},${sy}Q${mx},${my} ${tx},${ty}`;
 }
 
 /** 标签截断：与原型一致，单行截断（topic/cluster 20 字，论点按上下文 22/26 字）。 */
@@ -284,7 +333,12 @@ export function ControversyMap() {
 
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  /**
+   * 「显示全部标签」按钮 = 手动覆盖：开着时无视缩放档位直接全显；
+   * 关着时走 labelTier 的自动密度（语义缩放：放大出细节、缩小去噪声）。
+   */
   const [showAllLabels, setShowAllLabels] = useState(false);
+  const [labelTier, setLabelTier] = useState<LabelTier>("mid");
   /**
    * 显示层级开关：
    *   骨架视图（默认）—— 只画 簇 + 议题 + 缝合线，外加「议题间冲突」聚合线；
@@ -317,8 +371,6 @@ export function ControversyMap() {
   const linkForceRef = useRef<d3.ForceLink<MapSimNode, MapSimLink> | null>(null);
   const dragStateRef = useRef<DragState | null>(null);
   const zoomBehaviorRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
-  const labelModeRef = useRef(showAllLabels);
-  labelModeRef.current = showAllLabels;
 
   /* ---------- 数据 → 工作副本 ---------- */
 
@@ -567,17 +619,24 @@ export function ControversyMap() {
       if (!n) continue;
       el.setAttribute("transform", `translate(${n.x},${n.y})`);
     }
-    const linkEls = svg.querySelectorAll<SVGLineElement>("[data-link-id]");
+    // 连线混着两种形态：缝合线是 path（二次贝塞尔），其余仍是 line。
+    // 这是每帧热路径 —— 只按 localName 分流一次，不做任何查询缓存失效处理。
+    const linkEls = svg.querySelectorAll<SVGElement>("[data-link-id]");
     for (const el of linkEls) {
       const s = el.getAttribute("data-src");
       const t = el.getAttribute("data-tgt");
       const sn = s ? byId.get(s) : undefined;
       const tn = t ? byId.get(t) : undefined;
       if (!sn || !tn) continue;
-      el.setAttribute("x1", String(sn.x));
-      el.setAttribute("y1", String(sn.y));
-      el.setAttribute("x2", String(tn.x));
-      el.setAttribute("y2", String(tn.y));
+      if (el.localName === "path") {
+        const sign = Number(el.getAttribute("data-bow") ?? "1");
+        el.setAttribute("d", curveLinkPath(sn.x, sn.y, tn.x, tn.y, sign));
+      } else {
+        el.setAttribute("x1", String(sn.x));
+        el.setAttribute("y1", String(sn.y));
+        el.setAttribute("x2", String(tn.x));
+        el.setAttribute("y2", String(tn.y));
+      }
     }
     // 凸包分组：每帧按当前坐标重算包络。
     // 39 组 × 平均 44 个采样点，量级远低于连线写入，暂时不分帧节流；
@@ -643,6 +702,11 @@ export function ControversyMap() {
       .on("zoom", (event) => {
         const layer = svg.querySelector<SVGGElement>("[data-zoom-layer]");
         layer?.setAttribute("transform", event.transform.toString());
+        // 标签密度档位只在跨档时真正 setState（同值返回时 React 直接 bail out）
+        setLabelTier((prev) => {
+          const next = labelTierFromK(event.transform.k);
+          return prev === next ? prev : next;
+        });
       });
     zoomBehaviorRef.current = zoom;
     d3.select(svg).call(zoom).on("dblclick.zoom", null);
@@ -786,6 +850,15 @@ export function ControversyMap() {
     if (!group) return "cm-hull";
     const hit = highlighted.has(group.id) || group.members.some((m) => highlighted.has(m));
     return hit ? "cm-hull is-context" : "cm-hull is-muted";
+  };
+
+  /**
+   * 连线的当前透明度：常态按关系类型分层（baseOpacityFor）；
+   * 悬停/选中时只保留"两端都在邻域内"的连线，其余压到 0.07。
+   */
+  const linkOpacity = (relation: MapEdgeRelation, srcId: string, tgtId: string): number => {
+    if (highlighted === null) return baseOpacityFor(relation);
+    return highlighted.has(srcId) && highlighted.has(tgtId) ? 1 : 0.07;
   };
 
   /* ---------- 缩放按钮 ---------- */
@@ -1118,22 +1191,39 @@ export function ControversyMap() {
                   stroke={strokeForLink(l.relation)}
                   strokeWidth={widthForLink(l.relation)}
                   strokeDasharray={dashForLink(l.relation)}
-                  opacity={
-                    highlighted === null
-                      ? 0.5
-                      : highlighted.has(l.source.id) && highlighted.has(l.target.id)
-                        ? 1
-                        : 0.07
-                  }
+                  opacity={linkOpacity(l.relation, l.source.id, l.target.id)}
                 />
               ))}
             </g>
 
-            {/* 强调边：冲突与缝合线，置于普通边上、节点下；rebuts 带 title 提示 */}
+            {/*
+              强调边：冲突与缝合线，置于普通边上、节点下。
+              缝合线（bridge）走弧线 —— 直线在簇与簇之间反复对穿，
+              视觉上和 member/contains 的直线没有区分度；弧线让"跨议题"一眼可辨。
+              弯向由 data-bow 固定，避免同一条边在布局抖动时左右翻。
+              rebuts 仍用直线 + title 提示。
+            */}
             <g className="cm-links-emphasis">
               {emphasisLayer.map((l) => {
                 const s = nodeById.get(l.source.id);
                 const t = nodeById.get(l.target.id);
+                if (l.relation === "bridge") {
+                  return (
+                    <path
+                      key={l.id}
+                      data-link-id={l.id}
+                      data-src={l.source.id}
+                      data-tgt={l.target.id}
+                      data-relation={l.relation}
+                      data-bow={l.source.id < l.target.id ? "1" : "-1"}
+                      fill="none"
+                      stroke={strokeForLink(l.relation)}
+                      strokeWidth={widthForLink(l.relation)}
+                      strokeDasharray={dashForLink(l.relation)}
+                      opacity={linkOpacity(l.relation, l.source.id, l.target.id)}
+                    />
+                  );
+                }
                 return (
                   <line
                     key={l.id}
@@ -1144,13 +1234,7 @@ export function ControversyMap() {
                     stroke={strokeForLink(l.relation)}
                     strokeWidth={l.aggregated ? 1.2 : widthForLink(l.relation)}
                     strokeDasharray={dashForLink(l.relation)}
-                    opacity={
-                      highlighted === null
-                        ? 0.85
-                        : highlighted.has(l.source.id) && highlighted.has(l.target.id)
-                          ? 1
-                          : 0.06
-                    }
+                    opacity={linkOpacity(l.relation, l.source.id, l.target.id)}
                   >
                     {l.relation === "rebuts" ? (
                       <title>
@@ -1171,16 +1255,25 @@ export function ControversyMap() {
                 const isActive = activeId === n.id;
                 /** 聚焦视图的圆心节点：常驻脉冲环标记"当前中心" */
                 const isCenter = n.id === focusId;
-                // 标签策略与原型一致：骨架节点常显（截 20 字）；
-                // 论点默认隐藏，仅邻域高亮 / 悬停 / 聚焦视图 / 「显示全部标签」时显示
+                /*
+                 * 标签密度（语义缩放）：
+                 *   near（k≥1.2）→ 论点标签全显；mid → 簇 + 议题；far（k<0.6）→ 只留簇。
+                 * 聚焦视图强制按 mid 处理 —— 那时相机 k 取决于环半径，不反映真实放大需求，
+                 * 且聚焦邻域本就靠 focusId 显示标签。
+                 * 「显示全部标签」按钮是手动覆盖，开着时无视档位。
+                 */
+                const tier: LabelTier = focusId ? "mid" : labelTier;
+                const showAll = showAllLabels || tier === "near";
                 const text =
                   n.kind === "claim"
                     ? isActive
                       ? trunc(n.fullLabel ?? n.label, 26)
-                      : highlighted?.has(n.id) || showAllLabels || focusId
+                      : highlighted?.has(n.id) || showAll || focusId
                         ? trunc(n.fullLabel ?? n.label, 22)
                         : ""
-                    : trunc(n.label, 20);
+                    : n.kind === "topic" && tier === "far" && !focusId
+                      ? ""
+                      : trunc(n.label, 20);
                 const showLabel = text !== "";
                 return (
                   <g
