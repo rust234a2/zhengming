@@ -52,7 +52,7 @@ async function mergeLabels(labels) {
         { role: "user", content: `标签列表：\n${labels.map((l, i) => `${i + 1}. ${l}`).join("\n")}` },
       ],
       temperature: 0.1,
-      max_tokens: 3000,
+      max_tokens: 8000,
       response_format: { type: "json_object" },
     }),
   });
@@ -173,7 +173,7 @@ for (const l of cross.links) {
 
 const out = {
   generatedAt: new Date().toISOString(),
-  source: "zhihu-cli search zhihu（真实检索，5 次调用）",
+  source: "发现管线 v2：lexicon v2 × 49 query 浅检索 → 门禁 → 完整标题深挖 → LLM 提炼/比对（全部真实检索）",
   stats: {
     topics: nodes.filter((n) => n.kind === "topic").length,
     claims: nodes.filter((n) => n.kind === "claim").length,

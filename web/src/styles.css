@@ -1285,6 +1285,18 @@ textarea {
   background: #f4f8ff;
 }
 
+/* 类型开关的「已隐藏」态：置灰 + 虚线边，与普通操作按钮区分 */
+.controversy-map-actions button.cm-kind-toggle.is-off {
+  opacity: 0.55;
+  border-style: dashed;
+  color: #64748b;
+}
+
+.controversy-map-actions button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .controversy-map-legend {
   position: absolute;
   left: 12px;
@@ -1337,6 +1349,16 @@ textarea {
   border-top: 2px dashed var(--cm-rebuts);
 }
 
+.cm-lg .ring {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-right: 5px;
+  border: 1.6px dashed var(--cm-bridge);
+  border-radius: 50%;
+  vertical-align: -1px;
+}
+
 /* 提示条（原型 #caption）：常驻左上角的操作说明 */
 .cm-caption {
   position: absolute;
@@ -1351,6 +1373,79 @@ textarea {
   color: var(--debate-muted);
   font-size: 11.5px;
   pointer-events: none;
+}
+
+/* 聚焦视图的面包屑（占据提示条的同一位置：进入聚焦后它就是主导航） */
+.cm-focus-bar {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  max-width: 460px;
+  padding: 6px 10px;
+  border: 1px solid var(--debate-line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  font-size: 11.5px;
+  animation: cm-fade-in 220ms ease-out;
+}
+
+.cm-focus-back {
+  height: 24px;
+  padding: 0 9px;
+  border: 1px solid var(--debate-line);
+  border-radius: 7px;
+  background: #ffffff;
+  color: var(--debate-ink);
+  font-size: 11.5px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.cm-focus-back:hover {
+  color: #0f6fe5;
+  border-color: #0f6fe5;
+  background: #f4f8ff;
+}
+
+.cm-crumb {
+  color: #4b5563;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cm-crumb:hover {
+  color: #0f6fe5;
+  text-decoration: underline;
+}
+
+.cm-crumb.is-current {
+  color: #7a4b00;
+  font-weight: 600;
+  cursor: default;
+}
+
+.cm-crumb.is-current:hover {
+  color: #7a4b00;
+  text-decoration: none;
+}
+
+.cm-crumb-sep {
+  color: #c2ccd8;
+  font-style: normal;
+}
+
+.cm-focus-count {
+  padding-left: 6px;
+  border-left: 1px solid var(--debate-line);
+  color: var(--debate-muted);
+  white-space: nowrap;
 }
 
 /* 详情浮层（原型 #panel）：悬停 / 点击钉住时出现在右上角 */
@@ -1436,6 +1531,40 @@ textarea {
   filter: brightness(1.06);
 }
 
+/* ── 视图切换的入场动画 ──
+   新挂载的节点/连线才播（React 复用旧元素不会重放），配合力模拟重启 = 一次完整的过渡。
+   关键帧只写 from，to 用元素自身的属性值，免得动画结束后把 opacity 属性覆盖掉。 */
+@keyframes cm-fade-in {
+  from { opacity: 0; }
+}
+
+@keyframes cm-node-pop {
+  from { transform: scale(0.35); }
+}
+
+@keyframes cm-ring-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.95; }
+  50% { transform: scale(1.14); opacity: 0.4; }
+}
+
+.cm-node-body {
+  animation: cm-fade-in 300ms ease-out;
+}
+
+/* 圆点自身做缩放弹出：圆圈 bbox 中心就是节点中心，缩放不会跑位（标签留在外层不跟着缩） */
+.cm-node-body > circle:first-of-type {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cm-node-pop 340ms cubic-bezier(0.22, 0.8, 0.3, 1);
+}
+
+/* 聚焦视图的圆心标记：呼吸的虚线环 */
+.cm-focus-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cm-ring-pulse 2.4s ease-in-out infinite;
+}
+
 .cm-node-label {
   font-family: "Noto Sans SC", "Source Han Sans SC", sans-serif;
   paint-order: stroke;
@@ -1450,9 +1579,37 @@ textarea {
   stroke-width: 4px;
 }
 
+/* 凸包分组层（.cm-hulls）：整张图最底层，只负责「让聚类显形」。
+   透明度必须够低（0.06–0.12），否则会吃掉节点标签的对比度；
+   描边用同色系细线、绝不用黑 —— 黑描边会让包络读起来像"边框/容器"而非"氛围"。 */
+.cm-hull {
+  stroke-width: 1;
+  fill-opacity: 0.07;
+  stroke-opacity: 0.2;
+  transition: fill-opacity 160ms ease, stroke-opacity 160ms ease;
+}
+
+/* 悬停/选中时给包络分档：含高亮成员的浮起，其余退到背景。
+   不做这层分档，39 块底色会在读数时糊成一片。 */
+.cm-hull.is-context { fill-opacity: 0.14; stroke-opacity: 0.42; }
+.cm-hull.is-muted { fill-opacity: 0.018; stroke-opacity: 0.05; }
+
+.cm-lg .hull {
+  display: inline-block;
+  width: 15px;
+  height: 10px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: rgba(15, 111, 229, 0.14);
+  border: 1px solid rgba(15, 111, 229, 0.42);
+  vertical-align: -1px;
+}
+
 .cm-links line,
-.cm-links-emphasis line {
+.cm-links-emphasis line,
+.cm-links-emphasis path {
   transition: opacity 140ms ease;
+  animation: cm-fade-in 300ms ease-out;
 }
 
 :root[data-theme="dark"] .controversy-map {
@@ -1465,6 +1622,27 @@ textarea {
   background: #111c33;
   border-bottom-color: #1e293b;
 }
+
+:root[data-theme="dark"] .cm-focus-bar {
+  background: rgba(17, 28, 51, 0.96);
+  border-color: #1e293b;
+}
+
+:root[data-theme="dark"] .cm-focus-back {
+  color: #e2e8f0;
+  background: #16233c;
+  border-color: #26364f;
+}
+
+:root[data-theme="dark"] .cm-focus-back:hover {
+  color: #93b8f5;
+  border-color: #3b5b8a;
+  background: #1b2b47;
+}
+
+:root[data-theme="dark"] .cm-crumb { color: #cbd5f5; }
+:root[data-theme="dark"] .cm-crumb.is-current { color: #ffd48a; }
+:root[data-theme="dark"] .cm-crumb-sep { color: #3f4d68; }
 
 :root[data-theme="dark"] .controversy-map-hint strong {
   color: #e2e8f0;
@@ -1484,6 +1662,15 @@ textarea {
 
 :root[data-theme="dark"] .cm-em-bridge { color: #f0be6a; }
 :root[data-theme="dark"] .cm-em-rebuts { color: #ef8477; }
+
+/* 暗色底 #0b1424 上低透明度几乎不可见，整体上调一档 */
+:root[data-theme="dark"] .cm-hull { fill-opacity: 0.13; stroke-opacity: 0.32; }
+:root[data-theme="dark"] .cm-hull.is-context { fill-opacity: 0.22; stroke-opacity: 0.55; }
+:root[data-theme="dark"] .cm-hull.is-muted { fill-opacity: 0.03; stroke-opacity: 0.08; }
+:root[data-theme="dark"] .cm-lg .hull {
+  background: rgba(127, 176, 242, 0.16);
+  border-color: rgba(127, 176, 242, 0.5);
+}
 
 :root[data-theme="dark"] .cm-node-label {
   fill: #cbd5f5 !important;

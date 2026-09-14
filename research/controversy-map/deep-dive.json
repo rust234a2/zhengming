@@ -1,0 +1,455 @@
+{
+ "generatedAt": "2026-09-14T07:20:13.536Z",
+ "topN": 40,
+ "picked": [
+  {
+   "zhihuId": "2042985698823861883",
+   "title": "普通人选什么专业最不容易被 AI 替代?",
+   "url": "https://www.zhihu.com/question/2042985698823861883",
+   "score": 14,
+   "hitBy": 4,
+   "sampledAnswers": 6,
+   "subjects": [
+    "插画师",
+    "护士",
+    "师范专业",
+    "法学专业"
+   ]
+  },
+  {
+   "zhihuId": "1972252087044796716",
+   "title": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?",
+   "url": "https://www.zhihu.com/question/1972252087044796716",
+   "score": 12,
+   "hitBy": 4,
+   "sampledAnswers": 4,
+   "subjects": [
+    "程序员",
+    "码农"
+   ]
+  },
+  {
+   "zhihuId": "6947040839",
+   "title": "AI有没有可能在十年内完全替代教师这个行业?",
+   "url": "https://www.zhihu.com/question/6947040839",
+   "score": 10,
+   "hitBy": 3,
+   "sampledAnswers": 4,
+   "subjects": [
+    "教师"
+   ]
+  },
+  {
+   "zhihuId": "2069490435995832397",
+   "title": "如果 AI 能给出很多健康答案,医生真正不可替代的地方是什么?",
+   "url": "https://www.zhihu.com/question/2069490435995832397",
+   "score": 10,
+   "hitBy": 3,
+   "sampledAnswers": 4,
+   "subjects": [
+    "医生"
+   ]
+  },
+  {
+   "zhihuId": "2048163712138211470",
+   "title": "AI 时代来临,会计职业是否还有前途?",
+   "url": "https://www.zhihu.com/question/2048163712138211470",
+   "score": 10,
+   "hitBy": 4,
+   "sampledAnswers": 2,
+   "subjects": [
+    "会计",
+    "会计学"
+   ]
+  },
+  {
+   "zhihuId": "452243069",
+   "title": "为什么律师不会完全被AI取代?",
+   "url": "https://www.zhihu.com/question/452243069",
+   "score": 9,
+   "hitBy": 3,
+   "sampledAnswers": 3,
+   "subjects": [
+    "律师"
+   ]
+  },
+  {
+   "zhihuId": "635329472",
+   "title": "AI会取代大量自媒体吗?",
+   "url": "https://www.zhihu.com/question/635329472",
+   "score": 9,
+   "hitBy": 3,
+   "sampledAnswers": 3,
+   "subjects": [
+    "自媒体"
+   ]
+  },
+  {
+   "zhihuId": "659369541",
+   "title": "为什么很多律师不承认法律是受人工智能影响最大的行业之一?",
+   "url": "https://www.zhihu.com/question/659369541",
+   "score": 9,
+   "hitBy": 3,
+   "sampledAnswers": 3,
+   "subjects": [
+    "律师"
+   ]
+  },
+  {
+   "zhihuId": "2077824745589028563",
+   "title": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+   "url": "https://www.zhihu.com/question/2077824745589028563",
+   "score": 9,
+   "hitBy": 3,
+   "sampledAnswers": 3,
+   "subjects": [
+    "程序员"
+   ]
+  },
+  {
+   "zhihuId": "2016889470092272129",
+   "title": "AI 是抢走了我们的工作,还是给了我们新的可能?",
+   "url": "https://www.zhihu.com/question/2016889470092272129",
+   "score": 9,
+   "hitBy": 3,
+   "sampledAnswers": 3,
+   "subjects": [
+    "码农",
+    "文案",
+    "自媒体"
+   ]
+  },
+  {
+   "zhihuId": "2072683028829009863",
+   "title": "世界经济论坛预测AI等因素将促进 1.7 亿岗位新增,有啥依据吗?为啥程序员、客服成了被替换的重灾区?",
+   "url": "https://www.zhihu.com/question/2072683028829009863",
+   "score": 9,
+   "hitBy": 3,
+   "sampledAnswers": 3,
+   "subjects": [
+    "客服"
+   ]
+  },
+  {
+   "zhihuId": "2052608342816715544",
+   "title": "为什么总有人嘴硬说程序员不会被 AI 替代?",
+   "url": "https://www.zhihu.com/question/2052608342816715544",
+   "score": 8,
+   "hitBy": 3,
+   "sampledAnswers": 2,
+   "subjects": [
+    "程序员"
+   ]
+  },
+  {
+   "zhihuId": "1903459479011432303",
+   "title": "有了 AI 技术,以后画画还值得专业学习吗?AI 是否能取代画家?",
+   "url": "https://www.zhihu.com/question/1903459479011432303",
+   "score": 8,
+   "hitBy": 3,
+   "sampledAnswers": 2,
+   "subjects": [
+    "插画师"
+   ]
+  },
+  {
+   "zhihuId": "2053791549629129105",
+   "title": "AI在医疗领域能否完全取代医生?",
+   "url": "https://www.zhihu.com/question/2053791549629129105",
+   "score": 8,
+   "hitBy": 3,
+   "sampledAnswers": 2,
+   "subjects": [
+    "医生"
+   ]
+  },
+  {
+   "zhihuId": "2030670762495972103",
+   "title": "会计怎样才能不被AI取代?",
+   "url": "https://www.zhihu.com/question/2030670762495972103",
+   "score": 8,
+   "hitBy": 3,
+   "sampledAnswers": 2,
+   "subjects": [
+    "会计"
+   ]
+  },
+  {
+   "zhihuId": "386541719",
+   "title": "现在AI客服越来越多,人工客服未来会失业吗?",
+   "url": "https://www.zhihu.com/question/386541719",
+   "score": 7,
+   "hitBy": 3,
+   "sampledAnswers": 1,
+   "subjects": [
+    "客服"
+   ]
+  },
+  {
+   "zhihuId": "594432719",
+   "title": "大家觉得ai绘画会替代画师吗?",
+   "url": "https://www.zhihu.com/question/594432719",
+   "score": 7,
+   "hitBy": 3,
+   "sampledAnswers": 1,
+   "subjects": [
+    "插画师"
+   ]
+  },
+  {
+   "zhihuId": "661199186",
+   "title": "AI 未来会部分或完全取代中小学教师吗?",
+   "url": "https://www.zhihu.com/question/661199186",
+   "score": 7,
+   "hitBy": 2,
+   "sampledAnswers": 3,
+   "subjects": [
+    "教师"
+   ]
+  },
+  {
+   "zhihuId": "661317726",
+   "title": "800万司机恐失业,AI为何先砸底层人的饭碗?",
+   "url": "https://www.zhihu.com/question/661317726",
+   "score": 7,
+   "hitBy": 2,
+   "sampledAnswers": 3,
+   "subjects": [
+    "司机"
+   ]
+  },
+  {
+   "zhihuId": "1988523671535511530",
+   "title": "AI 会取代哪些职业?如何适应?(认同回答数最多的回答,必感谢)?",
+   "url": "https://www.zhihu.com/question/1988523671535511530",
+   "score": 7,
+   "hitBy": 3,
+   "sampledAnswers": 1,
+   "subjects": [
+    "插画师",
+    "司机"
+   ]
+  },
+  {
+   "zhihuId": "2014268583652320290",
+   "title": "中国传媒大学砍掉翻译、摄影等 16 个本科专业,怎样看待这一变化?这些专业真的能被 AI 替代吗?",
+   "url": "https://www.zhihu.com/question/2014268583652320290",
+   "score": 7,
+   "hitBy": 2,
+   "sampledAnswers": 3,
+   "subjects": [
+    "翻译"
+   ]
+  },
+  {
+   "zhihuId": "2016930184062789503",
+   "title": "AI 会让年轻人的机会变多还是变少?",
+   "url": "https://www.zhihu.com/question/2016930184062789503",
+   "score": 7,
+   "hitBy": 3,
+   "sampledAnswers": 1,
+   "subjects": [
+    "护士"
+   ]
+  },
+  {
+   "zhihuId": "2061407637246305107",
+   "title": "随着 AI 和智能医疗发展,未来的护士工作会发生哪些改变?",
+   "url": "https://www.zhihu.com/question/2061407637246305107",
+   "score": 7,
+   "hitBy": 3,
+   "sampledAnswers": 1,
+   "subjects": [
+    "护士"
+   ]
+  },
+  {
+   "zhihuId": "2077075555535605889",
+   "title": "在这个ai盛行的时代,会计专业的学生还可以找到好工作吗?",
+   "url": "https://www.zhihu.com/question/2077075555535605889",
+   "score": 7,
+   "hitBy": 3,
+   "sampledAnswers": 1,
+   "subjects": [
+    "会计",
+    "会计学"
+   ]
+  },
+  {
+   "zhihuId": "1892491048032396428",
+   "title": "会计被列入国控专业意味着什么?",
+   "url": "https://www.zhihu.com/question/1892491048032396428",
+   "score": 7,
+   "hitBy": 3,
+   "sampledAnswers": 1,
+   "subjects": [
+    "会计"
+   ]
+  },
+  {
+   "zhihuId": "2049934861817869718",
+   "title": "AI会完全取代人类自媒体创作者吗?",
+   "url": "https://www.zhihu.com/question/2049934861817869718",
+   "score": 7,
+   "hitBy": 3,
+   "sampledAnswers": 1,
+   "subjects": [
+    "自媒体"
+   ]
+  },
+  {
+   "zhihuId": "565119295",
+   "title": "谁能给我一个ai现在无法替代画师的理由?",
+   "url": "https://www.zhihu.com/question/565119295",
+   "score": 6,
+   "hitBy": 2,
+   "sampledAnswers": 2,
+   "subjects": [
+    "插画师"
+   ]
+  },
+  {
+   "zhihuId": "661271928",
+   "title": "AI该不该抢司机、外卖哥和快递哥等普通民众的饭碗??",
+   "url": "https://www.zhihu.com/question/661271928",
+   "score": 6,
+   "hitBy": 2,
+   "sampledAnswers": 2,
+   "subjects": [
+    "司机"
+   ]
+  },
+  {
+   "zhihuId": "14461028376",
+   "title": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+   "url": "https://www.zhihu.com/question/14461028376",
+   "score": 6,
+   "hitBy": 2,
+   "sampledAnswers": 2,
+   "subjects": [
+    "程序员"
+   ]
+  },
+  {
+   "zhihuId": "2038411932424725710",
+   "title": "ai大概还要多久就可以取代程序员了?",
+   "url": "https://www.zhihu.com/question/2038411932424725710",
+   "score": 6,
+   "hitBy": 2,
+   "sampledAnswers": 2,
+   "subjects": [
+    "程序员"
+   ]
+  },
+  {
+   "zhihuId": "1931619901778391593",
+   "title": "编程大神 DHH 谈 AI 写代码称「掌握编程的,永远是动手写的人」,AI 取代人类编程的边界在哪里?",
+   "url": "https://www.zhihu.com/question/1931619901778391593",
+   "score": 6,
+   "hitBy": 2,
+   "sampledAnswers": 2,
+   "subjects": [
+    "码农"
+   ]
+  },
+  {
+   "zhihuId": "2072979072867747736",
+   "title": "大批 AI 博主集中停更,背后真实原因是什么,AI 内容赛道接下来会如何发展?",
+   "url": "https://www.zhihu.com/question/2072979072867747736",
+   "score": 6,
+   "hitBy": 2,
+   "sampledAnswers": 2,
+   "subjects": [
+    "自媒体"
+   ]
+  },
+  {
+   "zhihuId": "284641712",
+   "title": "人工智能翻译机会取代传统的人工翻译吗?",
+   "url": "https://www.zhihu.com/question/284641712",
+   "score": 5,
+   "hitBy": 2,
+   "sampledAnswers": 1,
+   "subjects": [
+    "翻译"
+   ]
+  },
+  {
+   "zhihuId": "568804205",
+   "title": "到现在为止,AI绘画让多少画师失业了?未来又会让多少画师失业?",
+   "url": "https://www.zhihu.com/question/568804205",
+   "score": 5,
+   "hitBy": 2,
+   "sampledAnswers": 1,
+   "subjects": [
+    "插画师"
+   ]
+  },
+  {
+   "zhihuId": "604703607",
+   "title": "AI 入侵设计领域,会完全替代设计师吗?",
+   "url": "https://www.zhihu.com/question/604703607",
+   "score": 5,
+   "hitBy": 2,
+   "sampledAnswers": 1,
+   "subjects": [
+    "设计师"
+   ]
+  },
+  {
+   "zhihuId": "2017996212544960495",
+   "title": "为什么画师、配音演员都在抵制 AI,程序员却普遍在拥抱 AI?",
+   "url": "https://www.zhihu.com/question/2017996212544960495",
+   "score": 5,
+   "hitBy": 2,
+   "sampledAnswers": 1,
+   "subjects": [
+    "程序员"
+   ]
+  },
+  {
+   "zhihuId": "2067543311850778736",
+   "title": "AI会完全取代码农的工作么?",
+   "url": "https://www.zhihu.com/question/2067543311850778736",
+   "score": 5,
+   "hitBy": 1,
+   "sampledAnswers": 3,
+   "subjects": [
+    "码农"
+   ]
+  },
+  {
+   "zhihuId": "1902746889251721780",
+   "title": "AI绘画,AI设计,AI真的能代替各行各业的设计师吗?",
+   "url": "https://www.zhihu.com/question/1902746889251721780",
+   "score": 5,
+   "hitBy": 2,
+   "sampledAnswers": 1,
+   "subjects": [
+    "设计师"
+   ]
+  },
+  {
+   "zhihuId": "2061136311206073648",
+   "title": "为什么才短短两三年,AI就已经泛滥成灾,到了人人喊打、人嫌狗厌的境地?",
+   "url": "https://www.zhihu.com/question/2061136311206073648",
+   "score": 5,
+   "hitBy": 2,
+   "sampledAnswers": 1,
+   "subjects": [
+    "文案"
+   ]
+  },
+  {
+   "zhihuId": "1949784266633377083",
+   "title": "随着AI的出现,翻译这个行业是不是凉的透透的了?",
+   "url": "https://www.zhihu.com/question/1949784266633377083",
+   "score": 5,
+   "hitBy": 2,
+   "sampledAnswers": 1,
+   "subjects": [
+    "翻译"
+   ]
+  }
+ ]
+}

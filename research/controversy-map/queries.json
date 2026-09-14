@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-09-13T12:19:30.682Z",
-  "domain": "AI × 技术职业",
+  "generatedAt": "2026-09-14T07:15:01.344Z",
+  "domain": "AI × 职业与社会",
   "queries": [
     {
       "id": "q01",
@@ -199,6 +199,276 @@
         "facet": "真的能"
       },
       "text": "AI 真的能替代程序员吗"
+    },
+    {
+      "id": "q23",
+      "construction": "conflict-pos",
+      "slots": {
+        "subject": "教师",
+        "polarity": "pos",
+        "gen": "v2"
+      },
+      "text": "AI 会取代教师吗"
+    },
+    {
+      "id": "q24",
+      "construction": "conflict-neg",
+      "slots": {
+        "subject": "教师",
+        "polarity": "neg",
+        "gen": "v2"
+      },
+      "text": "教师 为什么不会被 AI 取代"
+    },
+    {
+      "id": "q25",
+      "construction": "conflict-pos",
+      "slots": {
+        "subject": "医生",
+        "polarity": "pos",
+        "gen": "v2"
+      },
+      "text": "AI 会取代医生吗"
+    },
+    {
+      "id": "q26",
+      "construction": "conflict-neg",
+      "slots": {
+        "subject": "医生",
+        "polarity": "neg",
+        "gen": "v2"
+      },
+      "text": "医生 为什么不会被 AI 取代"
+    },
+    {
+      "id": "q27",
+      "construction": "conflict-pos",
+      "slots": {
+        "subject": "护士",
+        "polarity": "pos",
+        "gen": "v2"
+      },
+      "text": "AI 会取代护士吗"
+    },
+    {
+      "id": "q28",
+      "construction": "conflict-neg",
+      "slots": {
+        "subject": "护士",
+        "polarity": "neg",
+        "gen": "v2"
+      },
+      "text": "护士 为什么不会被 AI 取代"
+    },
+    {
+      "id": "q29",
+      "construction": "conflict-pos",
+      "slots": {
+        "subject": "司机",
+        "polarity": "pos",
+        "gen": "v2"
+      },
+      "text": "AI 会取代司机吗"
+    },
+    {
+      "id": "q30",
+      "construction": "conflict-neg",
+      "slots": {
+        "subject": "司机",
+        "polarity": "neg",
+        "gen": "v2"
+      },
+      "text": "司机 为什么不会被 AI 取代"
+    },
+    {
+      "id": "q31",
+      "construction": "conflict-pos",
+      "slots": {
+        "subject": "客服",
+        "polarity": "pos",
+        "gen": "v2"
+      },
+      "text": "AI 会取代客服吗"
+    },
+    {
+      "id": "q32",
+      "construction": "conflict-neg",
+      "slots": {
+        "subject": "客服",
+        "polarity": "neg",
+        "gen": "v2"
+      },
+      "text": "客服 为什么不会被 AI 取代"
+    },
+    {
+      "id": "q33",
+      "construction": "conflict-pos",
+      "slots": {
+        "subject": "会计",
+        "polarity": "pos",
+        "gen": "v2"
+      },
+      "text": "AI 会取代会计吗"
+    },
+    {
+      "id": "q34",
+      "construction": "conflict-neg",
+      "slots": {
+        "subject": "会计",
+        "polarity": "neg",
+        "gen": "v2"
+      },
+      "text": "会计 为什么不会被 AI 取代"
+    },
+    {
+      "id": "q35",
+      "construction": "conflict-pos",
+      "slots": {
+        "subject": "自媒体",
+        "polarity": "pos",
+        "gen": "v2"
+      },
+      "text": "AI 会取代自媒体吗"
+    },
+    {
+      "id": "q36",
+      "construction": "conflict-neg",
+      "slots": {
+        "subject": "自媒体",
+        "polarity": "neg",
+        "gen": "v2"
+      },
+      "text": "自媒体 为什么不会被 AI 取代"
+    },
+    {
+      "id": "q37",
+      "construction": "conflict-pos",
+      "slots": {
+        "subject": "律师",
+        "polarity": "pos",
+        "gen": "v2"
+      },
+      "text": "AI 会取代律师吗"
+    },
+    {
+      "id": "q38",
+      "construction": "conflict-neg",
+      "slots": {
+        "subject": "律师",
+        "polarity": "neg",
+        "gen": "v2"
+      },
+      "text": "律师 为什么不会被 AI 取代"
+    },
+    {
+      "id": "q39",
+      "construction": "facet",
+      "slots": {
+        "subject": "教师",
+        "facet": "如何看待",
+        "gen": "v2"
+      },
+      "text": "如何看待 AI 对教师行业的冲击"
+    },
+    {
+      "id": "q40",
+      "construction": "facet",
+      "slots": {
+        "subject": "医生",
+        "facet": "如何看待",
+        "gen": "v2"
+      },
+      "text": "如何看待 AI 对医生行业的冲击"
+    },
+    {
+      "id": "q41",
+      "construction": "facet",
+      "slots": {
+        "subject": "护士",
+        "facet": "如何看待",
+        "gen": "v2"
+      },
+      "text": "如何看待 AI 对护士行业的冲击"
+    },
+    {
+      "id": "q42",
+      "construction": "facet",
+      "slots": {
+        "subject": "司机",
+        "facet": "如何看待",
+        "gen": "v2"
+      },
+      "text": "如何看待 AI 对司机行业的冲击"
+    },
+    {
+      "id": "q43",
+      "construction": "facet",
+      "slots": {
+        "subject": "客服",
+        "facet": "如何看待",
+        "gen": "v2"
+      },
+      "text": "如何看待 AI 对客服行业的冲击"
+    },
+    {
+      "id": "q44",
+      "construction": "facet",
+      "slots": {
+        "subject": "会计",
+        "facet": "如何看待",
+        "gen": "v2"
+      },
+      "text": "如何看待 AI 对会计行业的冲击"
+    },
+    {
+      "id": "q45",
+      "construction": "facet",
+      "slots": {
+        "subject": "自媒体",
+        "facet": "如何看待",
+        "gen": "v2"
+      },
+      "text": "如何看待 AI 对自媒体行业的冲击"
+    },
+    {
+      "id": "q46",
+      "construction": "facet",
+      "slots": {
+        "subject": "律师",
+        "facet": "如何看待",
+        "gen": "v2"
+      },
+      "text": "如何看待 AI 对律师行业的冲击"
+    },
+    {
+      "id": "q47",
+      "construction": "facet",
+      "slots": {
+        "subject": "师范专业",
+        "facet": "还值得吗",
+        "gen": "v2"
+      },
+      "text": "师范专业还值得报考吗 AI"
+    },
+    {
+      "id": "q48",
+      "construction": "facet",
+      "slots": {
+        "subject": "会计学",
+        "facet": "还值得吗",
+        "gen": "v2"
+      },
+      "text": "会计学还值得报考吗 AI"
+    },
+    {
+      "id": "q49",
+      "construction": "facet",
+      "slots": {
+        "subject": "法学专业",
+        "facet": "还值得吗",
+        "gen": "v2"
+      },
+      "text": "法学专业还值得报考吗 AI"
     }
   ]
 }

@@ -1,0 +1,65 @@
+<svg viewBox="0 0 680 270" width="100%" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>八域小倍数对比</title>
+  <desc>同一套视觉语言切成八张小图并排，每个域内部的关系密度不同，可以快速比出哪个域的争议结构最复杂。</desc>
+  <style>
+    .th { font-family: system-ui, -apple-system, sans-serif; font-size: 14px; font-weight: 500; fill: #2C2C2A; }
+    .ts { font-family: system-ui, -apple-system, sans-serif; font-size: 12px; fill: #5F5E5A; }
+  </style>
+  <text class="th" x="40" y="46">小倍数</text>
+  <text class="ts" x="40" y="64">8 个域并排，比出谁的争议最复杂</text>
+  <rect x="40" y="80" width="140" height="70" rx="8" fill="none" stroke="#D3D1C7" stroke-width="0.5"/>
+  <text class="ts" x="48" y="96">编程与开发</text>
+  <line x1="70" y1="112" x2="110" y2="106" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="70" y1="112" x2="84" y2="136" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="70" y1="112" x2="148" y2="122" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="110" y1="106" x2="148" y2="122" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="110" y1="106" x2="126" y2="140" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="148" y1="122" x2="126" y2="140" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="84" y1="136" x2="126" y2="140" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <circle cx="70" cy="112" r="4" fill="#378ADD"/><circle cx="110" cy="106" r="4" fill="#378ADD"/><circle cx="148" cy="122" r="4" fill="#378ADD"/><circle cx="84" cy="136" r="4" fill="#378ADD"/><circle cx="126" cy="140" r="4" fill="#378ADD"/>
+  <rect x="190" y="80" width="140" height="70" rx="8" fill="none" stroke="#D3D1C7" stroke-width="0.5"/>
+  <text class="ts" x="198" y="96">就业与职业</text>
+  <line x1="220" y1="112" x2="260" y2="106" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="220" y1="112" x2="234" y2="136" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="260" y1="106" x2="298" y2="122" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="260" y1="106" x2="234" y2="136" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="298" y1="122" x2="276" y2="140" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <circle cx="220" cy="112" r="4" fill="#378ADD"/><circle cx="260" cy="106" r="4" fill="#378ADD"/><circle cx="298" cy="122" r="4" fill="#378ADD"/><circle cx="234" cy="136" r="4" fill="#378ADD"/><circle cx="276" cy="140" r="4" fill="#378ADD"/>
+  <rect x="340" y="80" width="140" height="70" rx="8" fill="none" stroke="#D3D1C7" stroke-width="0.5"/>
+  <text class="ts" x="348" y="96">创作与版权</text>
+  <line x1="370" y1="112" x2="410" y2="106" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="370" y1="112" x2="384" y2="136" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="410" y1="106" x2="448" y2="122" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="448" y1="122" x2="426" y2="140" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <circle cx="370" cy="112" r="4" fill="#378ADD"/><circle cx="410" cy="106" r="4" fill="#378ADD"/><circle cx="448" cy="122" r="4" fill="#378ADD"/><circle cx="384" cy="136" r="4" fill="#378ADD"/><circle cx="426" cy="140" r="4" fill="#378ADD"/>
+  <rect x="490" y="80" width="140" height="70" rx="8" fill="none" stroke="#D3D1C7" stroke-width="0.5"/>
+  <text class="ts" x="498" y="96">教育与培养</text>
+  <line x1="520" y1="112" x2="560" y2="106" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="560" y1="106" x2="598" y2="122" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="560" y1="106" x2="534" y2="136" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="534" y1="136" x2="576" y2="140" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <circle cx="520" cy="112" r="4" fill="#378ADD"/><circle cx="560" cy="106" r="4" fill="#378ADD"/><circle cx="598" cy="122" r="4" fill="#378ADD"/><circle cx="534" cy="136" r="4" fill="#378ADD"/><circle cx="576" cy="140" r="4" fill="#378ADD"/>
+  <rect x="40" y="162" width="140" height="70" rx="8" fill="none" stroke="#D3D1C7" stroke-width="0.5"/>
+  <text class="ts" x="48" y="178">医疗与健康</text>
+  <line x1="70" y1="194" x2="110" y2="188" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="70" y1="194" x2="84" y2="218" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="148" y1="204" x2="126" y2="222" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <circle cx="70" cy="194" r="4" fill="#378ADD"/><circle cx="110" cy="188" r="4" fill="#378ADD"/><circle cx="148" cy="204" r="4" fill="#378ADD"/><circle cx="84" cy="218" r="4" fill="#378ADD"/><circle cx="126" cy="222" r="4" fill="#378ADD"/>
+  <rect x="190" y="162" width="140" height="70" rx="8" fill="none" stroke="#D3D1C7" stroke-width="0.5"/>
+  <text class="ts" x="198" y="178">社会与伦理</text>
+  <line x1="220" y1="194" x2="260" y2="188" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="260" y1="188" x2="298" y2="204" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="298" y1="204" x2="276" y2="222" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <circle cx="220" cy="194" r="4" fill="#378ADD"/><circle cx="260" cy="188" r="4" fill="#378ADD"/><circle cx="298" cy="204" r="4" fill="#378ADD"/><circle cx="234" cy="218" r="4" fill="#378ADD"/><circle cx="276" cy="222" r="4" fill="#378ADD"/>
+  <rect x="340" y="162" width="140" height="70" rx="8" fill="none" stroke="#D3D1C7" stroke-width="0.5"/>
+  <text class="ts" x="348" y="178">媒体与传播</text>
+  <line x1="370" y1="194" x2="410" y2="188" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="410" y1="188" x2="384" y2="218" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <circle cx="370" cy="194" r="4" fill="#378ADD"/><circle cx="410" cy="188" r="4" fill="#378ADD"/><circle cx="448" cy="204" r="4" fill="#378ADD"/><circle cx="384" cy="218" r="4" fill="#378ADD"/><circle cx="426" cy="222" r="4" fill="#378ADD"/>
+  <rect x="490" y="162" width="140" height="70" rx="8" fill="none" stroke="#D3D1C7" stroke-width="0.5"/>
+  <text class="ts" x="498" y="178">翻译与语言</text>
+  <line x1="520" y1="194" x2="598" y2="204" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <line x1="560" y1="188" x2="534" y2="218" stroke="#378ADD" stroke-width="1" opacity="0.35"/>
+  <circle cx="520" cy="194" r="4" fill="#378ADD"/><circle cx="560" cy="188" r="4" fill="#378ADD"/><circle cx="598" cy="204" r="4" fill="#378ADD"/><circle cx="534" cy="218" r="4" fill="#378ADD"/><circle cx="576" cy="222" r="4" fill="#378ADD"/>
+  <text class="ts" x="40" y="252">大图看结构，小图看对比 — 同一套视觉语言，切八份</text>
+</svg>

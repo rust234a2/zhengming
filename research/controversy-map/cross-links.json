@@ -1,345 +1,3045 @@
 {
-  "generatedAt": "2026-09-12T06:37:33.944Z",
+  "generatedAt": "2026-09-14T07:45:22.290Z",
   "links": [
     {
-      "source": "a--7087091483973468197",
-      "target": "a-6926770995914242054",
+      "source": "a-7967126021123033421",
+      "target": "a-1075229406073438720",
       "relation": "rebuts",
-      "label": "AI是否毁灭程序员职业",
+      "label": "",
+      "confidence": 0.8,
+      "reasonType": "成本经济",
+      "sourceTopic": "大批 AI 博主集中停更,背后真实原因是什么,AI 内容赛道接下来会如何发展?",
+      "targetTopic": "AI 会让年轻人的机会变多还是变少?"
+    },
+    {
+      "source": "a-7967126021123033421",
+      "target": "a-7627082454947294178",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.7,
+      "reasonType": "成本经济",
+      "sourceTopic": "大批 AI 博主集中停更,背后真实原因是什么,AI 内容赛道接下来会如何发展?",
+      "targetTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?"
+    },
+    {
+      "source": "a-5112006109323949625",
+      "target": "a-1075229406073438720",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.8,
+      "reasonType": "成本经济",
+      "sourceTopic": "AI 已经/即将摧毁哪些行业?",
+      "targetTopic": "AI 会让年轻人的机会变多还是变少?"
+    },
+    {
+      "source": "a-5112006109323949625",
+      "target": "a-7627082454947294178",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.7,
+      "reasonType": "成本经济",
+      "sourceTopic": "AI 已经/即将摧毁哪些行业?",
+      "targetTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?"
+    },
+    {
+      "source": "a--8096488367717744330",
+      "target": "a-1075229406073438720",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.7,
+      "reasonType": "成本经济",
+      "sourceTopic": "为什么我觉得AI绘画完全代替不了画师?",
+      "targetTopic": "AI 会让年轻人的机会变多还是变少?"
+    },
+    {
+      "source": "a--8096488367717744330",
+      "target": "a-7627082454947294178",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.7,
+      "reasonType": "成本经济",
+      "sourceTopic": "为什么我觉得AI绘画完全代替不了画师?",
+      "targetTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?"
+    },
+    {
+      "source": "a-1075229406073438720",
+      "target": "a-7627082454947294178",
+      "relation": "same-claim",
+      "label": "AI不会减少岗位",
+      "confidence": 0.9,
+      "reasonType": "成本经济",
+      "sourceTopic": "AI 会让年轻人的机会变多还是变少?",
+      "targetTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?"
+    },
+    {
+      "source": "a-1075229406073438720",
+      "target": "a--7087091483973468197",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.9,
+      "reasonType": "成本经济",
+      "sourceTopic": "AI 会让年轻人的机会变多还是变少?",
+      "targetTopic": "马斯克预计到明年底人类将无法与 AI 竞争软件开发,AI 将胜任所有数字工作,对程序员群体影响有多大?"
+    },
+    {
+      "source": "a-1075229406073438720",
+      "target": "a-9019339624109839252",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.8,
+      "reasonType": "成本经济",
+      "sourceTopic": "AI 会让年轻人的机会变多还是变少?",
+      "targetTopic": "会计被列入国控专业意味着什么?"
+    },
+    {
+      "source": "a-1075229406073438720",
+      "target": "a--3181744553442995604",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.8,
+      "reasonType": "成本经济",
+      "sourceTopic": "AI 会让年轻人的机会变多还是变少?",
+      "targetTopic": "会计被列入国控专业意味着什么?"
+    },
+    {
+      "source": "a-7627082454947294178",
+      "target": "a--7087091483973468197",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.9,
+      "reasonType": "成本经济",
+      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+      "targetTopic": "马斯克预计到明年底人类将无法与 AI 竞争软件开发,AI 将胜任所有数字工作,对程序员群体影响有多大?"
+    },
+    {
+      "source": "a-7627082454947294178",
+      "target": "a-9019339624109839252",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.8,
+      "reasonType": "成本经济",
+      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+      "targetTopic": "会计被列入国控专业意味着什么?"
+    },
+    {
+      "source": "a-7627082454947294178",
+      "target": "a--3181744553442995604",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.8,
+      "reasonType": "成本经济",
+      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+      "targetTopic": "会计被列入国控专业意味着什么?"
+    },
+    {
+      "source": "a--8393684584489265199",
+      "target": "a-7786809911667768090",
+      "relation": "rebuts",
+      "label": "AI是否冲击程序员",
+      "confidence": 0.8,
+      "reasonType": "成本经济",
+      "sourceTopic": "ai大概还要多久就可以取代程序员了?",
+      "targetTopic": "为什么画师、配音演员都在抵制 AI,程序员却普遍在拥抱 AI?"
+    },
+    {
+      "source": "a--8393684584489265199",
+      "target": "a-3008774721068965159",
+      "relation": "rebuts",
+      "label": "AI是否减少程序员岗位",
+      "confidence": 0.8,
+      "reasonType": "成本经济",
+      "sourceTopic": "ai大概还要多久就可以取代程序员了?",
+      "targetTopic": "为什么现在画师几乎要被ai替代,而程序员行业不仅没被替代,反而看起来更繁荣了?"
+    },
+    {
+      "source": "a-8809132565924223758",
+      "target": "a--3822831705509045065",
+      "relation": "rebuts",
+      "label": "AI能否替代画师",
+      "confidence": 0.9,
+      "reasonType": "成本经济",
+      "sourceTopic": "AI对画师的斩杀线大概在哪个位置?",
+      "targetTopic": "为什么我觉得AI绘画完全代替不了画师?"
+    },
+    {
+      "source": "a-8809132565924223758",
+      "target": "a-5175851305424032479",
+      "relation": "same-claim",
+      "label": "AI已冲击画师行业",
+      "confidence": 0.9,
+      "reasonType": "成本经济",
+      "sourceTopic": "AI对画师的斩杀线大概在哪个位置?",
+      "targetTopic": "到现在为止,AI绘画让多少画师失业了?未来又会让多少画师失业?"
+    },
+    {
+      "source": "a-7786809911667768090",
+      "target": "a-3008774721068965159",
+      "relation": "same-claim",
+      "label": "AI将减少程序员岗位",
+      "confidence": 0.9,
+      "reasonType": "成本经济",
+      "sourceTopic": "为什么画师、配音演员都在抵制 AI,程序员却普遍在拥抱 AI?",
+      "targetTopic": "为什么现在画师几乎要被ai替代,而程序员行业不仅没被替代,反而看起来更繁荣了?"
+    },
+    {
+      "source": "a--3822831705509045065",
+      "target": "a-5175851305424032479",
+      "relation": "rebuts",
+      "label": "AI是否已冲击画师",
+      "confidence": 0.9,
+      "reasonType": "成本经济",
+      "sourceTopic": "为什么我觉得AI绘画完全代替不了画师?",
+      "targetTopic": "到现在为止,AI绘画让多少画师失业了?未来又会让多少画师失业?"
+    },
+    {
+      "source": "a-3008774721068965159",
+      "target": "a--6345342579324424872",
+      "relation": "rebuts",
+      "label": "裁码农是否因AI",
+      "confidence": 0.75,
+      "reasonType": "成本经济",
+      "sourceTopic": "为什么现在画师几乎要被ai替代,而程序员行业不仅没被替代,反而看起来更繁荣了?",
+      "targetTopic": "AI 写的代码还需要 Review 吗?只看 Spec + Harness 验收是否足够?"
+    },
+    {
+      "source": "a-3008774721068965159",
+      "target": "a-8717578469649032979",
+      "relation": "rebuts",
+      "label": "AI对程序员影响",
+      "confidence": 0.7,
+      "reasonType": "成本经济",
+      "sourceTopic": "为什么现在画师几乎要被ai替代,而程序员行业不仅没被替代,反而看起来更繁荣了?",
+      "targetTopic": "ai大概还要多久就可以取代程序员了?"
+    },
+    {
+      "source": "a-8202269146180933098",
+      "target": "a--1942145208452854170",
+      "relation": "same-claim",
+      "label": "AI冲击执行中间层而非职业本身",
       "confidence": 0.95,
-      "reasonType": "行业周期",
-      "sourceTopic": "马斯克预计到明年底人类将无法与 AI 竞争软件开发,AI 将胜任所有数字工作,对程序员群体影响有多大?",
+      "reasonType": "成本经济",
+      "sourceTopic": "大家觉得ai绘画会替代画师吗?",
+      "targetTopic": "AI 对工业设计行业影响有多大?"
+    },
+    {
+      "source": "a-8202269146180933098",
+      "target": "a-3864455554413364231",
+      "relation": "rebuts",
+      "label": "AI冲击白领还是中间层",
+      "confidence": 0.6,
+      "reasonType": "成本经济",
+      "sourceTopic": "大家觉得ai绘画会替代画师吗?",
+      "targetTopic": "800万司机恐失业,AI为何先砸底层人的饭碗?"
+    },
+    {
+      "source": "a-4298882669829287467",
+      "target": "a-3864455554413364231",
+      "relation": "rebuts",
+      "label": "AI冲击白领还是底层",
+      "confidence": 0.8,
+      "reasonType": "成本经济",
+      "sourceTopic": "AI 是抢走了我们的工作,还是给了我们新的可能?",
+      "targetTopic": "800万司机恐失业,AI为何先砸底层人的饭碗?"
+    },
+    {
+      "source": "a--1942145208452854170",
+      "target": "a--6230768604688732246",
+      "relation": "same-claim",
+      "label": "AI只替代执行环节",
+      "confidence": 0.85,
+      "reasonType": "成本经济",
+      "sourceTopic": "AI 对工业设计行业影响有多大?",
+      "targetTopic": "AI 入侵设计领域,会完全替代设计师吗?"
+    },
+    {
+      "source": "a--5713819934268214727",
+      "target": "a-2136434335880609321",
+      "relation": "same-claim",
+      "label": "AI只是工具不淘汰高手",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "为什么绘圈对AI绘画痛恶欲绝,但其他圈子对AI创作的态度就比较温和?",
+      "targetTopic": "现在人工智能做插画越来越厉害了,插画会被取代吗?"
+    },
+    {
+      "source": "a--5713819934268214727",
+      "target": "a--4174470938112234211",
+      "relation": "same-claim",
+      "label": "AI无法替代专业画师",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "为什么绘圈对AI绘画痛恶欲绝,但其他圈子对AI创作的态度就比较温和?",
+      "targetTopic": "AI对画师的斩杀线大概在哪个位置?"
+    },
+    {
+      "source": "a--5713819934268214727",
+      "target": "a--271755577056779633",
+      "relation": "same-claim",
+      "label": "AI淘汰低端不淘汰专业",
+      "confidence": 0.85,
+      "reasonType": "人类特质",
+      "sourceTopic": "为什么绘圈对AI绘画痛恶欲绝,但其他圈子对AI创作的态度就比较温和?",
+      "targetTopic": "曾经大热的会计专业现在还是大热门吗?"
+    },
+    {
+      "source": "a--5713819934268214727",
+      "target": "a--4236882863799727009",
+      "relation": "same-claim",
+      "label": "AI淘汰机械执行不淘汰思考者",
+      "confidence": 0.85,
+      "reasonType": "人类特质",
+      "sourceTopic": "为什么绘圈对AI绘画痛恶欲绝,但其他圈子对AI创作的态度就比较温和?",
+      "targetTopic": "AI 是抢走了我们的工作,还是给了我们新的可能?"
+    },
+    {
+      "source": "a-5324987417511538813",
+      "target": "a-2136434335880609321",
+      "relation": "same-claim",
+      "label": "AI无法替代有创造力的人",
+      "confidence": 0.85,
+      "reasonType": "人类特质",
+      "sourceTopic": "谁能给我一个ai现在无法替代画师的理由?",
+      "targetTopic": "现在人工智能做插画越来越厉害了,插画会被取代吗?"
+    },
+    {
+      "source": "a-5324987417511538813",
+      "target": "a--4174470938112234211",
+      "relation": "same-claim",
+      "label": "AI无法替代画师核心能力",
+      "confidence": 0.85,
+      "reasonType": "人类特质",
+      "sourceTopic": "谁能给我一个ai现在无法替代画师的理由?",
+      "targetTopic": "AI对画师的斩杀线大概在哪个位置?"
+    },
+    {
+      "source": "a-5324987417511538813",
+      "target": "a--271755577056779633",
+      "relation": "same-claim",
+      "label": "AI淘汰低端不淘汰专业",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "谁能给我一个ai现在无法替代画师的理由?",
+      "targetTopic": "曾经大热的会计专业现在还是大热门吗?"
+    },
+    {
+      "source": "a-5324987417511538813",
+      "target": "a--4236882863799727009",
+      "relation": "same-claim",
+      "label": "AI淘汰机械执行不淘汰思考者",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "谁能给我一个ai现在无法替代画师的理由?",
+      "targetTopic": "AI 是抢走了我们的工作,还是给了我们新的可能?"
+    },
+    {
+      "source": "a-2136434335880609321",
+      "target": "a--4174470938112234211",
+      "relation": "same-claim",
+      "label": "AI无法替代专业画师",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "现在人工智能做插画越来越厉害了,插画会被取代吗?",
+      "targetTopic": "AI对画师的斩杀线大概在哪个位置?"
+    },
+    {
+      "source": "a-2136434335880609321",
+      "target": "a-2774134015391990851",
+      "relation": "same-claim",
+      "label": "AI只是工具无法独立创造",
+      "confidence": 0.85,
+      "reasonType": "人类特质",
+      "sourceTopic": "现在人工智能做插画越来越厉害了,插画会被取代吗?",
+      "targetTopic": "中国传媒大学砍掉翻译、摄影等 16 个本科专业,怎样看待这一变化?这些专业真的能被 AI 替代吗?"
+    },
+    {
+      "source": "a-2136434335880609321",
+      "target": "a--271755577056779633",
+      "relation": "same-claim",
+      "label": "AI淘汰低端不淘汰专业",
+      "confidence": 0.85,
+      "reasonType": "人类特质",
+      "sourceTopic": "现在人工智能做插画越来越厉害了,插画会被取代吗?",
+      "targetTopic": "曾经大热的会计专业现在还是大热门吗?"
+    },
+    {
+      "source": "a-2136434335880609321",
+      "target": "a--4236882863799727009",
+      "relation": "same-claim",
+      "label": "AI淘汰机械执行不淘汰思考者",
+      "confidence": 0.85,
+      "reasonType": "人类特质",
+      "sourceTopic": "现在人工智能做插画越来越厉害了,插画会被取代吗?",
+      "targetTopic": "AI 是抢走了我们的工作,还是给了我们新的可能?"
+    },
+    {
+      "source": "a-5148465118168203901",
+      "target": "a--4174470938112234211",
+      "relation": "rebuts",
+      "label": "AI是否替代智力工作",
+      "confidence": 0.85,
+      "reasonType": "人类特质",
+      "sourceTopic": "AI 是抢走了我们的工作,还是给了我们新的可能?",
+      "targetTopic": "AI对画师的斩杀线大概在哪个位置?"
+    },
+    {
+      "source": "a-5148465118168203901",
+      "target": "a-2774134015391990851",
+      "relation": "rebuts",
+      "label": "AI是否只是工具",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "AI 是抢走了我们的工作,还是给了我们新的可能?",
+      "targetTopic": "中国传媒大学砍掉翻译、摄影等 16 个本科专业,怎样看待这一变化?这些专业真的能被 AI 替代吗?"
+    },
+    {
+      "source": "a-5148465118168203901",
+      "target": "a--271755577056779633",
+      "relation": "rebuts",
+      "label": "AI是否替代专业岗位",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "AI 是抢走了我们的工作,还是给了我们新的可能?",
+      "targetTopic": "曾经大热的会计专业现在还是大热门吗?"
+    },
+    {
+      "source": "a--4174470938112234211",
+      "target": "a--271755577056779633",
+      "relation": "same-claim",
+      "label": "AI淘汰低端不淘汰专业",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "AI对画师的斩杀线大概在哪个位置?",
+      "targetTopic": "曾经大热的会计专业现在还是大热门吗?"
+    },
+    {
+      "source": "a--4174470938112234211",
+      "target": "a--4236882863799727009",
+      "relation": "same-claim",
+      "label": "AI淘汰机械执行不淘汰思考者",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "AI对画师的斩杀线大概在哪个位置?",
+      "targetTopic": "AI 是抢走了我们的工作,还是给了我们新的可能?"
+    },
+    {
+      "source": "a-2774134015391990851",
+      "target": "a--271755577056779633",
+      "relation": "same-claim",
+      "label": "AI只是工具不替代专业",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "中国传媒大学砍掉翻译、摄影等 16 个本科专业,怎样看待这一变化?这些专业真的能被 AI 替代吗?",
+      "targetTopic": "曾经大热的会计专业现在还是大热门吗?"
+    },
+    {
+      "source": "a-2774134015391990851",
+      "target": "a--4236882863799727009",
+      "relation": "same-claim",
+      "label": "AI只是工具不替代思考者",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "中国传媒大学砍掉翻译、摄影等 16 个本科专业,怎样看待这一变化?这些专业真的能被 AI 替代吗?",
+      "targetTopic": "AI 是抢走了我们的工作,还是给了我们新的可能?"
+    },
+    {
+      "source": "a--271755577056779633",
+      "target": "a--2219051504955640382",
+      "relation": "same-claim",
+      "label": "AI淘汰低端不淘汰专业",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "曾经大热的会计专业现在还是大热门吗?",
+      "targetTopic": "普通人选什么专业最不容易被 AI 替代?"
+    },
+    {
+      "source": "a--271755577056779633",
+      "target": "a--4236882863799727009",
+      "relation": "same-claim",
+      "label": "AI淘汰机械执行不淘汰思考者",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "曾经大热的会计专业现在还是大热门吗?",
+      "targetTopic": "AI 是抢走了我们的工作,还是给了我们新的可能?"
+    },
+    {
+      "source": "a--4236882863799727009",
+      "target": "a--1301128396742181849",
+      "relation": "same-claim",
+      "label": "AI淘汰不成长者非职业",
+      "confidence": 0.85,
+      "reasonType": "人类特质",
+      "sourceTopic": "AI 是抢走了我们的工作,还是给了我们新的可能?",
+      "targetTopic": "为什么我觉得AI绘画完全代替不了画师?"
+    },
+    {
+      "source": "a--4236882863799727009",
+      "target": "a-6951302731698000672",
+      "relation": "same-claim",
+      "label": "AI淘汰标准化输出者",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "AI 是抢走了我们的工作,还是给了我们新的可能?",
+      "targetTopic": "普通人选什么专业最不容易被 AI 替代?"
+    },
+    {
+      "source": "a--1301128396742181849",
+      "target": "a-6951302731698000672",
+      "relation": "same-claim",
+      "label": "AI淘汰不成长者非职业",
+      "confidence": 0.85,
+      "reasonType": "人类特质",
+      "sourceTopic": "为什么我觉得AI绘画完全代替不了画师?",
+      "targetTopic": "普通人选什么专业最不容易被 AI 替代?"
+    },
+    {
+      "source": "a--5870612721970439520",
+      "target": "a-3969283045814583921",
+      "relation": "same-claim",
+      "label": "AI替代标准化非核心能力",
+      "confidence": 0.85,
+      "reasonType": "人类特质",
+      "sourceTopic": "AI真的可以代替作家、艺术家的创作吗?还是只能代替80%平庸的创作者,将最优秀的艺术家,留给人类?",
+      "targetTopic": "AI会取代大量自媒体吗?"
+    },
+    {
+      "source": "a--5870612721970439520",
+      "target": "a-858931080723109320",
+      "relation": "same-claim",
+      "label": "AI替代标准化非核心能力",
+      "confidence": 0.85,
+      "reasonType": "人类特质",
+      "sourceTopic": "AI真的可以代替作家、艺术家的创作吗?还是只能代替80%平庸的创作者,将最优秀的艺术家,留给人类?",
+      "targetTopic": "大学老师的工作会不会被AI取代掉?"
+    },
+    {
+      "source": "a--5870612721970439520",
+      "target": "a-6951302731698000672",
+      "relation": "same-claim",
+      "label": "AI替代标准化非核心能力",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "AI真的可以代替作家、艺术家的创作吗?还是只能代替80%平庸的创作者,将最优秀的艺术家,留给人类?",
+      "targetTopic": "普通人选什么专业最不容易被 AI 替代?"
+    },
+    {
+      "source": "a-3969283045814583921",
+      "target": "a-858931080723109320",
+      "relation": "same-claim",
+      "label": "AI替代标准化非核心能力",
+      "confidence": 0.85,
+      "reasonType": "人类特质",
+      "sourceTopic": "AI会取代大量自媒体吗?",
+      "targetTopic": "大学老师的工作会不会被AI取代掉?"
+    },
+    {
+      "source": "a-3969283045814583921",
+      "target": "a-6951302731698000672",
+      "relation": "same-claim",
+      "label": "AI替代标准化非核心能力",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "AI会取代大量自媒体吗?",
+      "targetTopic": "普通人选什么专业最不容易被 AI 替代?"
+    },
+    {
+      "source": "a-858931080723109320",
+      "target": "a-6951302731698000672",
+      "relation": "same-claim",
+      "label": "AI替代标准化非核心能力",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "大学老师的工作会不会被AI取代掉?",
+      "targetTopic": "普通人选什么专业最不容易被 AI 替代?"
+    },
+    {
+      "source": "a-6951302731698000672",
+      "target": "a-7442538956534383648",
+      "relation": "same-claim",
+      "label": "AI淘汰的是标准化输出者",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "普通人选什么专业最不容易被 AI 替代?",
+      "targetTopic": "设计师/程序员/文案等职业会被AI取代吗?现阶段如何用AI工具让自己「不可替代」?"
+    },
+    {
+      "source": "a-7442538956534383648",
+      "target": "a-2424424823265271812",
+      "relation": "same-claim",
+      "label": "AI淘汰的是标准化输出者",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "设计师/程序员/文案等职业会被AI取代吗?现阶段如何用AI工具让自己「不可替代」?",
+      "targetTopic": "普通人选什么专业最不容易被 AI 替代?"
+    },
+    {
+      "source": "a--6164472371836495289",
+      "target": "a-7415577803219682552",
+      "relation": "same-claim",
+      "label": "人类情感创造力不可替代",
+      "confidence": 0.85,
+      "reasonType": "人类特质",
+      "sourceTopic": "设计师存在的意义到底是什么?",
+      "targetTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?"
+    },
+    {
+      "source": "a--6164472371836495289",
+      "target": "a-988457616486433785",
+      "relation": "same-claim",
+      "label": "人类情感表达不可替代",
+      "confidence": 0.85,
+      "reasonType": "人类特质",
+      "sourceTopic": "设计师存在的意义到底是什么?",
+      "targetTopic": "有了 AI 技术,以后画画还值得专业学习吗?AI 是否能取代画家?"
+    },
+    {
+      "source": "a--6164472371836495289",
+      "target": "a--6512767791850319549",
+      "relation": "same-claim",
+      "label": "设计师核心能力AI难替代",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "设计师存在的意义到底是什么?",
+      "targetTopic": "未来几年 AI 会取代艺术设计类的工作吗?"
+    },
+    {
+      "source": "a-7415577803219682552",
+      "target": "a-988457616486433785",
+      "relation": "same-claim",
+      "label": "人类情感创造力不可替代",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?",
+      "targetTopic": "有了 AI 技术,以后画画还值得专业学习吗?AI 是否能取代画家?"
+    },
+    {
+      "source": "a-7415577803219682552",
+      "target": "a--6512767791850319549",
+      "relation": "same-claim",
+      "label": "人类专属能力AI难替代",
+      "confidence": 0.85,
+      "reasonType": "人类特质",
+      "sourceTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?",
+      "targetTopic": "未来几年 AI 会取代艺术设计类的工作吗?"
+    },
+    {
+      "source": "a-988457616486433785",
+      "target": "a--8156374372474315705",
+      "relation": "same-claim",
+      "label": "AI无法复制人类情感体验",
+      "confidence": 0.85,
+      "reasonType": "人类特质",
+      "sourceTopic": "有了 AI 技术,以后画画还值得专业学习吗?AI 是否能取代画家?",
+      "targetTopic": "为什么我觉得AI绘画完全代替不了画师?"
+    },
+    {
+      "source": "a-988457616486433785",
+      "target": "a--6512767791850319549",
+      "relation": "same-claim",
+      "label": "人类情感审美AI难替代",
+      "confidence": 0.85,
+      "reasonType": "人类特质",
+      "sourceTopic": "有了 AI 技术,以后画画还值得专业学习吗?AI 是否能取代画家?",
+      "targetTopic": "未来几年 AI 会取代艺术设计类的工作吗?"
+    },
+    {
+      "source": "a--8156374372474315705",
+      "target": "a--6512767791850319549",
+      "relation": "same-claim",
+      "label": "AI无法替代高端艺术设计",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "为什么我觉得AI绘画完全代替不了画师?",
+      "targetTopic": "未来几年 AI 会取代艺术设计类的工作吗?"
+    },
+    {
+      "source": "a--6512767791850319549",
+      "target": "a--5552869452242441586",
+      "relation": "same-claim",
+      "label": "AI无法替代人类专属职业",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "未来几年 AI 会取代艺术设计类的工作吗?",
+      "targetTopic": "AI有没有可能在十年内完全替代教师这个行业?"
+    },
+    {
+      "source": "a--6512767791850319549",
+      "target": "a--3637630978259926288",
+      "relation": "same-claim",
+      "label": "AI无法替代人类专属职业",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "未来几年 AI 会取代艺术设计类的工作吗?",
+      "targetTopic": "随着 AI 和智能医疗发展,未来的护士工作会发生哪些改变?"
+    },
+    {
+      "source": "a--6512767791850319549",
+      "target": "a--221707673298804513",
+      "relation": "same-claim",
+      "label": "AI无法替代人类专属职业",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "未来几年 AI 会取代艺术设计类的工作吗?",
+      "targetTopic": "为什么现在翻译工具明明已经很发达了,还需要翻译员呢?"
+    },
+    {
+      "source": "a--6512767791850319549",
+      "target": "a--1858274713642811231",
+      "relation": "same-claim",
+      "label": "AI无法替代人类专属职业",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "未来几年 AI 会取代艺术设计类的工作吗?",
+      "targetTopic": "在教育领域,AI能否完全替代教师的角色?如果不能,AI可以扮演什么角色?"
+    },
+    {
+      "source": "a--6512767791850319549",
+      "target": "a-6126823911250599595",
+      "relation": "same-claim",
+      "label": "AI无法替代人类专属职业",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "未来几年 AI 会取代艺术设计类的工作吗?",
+      "targetTopic": "未来十年哪些技术不容易被AI取代?"
+    },
+    {
+      "source": "a--5552869452242441586",
+      "target": "a--3637630978259926288",
+      "relation": "same-claim",
+      "label": "AI无法替代人类专属职业",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "AI有没有可能在十年内完全替代教师这个行业?",
+      "targetTopic": "随着 AI 和智能医疗发展,未来的护士工作会发生哪些改变?"
+    },
+    {
+      "source": "a--5552869452242441586",
+      "target": "a--221707673298804513",
+      "relation": "same-claim",
+      "label": "AI无法替代人类专属职业",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "AI有没有可能在十年内完全替代教师这个行业?",
+      "targetTopic": "为什么现在翻译工具明明已经很发达了,还需要翻译员呢?"
+    },
+    {
+      "source": "a--5552869452242441586",
+      "target": "a--1858274713642811231",
+      "relation": "same-claim",
+      "label": "AI无法替代人类情感陪伴",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "AI有没有可能在十年内完全替代教师这个行业?",
+      "targetTopic": "在教育领域,AI能否完全替代教师的角色?如果不能,AI可以扮演什么角色?"
+    },
+    {
+      "source": "a--5552869452242441586",
+      "target": "a-6126823911250599595",
+      "relation": "same-claim",
+      "label": "AI无法替代人类专属职业",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "AI有没有可能在十年内完全替代教师这个行业?",
+      "targetTopic": "未来十年哪些技术不容易被AI取代?"
+    },
+    {
+      "source": "a--3637630978259926288",
+      "target": "a--221707673298804513",
+      "relation": "same-claim",
+      "label": "AI无法替代人类专属职业",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "随着 AI 和智能医疗发展,未来的护士工作会发生哪些改变?",
+      "targetTopic": "为什么现在翻译工具明明已经很发达了,还需要翻译员呢?"
+    },
+    {
+      "source": "a--3637630978259926288",
+      "target": "a--1858274713642811231",
+      "relation": "same-claim",
+      "label": "AI无法替代人类专属职业",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "随着 AI 和智能医疗发展,未来的护士工作会发生哪些改变?",
+      "targetTopic": "在教育领域,AI能否完全替代教师的角色?如果不能,AI可以扮演什么角色?"
+    },
+    {
+      "source": "a--3637630978259926288",
+      "target": "a-6126823911250599595",
+      "relation": "same-claim",
+      "label": "AI无法替代人类专属职业",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "随着 AI 和智能医疗发展,未来的护士工作会发生哪些改变?",
+      "targetTopic": "未来十年哪些技术不容易被AI取代?"
+    },
+    {
+      "source": "a--221707673298804513",
+      "target": "a--1858274713642811231",
+      "relation": "same-claim",
+      "label": "AI无法替代人类专属职业",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "为什么现在翻译工具明明已经很发达了,还需要翻译员呢?",
+      "targetTopic": "在教育领域,AI能否完全替代教师的角色?如果不能,AI可以扮演什么角色?"
+    },
+    {
+      "source": "a--221707673298804513",
+      "target": "a-6126823911250599595",
+      "relation": "same-claim",
+      "label": "AI无法替代人类专属职业",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "为什么现在翻译工具明明已经很发达了,还需要翻译员呢?",
+      "targetTopic": "未来十年哪些技术不容易被AI取代?"
+    },
+    {
+      "source": "a--1858274713642811231",
+      "target": "a-6126823911250599595",
+      "relation": "same-claim",
+      "label": "AI无法替代人类专属职业",
+      "confidence": 0.8,
+      "reasonType": "人类特质",
+      "sourceTopic": "在教育领域,AI能否完全替代教师的角色?如果不能,AI可以扮演什么角色?",
+      "targetTopic": "未来十年哪些技术不容易被AI取代?"
+    },
+    {
+      "source": "a--1858274713642811231",
+      "target": "a--6906703058234603657",
+      "relation": "same-claim",
+      "label": "AI无法替代教师情感陪伴",
+      "confidence": 0.95,
+      "reasonType": "人类特质",
+      "sourceTopic": "在教育领域,AI能否完全替代教师的角色?如果不能,AI可以扮演什么角色?",
+      "targetTopic": "AI有没有可能在十年内完全替代教师这个行业?"
+    },
+    {
+      "source": "a-5944933426587561641",
+      "target": "a--3822579795580553431",
+      "relation": "same-claim",
+      "label": "会计判断力不可替代",
+      "confidence": 0.95,
+      "reasonType": "人类特质",
+      "sourceTopic": "会计怎样才能不被AI取代?",
+      "targetTopic": "AI 时代来临,会计职业是否还有前途?"
+    },
+    {
+      "source": "a--3822579795580553431",
+      "target": "a-8201144425862317631",
+      "relation": "same-claim",
+      "label": "AI替代任务非完整岗位",
+      "confidence": 0.9,
+      "reasonType": "人类特质",
+      "sourceTopic": "AI 时代来临,会计职业是否还有前途?",
+      "targetTopic": "AI到底是在提高效率,还是在抢普通人的饭碗?"
+    },
+    {
+      "source": "a-2480978703748265328",
+      "target": "a-8201144425862317631",
+      "relation": "same-claim",
+      "label": "AI替代标准化非完整岗位",
+      "confidence": 0.85,
+      "reasonType": "人类特质",
+      "sourceTopic": "AI会取代大量自媒体吗?",
+      "targetTopic": "AI到底是在提高效率,还是在抢普通人的饭碗?"
+    },
+    {
+      "source": "a-7011770996733503369",
+      "target": "a-4657783906339585386",
+      "relation": "same-claim",
+      "label": "AI将大量替代程序员",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "程序员未来是不是会大量失业?",
+      "targetTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?"
+    },
+    {
+      "source": "a-7011770996733503369",
+      "target": "a-3945245772520750417",
+      "relation": "rebuts",
+      "label": "AI能否取代程序员",
+      "confidence": 0.95,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "程序员未来是不是会大量失业?",
+      "targetTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?"
+    },
+    {
+      "source": "a-7011770996733503369",
+      "target": "a--6123579788034080189",
+      "relation": "rebuts",
+      "label": "AI能否取代程序员",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "程序员未来是不是会大量失业?",
+      "targetTopic": "计算机专业还值得学吗?"
+    },
+    {
+      "source": "a-7011770996733503369",
+      "target": "a-3878948019650956180",
+      "relation": "same-claim",
+      "label": "AI将替代程序员",
+      "confidence": 0.85,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "程序员未来是不是会大量失业?",
       "targetTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?"
     },
     {
-      "source": "a--7087091483973468197",
-      "target": "a-3132737687244157601",
+      "source": "a-4657783906339585386",
+      "target": "a-3945245772520750417",
+      "relation": "rebuts",
+      "label": "AI能否取代程序员",
+      "confidence": 0.95,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+      "targetTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?"
+    },
+    {
+      "source": "a-4657783906339585386",
+      "target": "a--6123579788034080189",
+      "relation": "rebuts",
+      "label": "AI能否取代程序员",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+      "targetTopic": "计算机专业还值得学吗?"
+    },
+    {
+      "source": "a-4657783906339585386",
+      "target": "a-3878948019650956180",
       "relation": "same-claim",
-      "label": "AI导致程序员需求萎缩",
+      "label": "AI将替代程序员",
       "confidence": 0.85,
-      "reasonType": "行业周期",
-      "sourceTopic": "马斯克预计到明年底人类将无法与 AI 竞争软件开发,AI 将胜任所有数字工作,对程序员群体影响有多大?",
-      "targetTopic": "为什么别选计算机专业?"
+      "reasonType": "技术壁垒",
+      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+      "targetTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?"
+    },
+    {
+      "source": "a-8400187811174672471",
+      "target": "a-3298101780382736051",
+      "relation": "rebuts",
+      "label": "AI能否替代人类工作",
+      "confidence": 0.7,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "为什么我觉得AI绘画完全代替不了画师?",
+      "targetTopic": "AI 已经/即将摧毁哪些行业?"
+    },
+    {
+      "source": "a-3945245772520750417",
+      "target": "a-3298101780382736051",
+      "relation": "rebuts",
+      "label": "AI能否替代人类工作",
+      "confidence": 0.7,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?",
+      "targetTopic": "AI 已经/即将摧毁哪些行业?"
+    },
+    {
+      "source": "a-3945245772520750417",
+      "target": "a--6123579788034080189",
+      "relation": "same-claim",
+      "label": "AI无法替代程序员",
+      "confidence": 0.8,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?",
+      "targetTopic": "计算机专业还值得学吗?"
+    },
+    {
+      "source": "a-3945245772520750417",
+      "target": "a-3878948019650956180",
+      "relation": "rebuts",
+      "label": "AI能否取代程序员",
+      "confidence": 0.95,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?",
+      "targetTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?"
+    },
+    {
+      "source": "a-3298101780382736051",
+      "target": "a--6123579788034080189",
+      "relation": "rebuts",
+      "label": "AI能否替代人类工作",
+      "confidence": 0.7,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI 已经/即将摧毁哪些行业?",
+      "targetTopic": "计算机专业还值得学吗?"
+    },
+    {
+      "source": "a-3298101780382736051",
+      "target": "a-4341191114694461656",
+      "relation": "rebuts",
+      "label": "AI能否替代人类工作",
+      "confidence": 0.6,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI 已经/即将摧毁哪些行业?",
+      "targetTopic": "AI在医疗领域能否完全取代医生?"
+    },
+    {
+      "source": "a--6123579788034080189",
+      "target": "a-3878948019650956180",
+      "relation": "rebuts",
+      "label": "AI能否取代程序员",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "计算机专业还值得学吗?",
+      "targetTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?"
+    },
+    {
+      "source": "a-3878948019650956180",
+      "target": "a-7506223916112815660",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?",
+      "targetTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?"
+    },
+    {
+      "source": "a-3878948019650956180",
+      "target": "a--3059213074980422546",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.85,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?",
+      "targetTopic": "2026 计算机科学专业还值得报考吗?"
+    },
+    {
+      "source": "a-3878948019650956180",
+      "target": "a--8636163842687801585",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.85,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?",
+      "targetTopic": "2026 计算机科学专业还值得报考吗?"
+    },
+    {
+      "source": "a-3878948019650956180",
+      "target": "a-4542281494250465893",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.95,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?",
+      "targetTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?"
+    },
+    {
+      "source": "a-4341191114694461656",
+      "target": "a--4337304148717625052",
+      "relation": "same-claim",
+      "label": "AI当前无法完全替代专业岗位",
+      "confidence": 0.85,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI在医疗领域能否完全取代医生?",
+      "targetTopic": "AI 这么强,翻译和英专生还有用吗?"
+    },
+    {
+      "source": "a--5697019864897919484",
+      "target": "a--4337304148717625052",
+      "relation": "same-claim",
+      "label": "AI当前无法完全替代专业岗位",
+      "confidence": 0.85,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "2024 插画行业有没有受到 AI 冲击?AI 未来真的有可能代替插画师吗?",
+      "targetTopic": "AI 这么强,翻译和英专生还有用吗?"
+    },
+    {
+      "source": "a-1056678539764621563",
+      "target": "a--4337304148717625052",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "人工智能翻译机会取代传统的人工翻译吗?",
+      "targetTopic": "AI 这么强,翻译和英专生还有用吗?"
+    },
+    {
+      "source": "a-7506223916112815660",
+      "target": "a--3059213074980422546",
+      "relation": "same-claim",
+      "label": "AI压缩初级岗位但行业不消失",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+      "targetTopic": "2026 计算机科学专业还值得报考吗?"
+    },
+    {
+      "source": "a-7506223916112815660",
+      "target": "a--8636163842687801585",
+      "relation": "same-claim",
+      "label": "AI压缩初级岗位但行业不消失",
+      "confidence": 0.85,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+      "targetTopic": "2026 计算机科学专业还值得报考吗?"
+    },
+    {
+      "source": "a-7506223916112815660",
+      "target": "a-4542281494250465893",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.85,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+      "targetTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?"
+    },
+    {
+      "source": "a-7506223916112815660",
+      "target": "a-6926770995914242054",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.85,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+      "targetTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?"
+    },
+    {
+      "source": "a--3059213074980422546",
+      "target": "a-4542281494250465893",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.85,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "2026 计算机科学专业还值得报考吗?",
+      "targetTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?"
+    },
+    {
+      "source": "a--3059213074980422546",
+      "target": "a-6926770995914242054",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.85,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "2026 计算机科学专业还值得报考吗?",
+      "targetTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?"
+    },
+    {
+      "source": "a--8636163842687801585",
+      "target": "a-4542281494250465893",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.85,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "2026 计算机科学专业还值得报考吗?",
+      "targetTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?"
+    },
+    {
+      "source": "a--8636163842687801585",
+      "target": "a-6926770995914242054",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.85,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "2026 计算机科学专业还值得报考吗?",
+      "targetTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?"
+    },
+    {
+      "source": "a--4337304148717625052",
+      "target": "a-4542281494250465893",
+      "relation": "same-claim",
+      "label": "AI当前无法完全替代专业岗位",
+      "confidence": 0.85,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI 这么强,翻译和英专生还有用吗?",
+      "targetTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?"
+    },
+    {
+      "source": "a--4337304148717625052",
+      "target": "a-6926770995914242054",
+      "relation": "same-claim",
+      "label": "AI当前无法完全替代专业岗位",
+      "confidence": 0.85,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI 这么强,翻译和英专生还有用吗?",
+      "targetTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?"
+    },
+    {
+      "source": "a-4542281494250465893",
+      "target": "a-6926770995914242054",
+      "relation": "same-claim",
+      "label": "AI无法独立维护复杂系统故程序员不可替代",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+      "targetTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?"
+    },
+    {
+      "source": "a-4542281494250465893",
+      "target": "a-7190083545853485598",
+      "relation": "same-claim",
+      "label": "AI无法胜任系统设计",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+      "targetTopic": "编程大神 DHH 谈 AI 写代码称「掌握编程的,永远是动手写的人」,AI 取代人类编程的边界在哪里?"
+    },
+    {
+      "source": "a-4542281494250465893",
+      "target": "a--3116936308957756347",
+      "relation": "same-claim",
+      "label": "AI无法独立完成复杂任务",
+      "confidence": 0.8,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+      "targetTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?"
+    },
+    {
+      "source": "a-4542281494250465893",
+      "target": "a--7486934681111155064",
+      "relation": "same-claim",
+      "label": "AI无法完全取代编程",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+      "targetTopic": "AI 在未来是否会代替编程工作,AI 与编程的关系将会走向何方?"
+    },
+    {
+      "source": "a-4542281494250465893",
+      "target": "a--6480506393744647351",
+      "relation": "rebuts",
+      "label": "AI是否取代程序员",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+      "targetTopic": "人工智能会取代哪些岗位?"
     },
     {
       "source": "a-6926770995914242054",
-      "target": "a-3132737687244157601",
-      "relation": "rebuts",
-      "label": "AI是否消灭程序员需求",
+      "target": "a-7190083545853485598",
+      "relation": "same-claim",
+      "label": "AI无法胜任系统设计",
       "confidence": 0.9,
-      "reasonType": "行业周期",
+      "reasonType": "技术壁垒",
       "sourceTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?",
-      "targetTopic": "为什么别选计算机专业?"
+      "targetTopic": "编程大神 DHH 谈 AI 写代码称「掌握编程的,永远是动手写的人」,AI 取代人类编程的边界在哪里?"
     },
     {
-      "source": "a-8883296274167542039",
+      "source": "a-6926770995914242054",
+      "target": "a--2483126025033303325",
+      "relation": "same-claim",
+      "label": "AI无法独立完成架构设计",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?",
+      "targetTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?"
+    },
+    {
+      "source": "a-6926770995914242054",
+      "target": "a--3116936308957756347",
+      "relation": "same-claim",
+      "label": "AI无法独立完成复杂任务",
+      "confidence": 0.8,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?",
+      "targetTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?"
+    },
+    {
+      "source": "a-6926770995914242054",
+      "target": "a--7486934681111155064",
+      "relation": "same-claim",
+      "label": "AI无法完全取代编程",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?",
+      "targetTopic": "AI 在未来是否会代替编程工作,AI 与编程的关系将会走向何方?"
+    },
+    {
+      "source": "a-6926770995914242054",
+      "target": "a--5954909559545702906",
+      "relation": "same-claim",
+      "label": "AI无法独立编写专业软件",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?",
+      "targetTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?"
+    },
+    {
+      "source": "a-6926770995914242054",
+      "target": "a--6480506393744647351",
+      "relation": "rebuts",
+      "label": "AI是否取代程序员",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "为什么总有人嘴硬说程序员不会被 AI 替代?",
+      "targetTopic": "人工智能会取代哪些岗位?"
+    },
+    {
+      "source": "a-7190083545853485598",
+      "target": "a--2483126025033303325",
+      "relation": "same-claim",
+      "label": "AI无法独立完成架构设计",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "编程大神 DHH 谈 AI 写代码称「掌握编程的,永远是动手写的人」,AI 取代人类编程的边界在哪里?",
+      "targetTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?"
+    },
+    {
+      "source": "a-7190083545853485598",
+      "target": "a--3116936308957756347",
+      "relation": "same-claim",
+      "label": "AI无法独立完成复杂任务",
+      "confidence": 0.8,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "编程大神 DHH 谈 AI 写代码称「掌握编程的,永远是动手写的人」,AI 取代人类编程的边界在哪里?",
+      "targetTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?"
+    },
+    {
+      "source": "a-7190083545853485598",
+      "target": "a--7486934681111155064",
+      "relation": "same-claim",
+      "label": "AI无法完全取代编程",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "编程大神 DHH 谈 AI 写代码称「掌握编程的,永远是动手写的人」,AI 取代人类编程的边界在哪里?",
+      "targetTopic": "AI 在未来是否会代替编程工作,AI 与编程的关系将会走向何方?"
+    },
+    {
+      "source": "a-7190083545853485598",
+      "target": "a--5954909559545702906",
+      "relation": "same-claim",
+      "label": "AI无法独立编写专业软件",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "编程大神 DHH 谈 AI 写代码称「掌握编程的,永远是动手写的人」,AI 取代人类编程的边界在哪里?",
+      "targetTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?"
+    },
+    {
+      "source": "a-7190083545853485598",
+      "target": "a--6480506393744647351",
+      "relation": "rebuts",
+      "label": "AI是否取代程序员",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "编程大神 DHH 谈 AI 写代码称「掌握编程的,永远是动手写的人」,AI 取代人类编程的边界在哪里?",
+      "targetTopic": "人工智能会取代哪些岗位?"
+    },
+    {
+      "source": "a--2483126025033303325",
+      "target": "a--3116936308957756347",
+      "relation": "same-claim",
+      "label": "AI无法独立完成复杂任务",
+      "confidence": 0.8,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+      "targetTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?"
+    },
+    {
+      "source": "a--2483126025033303325",
+      "target": "a--7486934681111155064",
+      "relation": "same-claim",
+      "label": "AI无法完全取代编程",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+      "targetTopic": "AI 在未来是否会代替编程工作,AI 与编程的关系将会走向何方?"
+    },
+    {
+      "source": "a--2483126025033303325",
+      "target": "a--6480506393744647351",
+      "relation": "rebuts",
+      "label": "AI是否取代程序员",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+      "targetTopic": "人工智能会取代哪些岗位?"
+    },
+    {
+      "source": "a--3116936308957756347",
+      "target": "a--7486934681111155064",
+      "relation": "same-claim",
+      "label": "AI无法完全取代编程",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?",
+      "targetTopic": "AI 在未来是否会代替编程工作,AI 与编程的关系将会走向何方?"
+    },
+    {
+      "source": "a--3116936308957756347",
+      "target": "a--5954909559545702906",
+      "relation": "same-claim",
+      "label": "AI无法独立编写专业软件",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?",
+      "targetTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?"
+    },
+    {
+      "source": "a--3116936308957756347",
+      "target": "a--6480506393744647351",
+      "relation": "rebuts",
+      "label": "AI是否取代程序员",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?",
+      "targetTopic": "人工智能会取代哪些岗位?"
+    },
+    {
+      "source": "a--7486934681111155064",
+      "target": "a--5954909559545702906",
+      "relation": "same-claim",
+      "label": "AI无法独立编写专业软件",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI 在未来是否会代替编程工作,AI 与编程的关系将会走向何方?",
+      "targetTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?"
+    },
+    {
+      "source": "a--7486934681111155064",
+      "target": "a--6480506393744647351",
+      "relation": "rebuts",
+      "label": "AI是否取代程序员",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI 在未来是否会代替编程工作,AI 与编程的关系将会走向何方?",
+      "targetTopic": "人工智能会取代哪些岗位?"
+    },
+    {
+      "source": "a--5954909559545702906",
+      "target": "a--6480506393744647351",
+      "relation": "rebuts",
+      "label": "AI是否取代程序员",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+      "targetTopic": "人工智能会取代哪些岗位?"
+    },
+    {
+      "source": "a--5954909559545702906",
+      "target": "a--4443599563206995841",
+      "relation": "rebuts",
+      "label": "AI能否取代程序员",
+      "confidence": 0.85,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+      "targetTopic": "AI会完全取代码农的工作么?"
+    },
+    {
+      "source": "a--5954909559545702906",
+      "target": "a-479385971587492418",
+      "relation": "rebuts",
+      "label": "AI能否取代程序员",
+      "confidence": 0.8,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+      "targetTopic": "网传 OpenAI 招外包训练 ChatGPT 取代码农,会成功吗?"
+    },
+    {
+      "source": "a--4443599563206995841",
+      "target": "a--5108988535329087971",
+      "relation": "rebuts",
+      "label": "AI能否取代程序员",
+      "confidence": 0.85,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI会完全取代码农的工作么?",
+      "targetTopic": "ai大概还要多久就可以取代程序员了?"
+    },
+    {
+      "source": "a--4443599563206995841",
+      "target": "a-479385971587492418",
+      "relation": "same-claim",
+      "label": "AI终将取代程序员",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI会完全取代码农的工作么?",
+      "targetTopic": "网传 OpenAI 招外包训练 ChatGPT 取代码农,会成功吗?"
+    },
+    {
+      "source": "a--4443599563206995841",
+      "target": "a--2576768985750860421",
+      "relation": "rebuts",
+      "label": "AI时代编程必要性",
+      "confidence": 0.8,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI会完全取代码农的工作么?",
+      "targetTopic": "现在AI编程这么厉害,还有必要深入学习编程吗?"
+    },
+    {
+      "source": "a--4443599563206995841",
+      "target": "a--6647773154164476969",
+      "relation": "rebuts",
+      "label": "AI时代编程必要性",
+      "confidence": 0.8,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI会完全取代码农的工作么?",
+      "targetTopic": "现在ai这么发达,有必要花很多时间去学习编程语言,像Python、Java吗?"
+    },
+    {
+      "source": "a-479385971587492418",
+      "target": "a--2576768985750860421",
+      "relation": "rebuts",
+      "label": "AI时代编程必要性",
+      "confidence": 0.8,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "网传 OpenAI 招外包训练 ChatGPT 取代码农,会成功吗?",
+      "targetTopic": "现在AI编程这么厉害,还有必要深入学习编程吗?"
+    },
+    {
+      "source": "a-479385971587492418",
+      "target": "a--6647773154164476969",
+      "relation": "rebuts",
+      "label": "AI时代编程必要性",
+      "confidence": 0.8,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "网传 OpenAI 招外包训练 ChatGPT 取代码农,会成功吗?",
+      "targetTopic": "现在ai这么发达,有必要花很多时间去学习编程语言,像Python、Java吗?"
+    },
+    {
+      "source": "a--2576768985750860421",
+      "target": "a--6647773154164476969",
+      "relation": "same-claim",
+      "label": "AI时代仍需学编程",
+      "confidence": 0.95,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "现在AI编程这么厉害,还有必要深入学习编程吗?",
+      "targetTopic": "现在ai这么发达,有必要花很多时间去学习编程语言,像Python、Java吗?"
+    },
+    {
+      "source": "a--6647773154164476969",
+      "target": "a--1166588439102192390",
+      "relation": "same-claim",
+      "label": "AI时代仍需学编程",
+      "confidence": 0.95,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "现在ai这么发达,有必要花很多时间去学习编程语言,像Python、Java吗?",
+      "targetTopic": "AI时代还有必要学编程吗?"
+    },
+    {
+      "source": "a--6647773154164476969",
+      "target": "a-4587934715750170607",
+      "relation": "same-claim",
+      "label": "AI时代编程仍必要",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "现在ai这么发达,有必要花很多时间去学习编程语言,像Python、Java吗?",
+      "targetTopic": "在这个 ai 时代学习编程的意义还大吗?"
+    },
+    {
+      "source": "a--1166588439102192390",
+      "target": "a-4587934715750170607",
+      "relation": "same-claim",
+      "label": "AI时代编程仍必要",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI时代还有必要学编程吗?",
+      "targetTopic": "在这个 ai 时代学习编程的意义还大吗?"
+    },
+    {
+      "source": "a-4769695036315054845",
+      "target": "a-3306544196844106705",
+      "relation": "same-claim",
+      "label": "AI无法取代医生",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "如果 AI 能给出很多健康答案,医生真正不可替代的地方是什么?",
+      "targetTopic": "DeepSeek 会让医生失业吗?"
+    },
+    {
+      "source": "a-4769695036315054845",
+      "target": "a-488001093571781838",
+      "relation": "rebuts",
+      "label": "AI能否取代人类工作",
+      "confidence": 0.8,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "如果 AI 能给出很多健康答案,医生真正不可替代的地方是什么?",
+      "targetTopic": "认真说,ai可以取代人类吗?"
+    },
+    {
+      "source": "a-4769695036315054845",
+      "target": "a--7570075034349265",
+      "relation": "rebuts",
+      "label": "AI能否替代医护岗位",
+      "confidence": 0.75,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "如果 AI 能给出很多健康答案,医生真正不可替代的地方是什么?",
+      "targetTopic": "护士岗位面临被机器人替代的风险有多大?"
+    },
+    {
+      "source": "a-4769695036315054845",
+      "target": "a-7599739875221353597",
+      "relation": "rebuts",
+      "label": "AI是否摧毁专业壁垒",
+      "confidence": 0.7,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "如果 AI 能给出很多健康答案,医生真正不可替代的地方是什么?",
+      "targetTopic": "做技术的人,护城河到底在哪里?"
+    },
+    {
+      "source": "a-3306544196844106705",
+      "target": "a-488001093571781838",
+      "relation": "rebuts",
+      "label": "AI能否取代人类工作",
+      "confidence": 0.85,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "DeepSeek 会让医生失业吗?",
+      "targetTopic": "认真说,ai可以取代人类吗?"
+    },
+    {
+      "source": "a-3306544196844106705",
+      "target": "a--7570075034349265",
+      "relation": "rebuts",
+      "label": "AI能否替代医护岗位",
+      "confidence": 0.8,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "DeepSeek 会让医生失业吗?",
+      "targetTopic": "护士岗位面临被机器人替代的风险有多大?"
+    },
+    {
+      "source": "a-3306544196844106705",
+      "target": "a-7599739875221353597",
+      "relation": "rebuts",
+      "label": "AI是否摧毁专业壁垒",
+      "confidence": 0.75,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "DeepSeek 会让医生失业吗?",
+      "targetTopic": "做技术的人,护城河到底在哪里?"
+    },
+    {
+      "source": "a-488001093571781838",
+      "target": "a-8469733164666249423",
+      "relation": "rebuts",
+      "label": "AI能否取代人类工作",
+      "confidence": 0.8,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "认真说,ai可以取代人类吗?",
+      "targetTopic": "AI会完全取代人类自媒体创作者吗?"
+    },
+    {
+      "source": "a-488001093571781838",
+      "target": "a-6530814464955242070",
+      "relation": "rebuts",
+      "label": "AI能否取代程序员",
+      "confidence": 0.8,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "认真说,ai可以取代人类吗?",
+      "targetTopic": "你认为AI编程未来真的会取代程序员吗?"
+    },
+    {
+      "source": "a-488001093571781838",
+      "target": "a--9082679415443766728",
+      "relation": "rebuts",
+      "label": "AI能否取代人类工作",
+      "confidence": 0.75,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "认真说,ai可以取代人类吗?",
+      "targetTopic": "ai发展会取代板绘吗,为什么?"
+    },
+    {
+      "source": "a-488001093571781838",
+      "target": "a-7599739875221353597",
+      "relation": "same-claim",
+      "label": "AI正不可逆取代人类工作",
+      "confidence": 0.85,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "认真说,ai可以取代人类吗?",
+      "targetTopic": "做技术的人,护城河到底在哪里?"
+    },
+    {
+      "source": "a--4582466702302758498",
+      "target": "a-7599739875221353597",
+      "relation": "rebuts",
+      "label": "AI是否摧毁专业壁垒",
+      "confidence": 0.7,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "在这个ai盛行的时代,会计专业的学生还可以找到好工作吗?",
+      "targetTopic": "做技术的人,护城河到底在哪里?"
+    },
+    {
+      "source": "a-8469733164666249423",
+      "target": "a--7570075034349265",
+      "relation": "rebuts",
+      "label": "AI能否取代人类工作",
+      "confidence": 0.75,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI会完全取代人类自媒体创作者吗?",
+      "targetTopic": "护士岗位面临被机器人替代的风险有多大?"
+    },
+    {
+      "source": "a-8469733164666249423",
+      "target": "a-6530814464955242070",
+      "relation": "same-claim",
+      "label": "AI不取代人但取代初级",
+      "confidence": 0.9,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI会完全取代人类自媒体创作者吗?",
+      "targetTopic": "你认为AI编程未来真的会取代程序员吗?"
+    },
+    {
+      "source": "a-8469733164666249423",
+      "target": "a-7599739875221353597",
+      "relation": "rebuts",
+      "label": "AI是否摧毁专业壁垒",
+      "confidence": 0.75,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "AI会完全取代人类自媒体创作者吗?",
+      "targetTopic": "做技术的人,护城河到底在哪里?"
+    },
+    {
+      "source": "a--7570075034349265",
+      "target": "a-6530814464955242070",
+      "relation": "rebuts",
+      "label": "AI能否取代人类工作",
+      "confidence": 0.8,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "护士岗位面临被机器人替代的风险有多大?",
+      "targetTopic": "你认为AI编程未来真的会取代程序员吗?"
+    },
+    {
+      "source": "a--7570075034349265",
+      "target": "a--9082679415443766728",
+      "relation": "rebuts",
+      "label": "AI能否取代人类工作",
+      "confidence": 0.75,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "护士岗位面临被机器人替代的风险有多大?",
+      "targetTopic": "ai发展会取代板绘吗,为什么?"
+    },
+    {
+      "source": "a-6530814464955242070",
+      "target": "a-7599739875221353597",
+      "relation": "rebuts",
+      "label": "AI是否摧毁专业壁垒",
+      "confidence": 0.8,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "你认为AI编程未来真的会取代程序员吗?",
+      "targetTopic": "做技术的人,护城河到底在哪里?"
+    },
+    {
+      "source": "a--9082679415443766728",
+      "target": "a-7599739875221353597",
+      "relation": "rebuts",
+      "label": "AI是否摧毁专业壁垒",
+      "confidence": 0.7,
+      "reasonType": "技术壁垒",
+      "sourceTopic": "ai发展会取代板绘吗,为什么?",
+      "targetTopic": "做技术的人,护城河到底在哪里?"
+    },
+    {
+      "source": "a--4240131651699878760",
+      "target": "a-8256198252371469474",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.8,
+      "reasonType": "教育培养",
+      "sourceTopic": "AI 是抢走了我们的工作,还是给了我们新的可能?",
+      "targetTopic": "AI 会让年轻人的机会变多还是变少?"
+    },
+    {
+      "source": "a--6001715965198712772",
+      "target": "a-1616394633754373363",
+      "relation": "same-claim",
+      "label": "AI切断新人成长路径",
+      "confidence": 0.85,
+      "reasonType": "教育培养",
+      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+      "targetTopic": "现在法学专业还有前途吗?"
+    },
+    {
+      "source": "a--6001715965198712772",
+      "target": "a--8065255280543916133",
+      "relation": "same-claim",
+      "label": "AI剥夺新人入门机会",
+      "confidence": 0.85,
+      "reasonType": "教育培养",
+      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+      "targetTopic": "AI 已经/即将摧毁哪些行业?"
+    },
+    {
+      "source": "a-1616394633754373363",
+      "target": "a--8065255280543916133",
+      "relation": "same-claim",
+      "label": "AI剥夺新人入门机会",
+      "confidence": 0.85,
+      "reasonType": "教育培养",
+      "sourceTopic": "现在法学专业还有前途吗?",
+      "targetTopic": "AI 已经/即将摧毁哪些行业?"
+    },
+    {
+      "source": "a--8065255280543916133",
+      "target": "a-4998779688670138215",
+      "relation": "same-claim",
+      "label": "AI抽走设计新人入门阶梯",
+      "confidence": 0.95,
+      "reasonType": "教育培养",
+      "sourceTopic": "AI 已经/即将摧毁哪些行业?",
+      "targetTopic": "AI绘画,AI设计,AI真的能代替各行各业的设计师吗?"
+    },
+    {
+      "source": "a--6020112849420017675",
+      "target": "a--5590514558985009122",
+      "relation": "rebuts",
+      "label": "AI能否取代教师",
+      "confidence": 0.9,
+      "reasonType": "教育培养",
+      "sourceTopic": "AI 未来会部分或完全取代中小学教师吗?",
+      "targetTopic": "AI有没有可能在十年内完全替代教师这个行业?"
+    },
+    {
+      "source": "a-4560790726606256329",
       "target": "a-7694646029523666707",
       "relation": "same-claim",
-      "label": "编程仍要学但需转型",
+      "label": "编程仍要学但重基础",
       "confidence": 0.8,
       "reasonType": "教育培养",
       "sourceTopic": "2026年了,大学生还有必要学编程吗,AI会不会让程序员失业?",
       "targetTopic": "AI时代下,学习一门编程语言是否还有意义?"
     },
     {
-      "source": "a-7415577803219682552",
-      "target": "a--6512767791850319549",
+      "source": "a-7694646029523666707",
+      "target": "a-2846293786060691993",
       "relation": "same-claim",
-      "label": "AI不可替代人类核心能力",
+      "label": "编程基础必要但不必深究",
       "confidence": 0.9,
-      "reasonType": "人类特质",
-      "sourceTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?",
-      "targetTopic": "未来几年 AI 会取代艺术设计类的工作吗?"
+      "reasonType": "教育培养",
+      "sourceTopic": "AI时代下,学习一门编程语言是否还有意义?",
+      "targetTopic": "未来还有必要学习编程吗?"
     },
     {
-      "source": "a-7415577803219682552",
-      "target": "a--27641170957010190",
+      "source": "a-4998779688670138215",
+      "target": "a-2090784985340768334",
       "relation": "same-claim",
-      "label": "AI不可替代人类核心能力",
+      "label": "AI破坏新人成长阶梯",
       "confidence": 0.9,
-      "reasonType": "人类特质",
-      "sourceTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?",
-      "targetTopic": "AI越来越强,人类真正不可替代的到底是什么?"
-    },
-    {
-      "source": "a-7415577803219682552",
-      "target": "a-2068354476218263395",
-      "relation": "same-claim",
-      "label": "AI不可替代人类核心能力",
-      "confidence": 0.9,
-      "reasonType": "人类特质",
-      "sourceTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?",
-      "targetTopic": "在AI能秒答一切的时代,人的核心竞争力到底是什么?"
-    },
-    {
-      "source": "a--6512767791850319549",
-      "target": "a-7578589222068007825",
-      "relation": "same-claim",
-      "label": "AI不可替代人类核心能力",
-      "confidence": 0.9,
-      "reasonType": "人类特质",
-      "sourceTopic": "未来几年 AI 会取代艺术设计类的工作吗?",
-      "targetTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?"
-    },
-    {
-      "source": "a--6512767791850319549",
-      "target": "a--27641170957010190",
-      "relation": "same-claim",
-      "label": "AI不可替代人类核心能力",
-      "confidence": 0.9,
-      "reasonType": "人类特质",
-      "sourceTopic": "未来几年 AI 会取代艺术设计类的工作吗?",
-      "targetTopic": "AI越来越强,人类真正不可替代的到底是什么?"
-    },
-    {
-      "source": "a--6512767791850319549",
-      "target": "a-2068354476218263395",
-      "relation": "same-claim",
-      "label": "AI不可替代人类核心能力",
-      "confidence": 0.9,
-      "reasonType": "人类特质",
-      "sourceTopic": "未来几年 AI 会取代艺术设计类的工作吗?",
-      "targetTopic": "在AI能秒答一切的时代,人的核心竞争力到底是什么?"
-    },
-    {
-      "source": "a-7578589222068007825",
-      "target": "a--27641170957010190",
-      "relation": "same-claim",
-      "label": "AI不可替代人类核心能力",
-      "confidence": 0.9,
-      "reasonType": "人类特质",
-      "sourceTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?",
-      "targetTopic": "AI越来越强,人类真正不可替代的到底是什么?"
-    },
-    {
-      "source": "a-7578589222068007825",
-      "target": "a-2068354476218263395",
-      "relation": "same-claim",
-      "label": "AI不可替代人类核心能力",
-      "confidence": 0.9,
-      "reasonType": "人类特质",
-      "sourceTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?",
-      "targetTopic": "在AI能秒答一切的时代,人的核心竞争力到底是什么?"
-    },
-    {
-      "source": "a--27641170957010190",
-      "target": "a-2068354476218263395",
-      "relation": "same-claim",
-      "label": "AI不可替代人类核心能力",
-      "confidence": 0.9,
-      "reasonType": "人类特质",
-      "sourceTopic": "AI越来越强,人类真正不可替代的到底是什么?",
-      "targetTopic": "在AI能秒答一切的时代,人的核心竞争力到底是什么?"
-    },
-    {
-      "source": "a--6123579788034080189",
-      "target": "a--2483126025033303325",
-      "relation": "same-claim",
-      "label": "AI不取代高阶程序员",
-      "confidence": 0.9,
-      "reasonType": "技术壁垒",
-      "sourceTopic": "计算机专业还值得学吗?",
-      "targetTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?"
-    },
-    {
-      "source": "a--6123579788034080189",
-      "target": "a-4560790726606256329",
-      "relation": "same-claim",
-      "label": "程序员价值转向高阶能力",
-      "confidence": 0.9,
-      "reasonType": "技术壁垒",
-      "sourceTopic": "计算机专业还值得学吗?",
-      "targetTopic": "2026年了,大学生还有必要学编程吗,AI会不会让程序员失业?"
-    },
-    {
-      "source": "a--6123579788034080189",
-      "target": "a--7940648025065138231",
-      "relation": "same-claim",
-      "label": "AI只替代执行环节",
-      "confidence": 0.9,
-      "reasonType": "技术壁垒",
-      "sourceTopic": "计算机专业还值得学吗?",
-      "targetTopic": "AI绘画,AI设计,AI真的能代替各行各业的设计师吗?"
-    },
-    {
-      "source": "a--6123579788034080189",
-      "target": "a--6636081953562257961",
-      "relation": "rebuts",
-      "label": "",
-      "confidence": 0.9,
-      "reasonType": "技术壁垒",
-      "sourceTopic": "计算机专业还值得学吗?",
-      "targetTopic": "5年后计算机专业出来还有前途吗?"
-    },
-    {
-      "source": "a--8636163842687801585",
-      "target": "a--7940648025065138231",
-      "relation": "same-claim",
-      "label": "AI只替代执行环节",
-      "confidence": 0.9,
-      "reasonType": "技术壁垒",
-      "sourceTopic": "2026 计算机科学专业还值得报考吗?",
-      "targetTopic": "AI绘画,AI设计,AI真的能代替各行各业的设计师吗?"
-    },
-    {
-      "source": "a--8636163842687801585",
-      "target": "a--6636081953562257961",
-      "relation": "rebuts",
-      "label": "",
-      "confidence": 0.9,
-      "reasonType": "技术壁垒",
-      "sourceTopic": "2026 计算机科学专业还值得报考吗?",
-      "targetTopic": "5年后计算机专业出来还有前途吗?"
-    },
-    {
-      "source": "a--8636163842687801585",
-      "target": "a--7940648025065138231",
-      "relation": "same-claim",
-      "label": "AI只替代执行环节",
-      "confidence": 0.9,
-      "reasonType": "技术壁垒",
-      "sourceTopic": "2026 计算机科学专业还值得报考吗?",
-      "targetTopic": "AI绘画,AI设计,AI真的能代替各行各业的设计师吗?"
-    },
-    {
-      "source": "a--8636163842687801585",
-      "target": "a--6636081953562257961",
-      "relation": "rebuts",
-      "label": "",
-      "confidence": 0.9,
-      "reasonType": "技术壁垒",
-      "sourceTopic": "2026 计算机科学专业还值得报考吗?",
-      "targetTopic": "5年后计算机专业出来还有前途吗?"
-    },
-    {
-      "source": "a--2483126025033303325",
-      "target": "a-4560790726606256329",
-      "relation": "same-claim",
-      "label": "程序员价值转向高阶能力",
-      "confidence": 0.9,
-      "reasonType": "技术壁垒",
-      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
-      "targetTopic": "2026年了,大学生还有必要学编程吗,AI会不会让程序员失业?"
-    },
-    {
-      "source": "a--2483126025033303325",
-      "target": "a--7940648025065138231",
-      "relation": "same-claim",
-      "label": "AI只替代执行环节",
-      "confidence": 0.9,
-      "reasonType": "技术壁垒",
-      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
-      "targetTopic": "AI绘画,AI设计,AI真的能代替各行各业的设计师吗?"
-    },
-    {
-      "source": "a--2483126025033303325",
-      "target": "a--6636081953562257961",
-      "relation": "rebuts",
-      "label": "",
-      "confidence": 0.9,
-      "reasonType": "技术壁垒",
-      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
-      "targetTopic": "5年后计算机专业出来还有前途吗?"
-    },
-    {
-      "source": "a--3116936308957756347",
-      "target": "a--6636081953562257961",
-      "relation": "rebuts",
-      "label": "",
-      "confidence": 0.9,
-      "reasonType": "技术壁垒",
-      "sourceTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?",
-      "targetTopic": "5年后计算机专业出来还有前途吗?"
-    },
-    {
-      "source": "a-8130782778536502254",
-      "target": "a-4560790726606256329",
-      "relation": "same-claim",
-      "label": "程序员价值转向高阶能力",
-      "confidence": 0.9,
-      "reasonType": "技术壁垒",
-      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
-      "targetTopic": "2026年了,大学生还有必要学编程吗,AI会不会让程序员失业?"
-    },
-    {
-      "source": "a-8130782778536502254",
-      "target": "a--7940648025065138231",
-      "relation": "same-claim",
-      "label": "AI只替代执行环节",
-      "confidence": 0.9,
-      "reasonType": "技术壁垒",
-      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
-      "targetTopic": "AI绘画,AI设计,AI真的能代替各行各业的设计师吗?"
-    },
-    {
-      "source": "a-8130782778536502254",
-      "target": "a--6636081953562257961",
-      "relation": "rebuts",
-      "label": "",
-      "confidence": 0.9,
-      "reasonType": "技术壁垒",
-      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
-      "targetTopic": "5年后计算机专业出来还有前途吗?"
-    },
-    {
-      "source": "a-4560790726606256329",
-      "target": "a--7940648025065138231",
-      "relation": "same-claim",
-      "label": "AI只替代执行环节",
-      "confidence": 0.9,
-      "reasonType": "技术壁垒",
-      "sourceTopic": "2026年了,大学生还有必要学编程吗,AI会不会让程序员失业?",
-      "targetTopic": "AI绘画,AI设计,AI真的能代替各行各业的设计师吗?"
-    },
-    {
-      "source": "a-4560790726606256329",
-      "target": "a--6636081953562257961",
-      "relation": "rebuts",
-      "label": "",
-      "confidence": 0.9,
-      "reasonType": "技术壁垒",
-      "sourceTopic": "2026年了,大学生还有必要学编程吗,AI会不会让程序员失业?",
-      "targetTopic": "5年后计算机专业出来还有前途吗?"
-    },
-    {
-      "source": "a--7940648025065138231",
-      "target": "a--6636081953562257961",
-      "relation": "rebuts",
-      "label": "",
-      "confidence": 0.9,
-      "reasonType": "技术壁垒",
+      "reasonType": "教育培养",
       "sourceTopic": "AI绘画,AI设计,AI真的能代替各行各业的设计师吗?",
-      "targetTopic": "5年后计算机专业出来还有前途吗?"
+      "targetTopic": "人工智能大爆发,AI编程工具对程序员到底是颠覆还是辅助?"
     },
     {
-      "source": "a-7506223916112815660",
+      "source": "a--4597835304900607258",
+      "target": "a--1665837174359470226",
+      "relation": "same-claim",
+      "label": "AI直接替代交付物引发抵制",
+      "confidence": 0.95,
+      "reasonType": "需求本质",
+      "sourceTopic": "为什么画师、配音演员都在抵制 AI,程序员却普遍在拥抱 AI?",
+      "targetTopic": "为什么绘圈对AI绘画痛恶欲绝,但其他圈子对AI创作的态度就比较温和?"
+    },
+    {
+      "source": "a--4597835304900607258",
+      "target": "a-7178103508806517538",
+      "relation": "same-claim",
+      "label": "AI替代画师放大程序员",
+      "confidence": 0.9,
+      "reasonType": "需求本质",
+      "sourceTopic": "为什么画师、配音演员都在抵制 AI,程序员却普遍在拥抱 AI?",
+      "targetTopic": "为什么现在画师几乎要被ai替代,而程序员行业不仅没被替代,反而看起来更繁荣了?"
+    },
+    {
+      "source": "a--1665837174359470226",
+      "target": "a-7178103508806517538",
+      "relation": "same-claim",
+      "label": "AI替代画师放大程序员",
+      "confidence": 0.9,
+      "reasonType": "需求本质",
+      "sourceTopic": "为什么绘圈对AI绘画痛恶欲绝,但其他圈子对AI创作的态度就比较温和?",
+      "targetTopic": "为什么现在画师几乎要被ai替代,而程序员行业不仅没被替代,反而看起来更繁荣了?"
+    },
+    {
+      "source": "a--9169751937220422521",
+      "target": "a-6078019214871629394",
+      "relation": "rebuts",
+      "label": "",
+      "confidence": 0.9,
+      "reasonType": "需求本质",
+      "sourceTopic": "现在学会计已经没有前途了吗?",
+      "targetTopic": "普通人选什么专业最不容易被 AI 替代?"
+    },
+    {
+      "source": "a-6078019214871629394",
+      "target": "a--5275975026900036377",
+      "relation": "same-claim",
+      "label": "AI削减初级岗位而非消灭职业",
+      "confidence": 0.75,
+      "reasonType": "需求本质",
+      "sourceTopic": "普通人选什么专业最不容易被 AI 替代?",
+      "targetTopic": "比尔盖茨急了:呼吁全球设立“人类专属岗位”,禁止AI替代——连首富都担心的事,你的工作还保得住吗?"
+    },
+    {
+      "source": "a-7178103508806517538",
+      "target": "a-9190646177456802717",
+      "relation": "rebuts",
+      "label": "AI能否大幅替代程序员",
+      "confidence": 0.7,
+      "reasonType": "需求本质",
+      "sourceTopic": "为什么现在画师几乎要被ai替代,而程序员行业不仅没被替代,反而看起来更繁荣了?",
+      "targetTopic": "ai大概还要多久就可以取代程序员了?"
+    },
+    {
+      "source": "a-5887195202431428022",
+      "target": "a-9190646177456802717",
+      "relation": "rebuts",
+      "label": "AI替代程序员程度",
+      "confidence": 0.75,
+      "reasonType": "需求本质",
+      "sourceTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?",
+      "targetTopic": "ai大概还要多久就可以取代程序员了?"
+    },
+    {
+      "source": "a-5887195202431428022",
+      "target": "a-436754142026920650",
+      "relation": "same-claim",
+      "label": "AI替代执行但需求分析不可替代",
+      "confidence": 0.85,
+      "reasonType": "需求本质",
+      "sourceTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?",
+      "targetTopic": "AI 现在写代码这么猛,咱程序员的核心竞争力还剩什么?"
+    },
+    {
+      "source": "a-9190646177456802717",
+      "target": "a-436754142026920650",
+      "relation": "same-claim",
+      "label": "AI写代码非程序员工作主体",
+      "confidence": 0.8,
+      "reasonType": "需求本质",
+      "sourceTopic": "ai大概还要多久就可以取代程序员了?",
+      "targetTopic": "AI 现在写代码这么猛,咱程序员的核心竞争力还剩什么?"
+    },
+    {
+      "source": "a--6542132015873777373",
+      "target": "a-436754142026920650",
+      "relation": "same-claim",
+      "label": "AI只替代执行不替代核心判断",
+      "confidence": 0.85,
+      "reasonType": "需求本质",
+      "sourceTopic": "有了 AI 技术,以后画画还值得专业学习吗?AI 是否能取代画家?",
+      "targetTopic": "AI 现在写代码这么猛,咱程序员的核心竞争力还剩什么?"
+    },
+    {
+      "source": "a--6542132015873777373",
+      "target": "a--1082727288811701520",
+      "relation": "same-claim",
+      "label": "AI只替代标准化任务模块",
+      "confidence": 0.8,
+      "reasonType": "需求本质",
+      "sourceTopic": "有了 AI 技术,以后画画还值得专业学习吗?AI 是否能取代画家?",
+      "targetTopic": "会计职业是否正在被淘汰?"
+    },
+    {
+      "source": "a--6542132015873777373",
+      "target": "a--181767306330084835",
+      "relation": "same-claim",
+      "label": "AI替代任务而非整个岗位",
+      "confidence": 0.85,
+      "reasonType": "需求本质",
+      "sourceTopic": "有了 AI 技术,以后画画还值得专业学习吗?AI 是否能取代画家?",
+      "targetTopic": "为什么说只会码代码的码农没有前途?"
+    },
+    {
+      "source": "a--6542132015873777373",
+      "target": "a--5495754290005366712",
+      "relation": "same-claim",
+      "label": "AI替代任务而非整个岗位",
+      "confidence": 0.85,
+      "reasonType": "需求本质",
+      "sourceTopic": "有了 AI 技术,以后画画还值得专业学习吗?AI 是否能取代画家?",
+      "targetTopic": "Ai已横空出世,你有过一丝丝的担忧吗?"
+    },
+    {
+      "source": "a--6542132015873777373",
+      "target": "a--1289976677312429097",
+      "relation": "same-claim",
+      "label": "AI难应对真实场景模糊信息",
+      "confidence": 0.8,
+      "reasonType": "需求本质",
+      "sourceTopic": "有了 AI 技术,以后画画还值得专业学习吗?AI 是否能取代画家?",
+      "targetTopic": "医生会被AI取代吗?《实测5款AI医生:一个把我看哭了,一个差点把我“送走”!》?"
+    },
+    {
+      "source": "a--6542132015873777373",
+      "target": "a--3507469898199004231",
+      "relation": "same-claim",
+      "label": "AI难应对真实场景复杂信息",
+      "confidence": 0.8,
+      "reasonType": "需求本质",
+      "sourceTopic": "有了 AI 技术,以后画画还值得专业学习吗?AI 是否能取代画家?",
+      "targetTopic": "如果 AI 擅长法律检索和案例分析,那律师是不是最容易被替代的职业之一?"
+    },
+    {
+      "source": "a--6542132015873777373",
+      "target": "a-7503358984877483228",
+      "relation": "rebuts",
+      "label": "AI是否减少画师岗位",
+      "confidence": 0.75,
+      "reasonType": "需求本质",
+      "sourceTopic": "有了 AI 技术,以后画画还值得专业学习吗?AI 是否能取代画家?",
+      "targetTopic": "到现在为止,AI绘画让多少画师失业了?未来又会让多少画师失业?"
+    },
+    {
+      "source": "a--6542132015873777373",
+      "target": "a--8312072853190959879",
+      "relation": "same-claim",
+      "label": "AI难替代需语境理解的工作",
+      "confidence": 0.8,
+      "reasonType": "需求本质",
+      "sourceTopic": "有了 AI 技术,以后画画还值得专业学习吗?AI 是否能取代画家?",
+      "targetTopic": "人工智能翻译机会取代传统的人工翻译吗?"
+    },
+    {
+      "source": "a-436754142026920650",
+      "target": "a--1082727288811701520",
+      "relation": "same-claim",
+      "label": "AI只替代标准化任务模块",
+      "confidence": 0.8,
+      "reasonType": "需求本质",
+      "sourceTopic": "AI 现在写代码这么猛,咱程序员的核心竞争力还剩什么?",
+      "targetTopic": "会计职业是否正在被淘汰?"
+    },
+    {
+      "source": "a-436754142026920650",
+      "target": "a--181767306330084835",
+      "relation": "same-claim",
+      "label": "AI替代任务而非整个岗位",
+      "confidence": 0.85,
+      "reasonType": "需求本质",
+      "sourceTopic": "AI 现在写代码这么猛,咱程序员的核心竞争力还剩什么?",
+      "targetTopic": "为什么说只会码代码的码农没有前途?"
+    },
+    {
+      "source": "a-436754142026920650",
+      "target": "a--5495754290005366712",
+      "relation": "same-claim",
+      "label": "AI替代任务而非整个岗位",
+      "confidence": 0.85,
+      "reasonType": "需求本质",
+      "sourceTopic": "AI 现在写代码这么猛,咱程序员的核心竞争力还剩什么?",
+      "targetTopic": "Ai已横空出世,你有过一丝丝的担忧吗?"
+    },
+    {
+      "source": "a-436754142026920650",
+      "target": "a--1289976677312429097",
+      "relation": "same-claim",
+      "label": "AI难应对真实场景模糊信息",
+      "confidence": 0.75,
+      "reasonType": "需求本质",
+      "sourceTopic": "AI 现在写代码这么猛,咱程序员的核心竞争力还剩什么?",
+      "targetTopic": "医生会被AI取代吗?《实测5款AI医生:一个把我看哭了,一个差点把我“送走”!》?"
+    },
+    {
+      "source": "a-436754142026920650",
+      "target": "a--3507469898199004231",
+      "relation": "same-claim",
+      "label": "AI难应对真实场景复杂信息",
+      "confidence": 0.75,
+      "reasonType": "需求本质",
+      "sourceTopic": "AI 现在写代码这么猛,咱程序员的核心竞争力还剩什么?",
+      "targetTopic": "如果 AI 擅长法律检索和案例分析,那律师是不是最容易被替代的职业之一?"
+    },
+    {
+      "source": "a-436754142026920650",
+      "target": "a--8312072853190959879",
+      "relation": "same-claim",
+      "label": "AI难替代需语境理解的工作",
+      "confidence": 0.8,
+      "reasonType": "需求本质",
+      "sourceTopic": "AI 现在写代码这么猛,咱程序员的核心竞争力还剩什么?",
+      "targetTopic": "人工智能翻译机会取代传统的人工翻译吗?"
+    },
+    {
+      "source": "a--1082727288811701520",
+      "target": "a--181767306330084835",
+      "relation": "same-claim",
+      "label": "AI替代任务而非整个岗位",
+      "confidence": 0.85,
+      "reasonType": "需求本质",
+      "sourceTopic": "会计职业是否正在被淘汰?",
+      "targetTopic": "为什么说只会码代码的码农没有前途?"
+    },
+    {
+      "source": "a--1082727288811701520",
+      "target": "a--5495754290005366712",
+      "relation": "same-claim",
+      "label": "AI替代任务而非整个岗位",
+      "confidence": 0.85,
+      "reasonType": "需求本质",
+      "sourceTopic": "会计职业是否正在被淘汰?",
+      "targetTopic": "Ai已横空出世,你有过一丝丝的担忧吗?"
+    },
+    {
+      "source": "a--1082727288811701520",
+      "target": "a--1289976677312429097",
+      "relation": "same-claim",
+      "label": "AI难应对真实场景模糊信息",
+      "confidence": 0.75,
+      "reasonType": "需求本质",
+      "sourceTopic": "会计职业是否正在被淘汰?",
+      "targetTopic": "医生会被AI取代吗?《实测5款AI医生:一个把我看哭了,一个差点把我“送走”!》?"
+    },
+    {
+      "source": "a--1082727288811701520",
+      "target": "a--3507469898199004231",
+      "relation": "same-claim",
+      "label": "AI难应对真实场景复杂信息",
+      "confidence": 0.75,
+      "reasonType": "需求本质",
+      "sourceTopic": "会计职业是否正在被淘汰?",
+      "targetTopic": "如果 AI 擅长法律检索和案例分析,那律师是不是最容易被替代的职业之一?"
+    },
+    {
+      "source": "a--1082727288811701520",
+      "target": "a--8312072853190959879",
+      "relation": "same-claim",
+      "label": "AI难替代需语境理解的工作",
+      "confidence": 0.8,
+      "reasonType": "需求本质",
+      "sourceTopic": "会计职业是否正在被淘汰?",
+      "targetTopic": "人工智能翻译机会取代传统的人工翻译吗?"
+    },
+    {
+      "source": "a--181767306330084835",
+      "target": "a--5495754290005366712",
+      "relation": "same-claim",
+      "label": "AI替代任务而非整个岗位",
+      "confidence": 0.95,
+      "reasonType": "需求本质",
+      "sourceTopic": "为什么说只会码代码的码农没有前途?",
+      "targetTopic": "Ai已横空出世,你有过一丝丝的担忧吗?"
+    },
+    {
+      "source": "a--181767306330084835",
+      "target": "a--1289976677312429097",
+      "relation": "same-claim",
+      "label": "AI难应对真实场景模糊信息",
+      "confidence": 0.75,
+      "reasonType": "需求本质",
+      "sourceTopic": "为什么说只会码代码的码农没有前途?",
+      "targetTopic": "医生会被AI取代吗?《实测5款AI医生:一个把我看哭了,一个差点把我“送走”!》?"
+    },
+    {
+      "source": "a--181767306330084835",
+      "target": "a--3507469898199004231",
+      "relation": "same-claim",
+      "label": "AI难应对真实场景复杂信息",
+      "confidence": 0.75,
+      "reasonType": "需求本质",
+      "sourceTopic": "为什么说只会码代码的码农没有前途?",
+      "targetTopic": "如果 AI 擅长法律检索和案例分析,那律师是不是最容易被替代的职业之一?"
+    },
+    {
+      "source": "a--181767306330084835",
+      "target": "a--8312072853190959879",
+      "relation": "same-claim",
+      "label": "AI难替代需语境理解的工作",
+      "confidence": 0.8,
+      "reasonType": "需求本质",
+      "sourceTopic": "为什么说只会码代码的码农没有前途?",
+      "targetTopic": "人工智能翻译机会取代传统的人工翻译吗?"
+    },
+    {
+      "source": "a--5495754290005366712",
+      "target": "a--1289976677312429097",
+      "relation": "same-claim",
+      "label": "AI难应对真实场景模糊信息",
+      "confidence": 0.75,
+      "reasonType": "需求本质",
+      "sourceTopic": "Ai已横空出世,你有过一丝丝的担忧吗?",
+      "targetTopic": "医生会被AI取代吗?《实测5款AI医生:一个把我看哭了,一个差点把我“送走”!》?"
+    },
+    {
+      "source": "a--5495754290005366712",
+      "target": "a--3507469898199004231",
+      "relation": "same-claim",
+      "label": "AI难应对真实场景复杂信息",
+      "confidence": 0.75,
+      "reasonType": "需求本质",
+      "sourceTopic": "Ai已横空出世,你有过一丝丝的担忧吗?",
+      "targetTopic": "如果 AI 擅长法律检索和案例分析,那律师是不是最容易被替代的职业之一?"
+    },
+    {
+      "source": "a--5495754290005366712",
+      "target": "a--8312072853190959879",
+      "relation": "same-claim",
+      "label": "AI难替代需语境理解的工作",
+      "confidence": 0.8,
+      "reasonType": "需求本质",
+      "sourceTopic": "Ai已横空出世,你有过一丝丝的担忧吗?",
+      "targetTopic": "人工智能翻译机会取代传统的人工翻译吗?"
+    },
+    {
+      "source": "a--1289976677312429097",
+      "target": "a--3507469898199004231",
+      "relation": "same-claim",
+      "label": "AI难应对真实场景复杂信息",
+      "confidence": 0.9,
+      "reasonType": "需求本质",
+      "sourceTopic": "医生会被AI取代吗?《实测5款AI医生:一个把我看哭了,一个差点把我“送走”!》?",
+      "targetTopic": "如果 AI 擅长法律检索和案例分析,那律师是不是最容易被替代的职业之一?"
+    },
+    {
+      "source": "a--1289976677312429097",
+      "target": "a--8312072853190959879",
+      "relation": "same-claim",
+      "label": "AI难替代需语境理解的工作",
+      "confidence": 0.8,
+      "reasonType": "需求本质",
+      "sourceTopic": "医生会被AI取代吗?《实测5款AI医生:一个把我看哭了,一个差点把我“送走”!》?",
+      "targetTopic": "人工智能翻译机会取代传统的人工翻译吗?"
+    },
+    {
+      "source": "a--3507469898199004231",
+      "target": "a--8312072853190959879",
+      "relation": "same-claim",
+      "label": "AI难替代需语境理解的工作",
+      "confidence": 0.8,
+      "reasonType": "需求本质",
+      "sourceTopic": "如果 AI 擅长法律检索和案例分析,那律师是不是最容易被替代的职业之一?",
+      "targetTopic": "人工智能翻译机会取代传统的人工翻译吗?"
+    },
+    {
+      "source": "a-7503358984877483228",
+      "target": "a--8312072853190959879",
+      "relation": "same-claim",
+      "label": "AI只替代执行不替代核心",
+      "confidence": 0.85,
+      "reasonType": "需求本质",
+      "sourceTopic": "到现在为止,AI绘画让多少画师失业了?未来又会让多少画师失业?",
+      "targetTopic": "人工智能翻译机会取代传统的人工翻译吗?"
+    },
+    {
+      "source": "a-7503358984877483228",
+      "target": "a--4342822993392195980",
+      "relation": "same-claim",
+      "label": "AI只替代执行不替代核心",
+      "confidence": 0.85,
+      "reasonType": "需求本质",
+      "sourceTopic": "到现在为止,AI绘画让多少画师失业了?未来又会让多少画师失业?",
+      "targetTopic": "现在AI编程这么厉害,还有必要深入学习编程吗?"
+    },
+    {
+      "source": "a-7503358984877483228",
+      "target": "a--7698897246818580850",
+      "relation": "same-claim",
+      "label": "AI只替代执行不替代核心",
+      "confidence": 0.85,
+      "reasonType": "需求本质",
+      "sourceTopic": "到现在为止,AI绘画让多少画师失业了?未来又会让多少画师失业?",
+      "targetTopic": "在大模型和 AI 工具普及的当下,文案策划与内容运营者应该具备哪些不可替代的核心能力?"
+    },
+    {
+      "source": "a-7503358984877483228",
+      "target": "a-6558078831559221404",
+      "relation": "rebuts",
+      "label": "AI是否取代创造性工作",
+      "confidence": 0.8,
+      "reasonType": "需求本质",
+      "sourceTopic": "到现在为止,AI绘画让多少画师失业了?未来又会让多少画师失业?",
+      "targetTopic": "AI 越来越强大,创造性工作会被取代吗?"
+    },
+    {
+      "source": "a--8312072853190959879",
+      "target": "a--4342822993392195980",
+      "relation": "same-claim",
+      "label": "AI只替代执行不替代核心",
+      "confidence": 0.85,
+      "reasonType": "需求本质",
+      "sourceTopic": "人工智能翻译机会取代传统的人工翻译吗?",
+      "targetTopic": "现在AI编程这么厉害,还有必要深入学习编程吗?"
+    },
+    {
+      "source": "a--8312072853190959879",
+      "target": "a--7698897246818580850",
+      "relation": "same-claim",
+      "label": "AI只替代执行不替代核心",
+      "confidence": 0.85,
+      "reasonType": "需求本质",
+      "sourceTopic": "人工智能翻译机会取代传统的人工翻译吗?",
+      "targetTopic": "在大模型和 AI 工具普及的当下,文案策划与内容运营者应该具备哪些不可替代的核心能力?"
+    },
+    {
+      "source": "a--8312072853190959879",
+      "target": "a-6558078831559221404",
+      "relation": "rebuts",
+      "label": "AI是否取代创造性工作",
+      "confidence": 0.75,
+      "reasonType": "需求本质",
+      "sourceTopic": "人工智能翻译机会取代传统的人工翻译吗?",
+      "targetTopic": "AI 越来越强大,创造性工作会被取代吗?"
+    },
+    {
+      "source": "a--4342822993392195980",
+      "target": "a--7698897246818580850",
+      "relation": "same-claim",
+      "label": "AI只替代执行不替代核心",
+      "confidence": 0.85,
+      "reasonType": "需求本质",
+      "sourceTopic": "现在AI编程这么厉害,还有必要深入学习编程吗?",
+      "targetTopic": "在大模型和 AI 工具普及的当下,文案策划与内容运营者应该具备哪些不可替代的核心能力?"
+    },
+    {
+      "source": "a--4342822993392195980",
+      "target": "a-6558078831559221404",
+      "relation": "rebuts",
+      "label": "AI是否取代创造性工作",
+      "confidence": 0.75,
+      "reasonType": "需求本质",
+      "sourceTopic": "现在AI编程这么厉害,还有必要深入学习编程吗?",
+      "targetTopic": "AI 越来越强大,创造性工作会被取代吗?"
+    },
+    {
+      "source": "a--7698897246818580850",
+      "target": "a-6558078831559221404",
+      "relation": "rebuts",
+      "label": "AI是否取代创造性工作",
+      "confidence": 0.75,
+      "reasonType": "需求本质",
+      "sourceTopic": "在大模型和 AI 工具普及的当下,文案策划与内容运营者应该具备哪些不可替代的核心能力?",
+      "targetTopic": "AI 越来越强大,创造性工作会被取代吗?"
+    },
+    {
+      "source": "a-8863528003331150212",
+      "target": "a--8937250665072027492",
+      "relation": "rebuts",
+      "label": "AI是否导致大规模失业",
+      "confidence": 0.8,
+      "reasonType": "行业周期",
+      "sourceTopic": "AI 已经/即将摧毁哪些行业?",
+      "targetTopic": "网传 OpenAI 招外包训练 ChatGPT 取代码农,会成功吗?"
+    },
+    {
+      "source": "a--5875857366329936476",
+      "target": "a--8414699585281428141",
+      "relation": "same-claim",
+      "label": "计算机仍值得学但门槛提高",
+      "confidence": 0.9,
+      "reasonType": "行业周期",
+      "sourceTopic": "计算机还推荐学吗?",
+      "targetTopic": "2026 计算机科学专业还值得报考吗?"
+    },
+    {
+      "source": "a-3216813244614454094",
+      "target": "a--8937250665072027492",
+      "relation": "same-claim",
+      "label": "AI不导致大规模失业",
+      "confidence": 0.8,
+      "reasonType": "行业周期",
+      "sourceTopic": "有人说人工智能抢走了普通人的工作是这样吗?",
+      "targetTopic": "网传 OpenAI 招外包训练 ChatGPT 取代码农,会成功吗?"
+    },
+    {
+      "source": "a--5009218611275704310",
+      "target": "a--8937250665072027492",
+      "relation": "rebuts",
+      "label": "AI是否导致岗位收缩",
+      "confidence": 0.7,
+      "reasonType": "行业周期",
+      "sourceTopic": "未来公办学校教师,会迎来下岗潮吗?",
+      "targetTopic": "网传 OpenAI 招外包训练 ChatGPT 取代码农,会成功吗?"
+    },
+    {
+      "source": "a--8937250665072027492",
+      "target": "a-3132737687244157601",
+      "relation": "rebuts",
+      "label": "AI是否导致程序员失业",
+      "confidence": 0.9,
+      "reasonType": "行业周期",
+      "sourceTopic": "网传 OpenAI 招外包训练 ChatGPT 取代码农,会成功吗?",
+      "targetTopic": "为什么别选计算机专业?"
+    },
+    {
+      "source": "a--8937250665072027492",
+      "target": "a--8887061255577345053",
+      "relation": "same-claim",
+      "label": "AI只替代重复性工作",
+      "confidence": 0.8,
+      "reasonType": "行业周期",
+      "sourceTopic": "网传 OpenAI 招外包训练 ChatGPT 取代码农,会成功吗?",
+      "targetTopic": "为什么律师不会完全被AI取代?"
+    },
+    {
+      "source": "a--8937250665072027492",
+      "target": "a--2147618782599451840",
+      "relation": "same-claim",
+      "label": "AI冲击被夸大且难替代核心",
+      "confidence": 0.8,
+      "reasonType": "行业周期",
+      "sourceTopic": "网传 OpenAI 招外包训练 ChatGPT 取代码农,会成功吗?",
+      "targetTopic": "随着AI的出现,翻译这个行业是不是凉的透透的了?"
+    },
+    {
+      "source": "a-3132737687244157601",
+      "target": "a--8887061255577345053",
+      "relation": "rebuts",
+      "label": "AI是否导致专业岗位消失",
+      "confidence": 0.8,
+      "reasonType": "行业周期",
+      "sourceTopic": "为什么别选计算机专业?",
+      "targetTopic": "为什么律师不会完全被AI取代?"
+    },
+    {
+      "source": "a-3132737687244157601",
+      "target": "a--2147618782599451840",
+      "relation": "rebuts",
+      "label": "AI对行业冲击是否被夸大",
+      "confidence": 0.8,
+      "reasonType": "行业周期",
+      "sourceTopic": "为什么别选计算机专业?",
+      "targetTopic": "随着AI的出现,翻译这个行业是不是凉的透透的了?"
+    },
+    {
+      "source": "a--8887061255577345053",
+      "target": "a--2147618782599451840",
+      "relation": "same-claim",
+      "label": "AI只替代重复性工作",
+      "confidence": 0.8,
+      "reasonType": "行业周期",
+      "sourceTopic": "为什么律师不会完全被AI取代?",
+      "targetTopic": "随着AI的出现,翻译这个行业是不是凉的透透的了?"
+    },
+    {
+      "source": "a-8130782778536502254",
+      "target": "a--5721180101230092572",
+      "relation": "rebuts",
+      "label": "AI对程序员/年轻人机会的影响",
+      "confidence": 0.8,
+      "reasonType": "行业周期",
+      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+      "targetTopic": "AI 会让年轻人的机会变多还是变少?"
+    },
+    {
+      "source": "a-8130782778536502254",
+      "target": "a--8964003959406597522",
+      "relation": "same-claim",
+      "label": "AI只替代低端执行岗位",
+      "confidence": 0.85,
+      "reasonType": "行业周期",
+      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+      "targetTopic": "现在学会计已经没有前途了吗?"
+    },
+    {
+      "source": "a-3265745577596313635",
+      "target": "a-919684638745255504",
+      "relation": "rebuts",
+      "label": "师范专业是否值得报考",
+      "confidence": 0.9,
+      "reasonType": "行业周期",
+      "sourceTopic": "师范生饱和,出生人口下降,师范类专业是不是不建议报了?",
+      "targetTopic": "现在这样的就业形势,还有必要报师范吗?"
+    },
+    {
+      "source": "a-919684638745255504",
+      "target": "a--6298885924988383459",
+      "relation": "rebuts",
+      "label": "师范专业是否值得报考",
+      "confidence": 0.8,
+      "reasonType": "行业周期",
+      "sourceTopic": "现在这样的就业形势,还有必要报师范吗?",
+      "targetTopic": "师范生饱和,出生人口下降,师范类专业是不是不建议报了?"
+    },
+    {
+      "source": "a--276276232786293620",
       "target": "a--3596866254648524842",
       "relation": "same-claim",
-      "label": "程序员价值转向担责",
-      "confidence": 0.95,
+      "label": "AI只替代执行层不替代担责层",
+      "confidence": 0.85,
       "reasonType": "责任归属",
-      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+      "sourceTopic": "Block 因AI裁员近50%,码农裁70%,股价飙涨24%,AI真会取代大部分人的工作吗?",
       "targetTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?"
     },
     {
-      "source": "a-7506223916112815660",
-      "target": "a--3606585513578338451",
+      "source": "a--276276232786293620",
+      "target": "a--3430818952854333748",
       "relation": "same-claim",
-      "label": "人类核心价值在担责",
+      "label": "AI只替代执行层不替代担责层",
       "confidence": 0.85,
       "reasonType": "责任归属",
-      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
-      "targetTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?"
+      "sourceTopic": "Block 因AI裁员近50%,码农裁70%,股价飙涨24%,AI真会取代大部分人的工作吗?",
+      "targetTopic": "ai辅助编程,能替代程序员吗?"
+    },
+    {
+      "source": "a--7916746516158566518",
+      "target": "a--3596866254648524842",
+      "relation": "same-claim",
+      "label": "AI只替代执行层不替代担责层",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "未来30年,医生这个职业将如何演化?",
+      "targetTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?"
+    },
+    {
+      "source": "a--7916746516158566518",
+      "target": "a--3430818952854333748",
+      "relation": "same-claim",
+      "label": "AI只替代执行层不替代担责层",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "未来30年,医生这个职业将如何演化?",
+      "targetTopic": "ai辅助编程,能替代程序员吗?"
+    },
+    {
+      "source": "a--7358295969482173416",
+      "target": "a--7010234659398858855",
+      "relation": "same-claim",
+      "label": "AI无法替代担责与判断角色",
+      "confidence": 0.9,
+      "reasonType": "责任归属",
+      "sourceTopic": "如果 AI 能给出很多健康答案,医生真正不可替代的地方是什么?",
+      "targetTopic": "会计专业为什么会被吐槽为「人工智能都玩不转的知名天坑专业」?"
+    },
+    {
+      "source": "a--7358295969482173416",
+      "target": "a--3596866254648524842",
+      "relation": "same-claim",
+      "label": "AI无法替代担责与判断角色",
+      "confidence": 0.9,
+      "reasonType": "责任归属",
+      "sourceTopic": "如果 AI 能给出很多健康答案,医生真正不可替代的地方是什么?",
+      "targetTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?"
+    },
+    {
+      "source": "a--7358295969482173416",
+      "target": "a--3430818952854333748",
+      "relation": "same-claim",
+      "label": "AI无法替代担责与判断角色",
+      "confidence": 0.9,
+      "reasonType": "责任归属",
+      "sourceTopic": "如果 AI 能给出很多健康答案,医生真正不可替代的地方是什么?",
+      "targetTopic": "ai辅助编程,能替代程序员吗?"
+    },
+    {
+      "source": "a--7358295969482173416",
+      "target": "a--4114725474784259529",
+      "relation": "same-claim",
+      "label": "AI无法替代担责与判断角色",
+      "confidence": 0.9,
+      "reasonType": "责任归属",
+      "sourceTopic": "如果 AI 能给出很多健康答案,医生真正不可替代的地方是什么?",
+      "targetTopic": "AI来了,大量医生失业了,这样真的对吗?"
+    },
+    {
+      "source": "a--7010234659398858855",
+      "target": "a--3596866254648524842",
+      "relation": "same-claim",
+      "label": "AI无法替代担责与判断角色",
+      "confidence": 0.9,
+      "reasonType": "责任归属",
+      "sourceTopic": "会计专业为什么会被吐槽为「人工智能都玩不转的知名天坑专业」?",
+      "targetTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?"
+    },
+    {
+      "source": "a--7010234659398858855",
+      "target": "a--3430818952854333748",
+      "relation": "same-claim",
+      "label": "AI无法替代担责与判断角色",
+      "confidence": 0.9,
+      "reasonType": "责任归属",
+      "sourceTopic": "会计专业为什么会被吐槽为「人工智能都玩不转的知名天坑专业」?",
+      "targetTopic": "ai辅助编程,能替代程序员吗?"
+    },
+    {
+      "source": "a--7010234659398858855",
+      "target": "a--4114725474784259529",
+      "relation": "same-claim",
+      "label": "AI无法替代担责与判断角色",
+      "confidence": 0.85,
+      "reasonType": "责任归属",
+      "sourceTopic": "会计专业为什么会被吐槽为「人工智能都玩不转的知名天坑专业」?",
+      "targetTopic": "AI来了,大量医生失业了,这样真的对吗?"
+    },
+    {
+      "source": "a--7010234659398858855",
+      "target": "a--588152754090473948",
+      "relation": "same-claim",
+      "label": "AI无法替代担责与判断角色",
+      "confidence": 0.9,
+      "reasonType": "责任归属",
+      "sourceTopic": "会计专业为什么会被吐槽为「人工智能都玩不转的知名天坑专业」?",
+      "targetTopic": "如果 AI 能给出很多健康答案,医生真正不可替代的地方是什么?"
     },
     {
       "source": "a--3596866254648524842",
-      "target": "a--3606585513578338451",
+      "target": "a--3430818952854333748",
       "relation": "same-claim",
-      "label": "AI时代核心价值是担责",
+      "label": "AI只替代执行层不替代担责层",
+      "confidence": 0.95,
+      "reasonType": "责任归属",
+      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+      "targetTopic": "ai辅助编程,能替代程序员吗?"
+    },
+    {
+      "source": "a--3596866254648524842",
+      "target": "a--4114725474784259529",
+      "relation": "same-claim",
+      "label": "AI只替代执行层不替代担责层",
       "confidence": 0.85,
       "reasonType": "责任归属",
       "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+      "targetTopic": "AI来了,大量医生失业了,这样真的对吗?"
+    },
+    {
+      "source": "a--3596866254648524842",
+      "target": "a--588152754090473948",
+      "relation": "same-claim",
+      "label": "AI只替代执行层不替代担责层",
+      "confidence": 0.85,
+      "reasonType": "责任归属",
+      "sourceTopic": "如果人人都可以通过 AI 写代码,程序员还需要存在吗?未来的程序员的工作会是什么?",
+      "targetTopic": "如果 AI 能给出很多健康答案,医生真正不可替代的地方是什么?"
+    },
+    {
+      "source": "a--3430818952854333748",
+      "target": "a--4114725474784259529",
+      "relation": "same-claim",
+      "label": "AI只替代执行层不替代担责层",
+      "confidence": 0.85,
+      "reasonType": "责任归属",
+      "sourceTopic": "ai辅助编程,能替代程序员吗?",
+      "targetTopic": "AI来了,大量医生失业了,这样真的对吗?"
+    },
+    {
+      "source": "a--3430818952854333748",
+      "target": "a--588152754090473948",
+      "relation": "same-claim",
+      "label": "AI只替代执行层不替代担责层",
+      "confidence": 0.85,
+      "reasonType": "责任归属",
+      "sourceTopic": "ai辅助编程,能替代程序员吗?",
+      "targetTopic": "如果 AI 能给出很多健康答案,医生真正不可替代的地方是什么?"
+    },
+    {
+      "source": "a--4114725474784259529",
+      "target": "a--588152754090473948",
+      "relation": "same-claim",
+      "label": "AI无法替代担责与判断角色",
+      "confidence": 0.9,
+      "reasonType": "责任归属",
+      "sourceTopic": "AI来了,大量医生失业了,这样真的对吗?",
+      "targetTopic": "如果 AI 能给出很多健康答案,医生真正不可替代的地方是什么?"
+    },
+    {
+      "source": "a--4114725474784259529",
+      "target": "a-2220612879756739023",
+      "relation": "same-claim",
+      "label": "医生不可替代因责任兜底",
+      "confidence": 0.9,
+      "reasonType": "责任归属",
+      "sourceTopic": "AI来了,大量医生失业了,这样真的对吗?",
+      "targetTopic": "如果 AI 能给出很多健康答案,医生真正不可替代的地方是什么?"
+    },
+    {
+      "source": "a--4114725474784259529",
+      "target": "a--6189677471261522049",
+      "relation": "same-claim",
+      "label": "医生不可替代因责任兜底",
+      "confidence": 0.9,
+      "reasonType": "责任归属",
+      "sourceTopic": "AI来了,大量医生失业了,这样真的对吗?",
+      "targetTopic": "如果 AI 能给出很多健康答案,医生真正不可替代的地方是什么?"
+    },
+    {
+      "source": "a--4114725474784259529",
+      "target": "a--4702340177340402524",
+      "relation": "same-claim",
+      "label": "医生不可替代因责任兜底",
+      "confidence": 0.9,
+      "reasonType": "责任归属",
+      "sourceTopic": "AI来了,大量医生失业了,这样真的对吗?",
+      "targetTopic": "如果 AI 能给出很多健康答案,医生真正不可替代的地方是什么?"
+    },
+    {
+      "source": "a-7432431057572437253",
+      "target": "a-1107566537735583804",
+      "relation": "same-claim",
+      "label": "AI替代执行不替代担责",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "为什么很多律师不承认法律是受人工智能影响最大的行业之一?",
+      "targetTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?"
+    },
+    {
+      "source": "a-7432431057572437253",
+      "target": "a--8930286753779581760",
+      "relation": "same-claim",
+      "label": "AI替代执行不替代担责",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "为什么很多律师不承认法律是受人工智能影响最大的行业之一?",
+      "targetTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?"
+    },
+    {
+      "source": "a-2322413823008857432",
+      "target": "a-1107566537735583804",
+      "relation": "same-claim",
+      "label": "AI替代执行不替代担责",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "为什么很多律师不承认法律是受人工智能影响最大的行业之一?",
+      "targetTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?"
+    },
+    {
+      "source": "a-2322413823008857432",
+      "target": "a--8930286753779581760",
+      "relation": "same-claim",
+      "label": "AI替代执行不替代担责",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "为什么很多律师不承认法律是受人工智能影响最大的行业之一?",
+      "targetTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?"
+    },
+    {
+      "source": "a-1107566537735583804",
+      "target": "a--8930286753779581760",
+      "relation": "same-claim",
+      "label": "AI替代执行不替代担责",
+      "confidence": 0.85,
+      "reasonType": "责任归属",
+      "sourceTopic": "ai 已经能编出很完美的程序,程序员这个行业以后是不是会消失?",
+      "targetTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?"
+    },
+    {
+      "source": "a--8930286753779581760",
+      "target": "a-7994886401338126615",
+      "relation": "same-claim",
+      "label": "AI替代执行不替代担责",
+      "confidence": 0.9,
+      "reasonType": "责任归属",
+      "sourceTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?",
+      "targetTopic": "在面临ai冲击时,企业内的财务和法务岗是变得更容易被取代,还是更具有不可替代性?"
+    },
+    {
+      "source": "a--8930286753779581760",
+      "target": "a--3606585513578338451",
+      "relation": "same-claim",
+      "label": "人类核心在担责",
+      "confidence": 0.85,
+      "reasonType": "责任归属",
+      "sourceTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?",
       "targetTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?"
+    },
+    {
+      "source": "a--8930286753779581760",
+      "target": "a-7611596246177389232",
+      "relation": "same-claim",
+      "label": "责任归属阻碍AI取代",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?",
+      "targetTopic": "AI医生在三甲医院辅助诊疗,病情评估更快更准,3-5分钟给出诊断报告,AI未来会取代人类医生吗?"
+    },
+    {
+      "source": "a--8930286753779581760",
+      "target": "a-9061874944177274305",
+      "relation": "same-claim",
+      "label": "AI辅助人担责",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?",
+      "targetTopic": "会计怎样才能不被AI取代?"
+    },
+    {
+      "source": "a--8930286753779581760",
+      "target": "a-8040323482570605366",
+      "relation": "same-claim",
+      "label": "AI是助手非替代",
+      "confidence": 0.85,
+      "reasonType": "责任归属",
+      "sourceTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?",
+      "targetTopic": "医院的医疗设备能取代医生吗?"
+    },
+    {
+      "source": "a--8930286753779581760",
+      "target": "a--3455695536040532606",
+      "relation": "same-claim",
+      "label": "问责基础缺失阻碍替代",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?",
+      "targetTopic": "多款医疗 AI 已问世,能否打败人类医生?"
+    },
+    {
+      "source": "a-7994886401338126615",
+      "target": "a--3606585513578338451",
+      "relation": "same-claim",
+      "label": "担责是AI不可替代核心",
+      "confidence": 0.9,
+      "reasonType": "责任归属",
+      "sourceTopic": "在面临ai冲击时,企业内的财务和法务岗是变得更容易被取代,还是更具有不可替代性?",
+      "targetTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?"
+    },
+    {
+      "source": "a-7994886401338126615",
+      "target": "a-7611596246177389232",
+      "relation": "same-claim",
+      "label": "责任归属阻碍AI取代",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "在面临ai冲击时,企业内的财务和法务岗是变得更容易被取代,还是更具有不可替代性?",
+      "targetTopic": "AI医生在三甲医院辅助诊疗,病情评估更快更准,3-5分钟给出诊断报告,AI未来会取代人类医生吗?"
+    },
+    {
+      "source": "a-7994886401338126615",
+      "target": "a-9061874944177274305",
+      "relation": "same-claim",
+      "label": "AI辅助人担责",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "在面临ai冲击时,企业内的财务和法务岗是变得更容易被取代,还是更具有不可替代性?",
+      "targetTopic": "会计怎样才能不被AI取代?"
+    },
+    {
+      "source": "a-7994886401338126615",
+      "target": "a-8040323482570605366",
+      "relation": "same-claim",
+      "label": "AI是助手非替代",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "在面临ai冲击时,企业内的财务和法务岗是变得更容易被取代,还是更具有不可替代性?",
+      "targetTopic": "医院的医疗设备能取代医生吗?"
+    },
+    {
+      "source": "a-7994886401338126615",
+      "target": "a--3455695536040532606",
+      "relation": "same-claim",
+      "label": "问责基础缺失阻碍替代",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "在面临ai冲击时,企业内的财务和法务岗是变得更容易被取代,还是更具有不可替代性?",
+      "targetTopic": "多款医疗 AI 已问世,能否打败人类医生?"
+    },
+    {
+      "source": "a--3606585513578338451",
+      "target": "a-7611596246177389232",
+      "relation": "same-claim",
+      "label": "责任归属阻碍AI取代",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?",
+      "targetTopic": "AI医生在三甲医院辅助诊疗,病情评估更快更准,3-5分钟给出诊断报告,AI未来会取代人类医生吗?"
+    },
+    {
+      "source": "a--3606585513578338451",
+      "target": "a-9061874944177274305",
+      "relation": "same-claim",
+      "label": "AI辅助人担责",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?",
+      "targetTopic": "会计怎样才能不被AI取代?"
+    },
+    {
+      "source": "a--3606585513578338451",
+      "target": "a-8040323482570605366",
+      "relation": "same-claim",
+      "label": "AI是助手非替代",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?",
+      "targetTopic": "医院的医疗设备能取代医生吗?"
+    },
+    {
+      "source": "a--3606585513578338451",
+      "target": "a--3455695536040532606",
+      "relation": "same-claim",
+      "label": "问责基础缺失阻碍替代",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "和 AI 相比,我们作为人类的核心竞争力是什么?",
+      "targetTopic": "多款医疗 AI 已问世,能否打败人类医生?"
+    },
+    {
+      "source": "a-7611596246177389232",
+      "target": "a-9061874944177274305",
+      "relation": "same-claim",
+      "label": "AI辅助人担责",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "AI医生在三甲医院辅助诊疗,病情评估更快更准,3-5分钟给出诊断报告,AI未来会取代人类医生吗?",
+      "targetTopic": "会计怎样才能不被AI取代?"
+    },
+    {
+      "source": "a-7611596246177389232",
+      "target": "a-8040323482570605366",
+      "relation": "same-claim",
+      "label": "AI是助手非替代",
+      "confidence": 0.9,
+      "reasonType": "责任归属",
+      "sourceTopic": "AI医生在三甲医院辅助诊疗,病情评估更快更准,3-5分钟给出诊断报告,AI未来会取代人类医生吗?",
+      "targetTopic": "医院的医疗设备能取代医生吗?"
+    },
+    {
+      "source": "a-7611596246177389232",
+      "target": "a--3455695536040532606",
+      "relation": "same-claim",
+      "label": "问责基础缺失阻碍替代",
+      "confidence": 0.85,
+      "reasonType": "责任归属",
+      "sourceTopic": "AI医生在三甲医院辅助诊疗,病情评估更快更准,3-5分钟给出诊断报告,AI未来会取代人类医生吗?",
+      "targetTopic": "多款医疗 AI 已问世,能否打败人类医生?"
+    },
+    {
+      "source": "a-9061874944177274305",
+      "target": "a-8040323482570605366",
+      "relation": "same-claim",
+      "label": "AI辅助人担责",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "会计怎样才能不被AI取代?",
+      "targetTopic": "医院的医疗设备能取代医生吗?"
+    },
+    {
+      "source": "a-9061874944177274305",
+      "target": "a--3455695536040532606",
+      "relation": "same-claim",
+      "label": "问责基础缺失阻碍替代",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "会计怎样才能不被AI取代?",
+      "targetTopic": "多款医疗 AI 已问世,能否打败人类医生?"
+    },
+    {
+      "source": "a-8040323482570605366",
+      "target": "a--3455695536040532606",
+      "relation": "same-claim",
+      "label": "问责基础缺失阻碍替代",
+      "confidence": 0.85,
+      "reasonType": "责任归属",
+      "sourceTopic": "医院的医疗设备能取代医生吗?",
+      "targetTopic": "多款医疗 AI 已问世,能否打败人类医生?"
+    },
+    {
+      "source": "a-8040323482570605366",
+      "target": "a--4941960030255857488",
+      "relation": "same-claim",
+      "label": "AI医疗应赋能而非替代",
+      "confidence": 0.95,
+      "reasonType": "责任归属",
+      "sourceTopic": "医院的医疗设备能取代医生吗?",
+      "targetTopic": "AI在医疗领域能否完全取代医生?"
+    },
+    {
+      "source": "a-8040323482570605366",
+      "target": "a--5871390188075001269",
+      "relation": "same-claim",
+      "label": "AI只替代执行不替代判断",
+      "confidence": 0.85,
+      "reasonType": "责任归属",
+      "sourceTopic": "医院的医疗设备能取代医生吗?",
+      "targetTopic": "会计怎样才能不被AI取代?"
+    },
+    {
+      "source": "a-8040323482570605366",
+      "target": "a-1564466387070499726",
+      "relation": "same-claim",
+      "label": "AI只替代执行不替代判断",
+      "confidence": 0.85,
+      "reasonType": "责任归属",
+      "sourceTopic": "医院的医疗设备能取代医生吗?",
+      "targetTopic": "AI时代早已来临,财务人员如何应对AI冲击?"
+    },
+    {
+      "source": "a-8040323482570605366",
+      "target": "a-2059609074143167601",
+      "relation": "same-claim",
+      "label": "AI不替代需担责的人类角色",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "医院的医疗设备能取代医生吗?",
+      "targetTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?"
+    },
+    {
+      "source": "a-8040323482570605366",
+      "target": "a--9033255501595148655",
+      "relation": "same-claim",
+      "label": "AI应辅助而非替代人类",
+      "confidence": 0.9,
+      "reasonType": "责任归属",
+      "sourceTopic": "医院的医疗设备能取代医生吗?",
+      "targetTopic": "AI智能客服真的智能吗?未来是否真的能替代人工客服?"
+    },
+    {
+      "source": "a--4941960030255857488",
+      "target": "a--5871390188075001269",
+      "relation": "same-claim",
+      "label": "AI只替代执行不替代判断",
+      "confidence": 0.85,
+      "reasonType": "责任归属",
+      "sourceTopic": "AI在医疗领域能否完全取代医生?",
+      "targetTopic": "会计怎样才能不被AI取代?"
+    },
+    {
+      "source": "a--4941960030255857488",
+      "target": "a-1564466387070499726",
+      "relation": "same-claim",
+      "label": "AI只替代执行不替代判断",
+      "confidence": 0.85,
+      "reasonType": "责任归属",
+      "sourceTopic": "AI在医疗领域能否完全取代医生?",
+      "targetTopic": "AI时代早已来临,财务人员如何应对AI冲击?"
+    },
+    {
+      "source": "a--4941960030255857488",
+      "target": "a-2059609074143167601",
+      "relation": "same-claim",
+      "label": "AI不替代需担责的人类角色",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "AI在医疗领域能否完全取代医生?",
+      "targetTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?"
+    },
+    {
+      "source": "a--4941960030255857488",
+      "target": "a--9033255501595148655",
+      "relation": "same-claim",
+      "label": "AI应辅助而非替代人类",
+      "confidence": 0.9,
+      "reasonType": "责任归属",
+      "sourceTopic": "AI在医疗领域能否完全取代医生?",
+      "targetTopic": "AI智能客服真的智能吗?未来是否真的能替代人工客服?"
+    },
+    {
+      "source": "a--5871390188075001269",
+      "target": "a-1564466387070499726",
+      "relation": "same-claim",
+      "label": "AI只替代执行不替代判断",
+      "confidence": 0.95,
+      "reasonType": "责任归属",
+      "sourceTopic": "会计怎样才能不被AI取代?",
+      "targetTopic": "AI时代早已来临,财务人员如何应对AI冲击?"
+    },
+    {
+      "source": "a--5871390188075001269",
+      "target": "a-2059609074143167601",
+      "relation": "same-claim",
+      "label": "AI不替代需担责的人类角色",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "会计怎样才能不被AI取代?",
+      "targetTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?"
+    },
+    {
+      "source": "a--5871390188075001269",
+      "target": "a--9033255501595148655",
+      "relation": "same-claim",
+      "label": "AI应辅助而非替代人类",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "会计怎样才能不被AI取代?",
+      "targetTopic": "AI智能客服真的智能吗?未来是否真的能替代人工客服?"
+    },
+    {
+      "source": "a-1564466387070499726",
+      "target": "a-2059609074143167601",
+      "relation": "same-claim",
+      "label": "AI不替代需担责的人类角色",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "AI时代早已来临,财务人员如何应对AI冲击?",
+      "targetTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?"
+    },
+    {
+      "source": "a-1564466387070499726",
+      "target": "a--9033255501595148655",
+      "relation": "same-claim",
+      "label": "AI应辅助而非替代人类",
+      "confidence": 0.8,
+      "reasonType": "责任归属",
+      "sourceTopic": "AI时代早已来临,财务人员如何应对AI冲击?",
+      "targetTopic": "AI智能客服真的智能吗?未来是否真的能替代人工客服?"
+    },
+    {
+      "source": "a-2059609074143167601",
+      "target": "a--9033255501595148655",
+      "relation": "same-claim",
+      "label": "AI不替代需担责的人类角色",
+      "confidence": 0.75,
+      "reasonType": "责任归属",
+      "sourceTopic": "AI写程序的能力毋庸置疑很强大,为何没有取代程序员,是哪个环节的原因?",
+      "targetTopic": "AI智能客服真的智能吗?未来是否真的能替代人工客服?"
     }
   ]
 }

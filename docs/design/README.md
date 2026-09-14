@@ -37,7 +37,7 @@
 | 议题图谱 | 聚类布局的真实议题关系网络，是树的索引页 | （辩论树 PRD F1 的一部分） | 同上（原型内「议题图谱」Tab） |
 | 实时辩论间 | 围绕知乎问题临时开间，**选边制开局**（预设论点对、真人优先 Bot 兜底），五阶段轮次制对局（定义随立论给出、可被质询），轮次结束产出对局报告（**v0.6 选边制；已去树化、去概念对齐**） | `debate-room-PRD.md` | `prototypes/debate-room-prototype.html` |
 | 事件推演 | **沉浸式历史角色扮演**：你是事件里的一个角色，你的决定改变走向；原作只在终局可选揭示 | `event-replay-PRD.md`（v0.5） | `prototypes/event-replay-prototype.html`（旧形态存档，**不再用于演示**） |
-| 跨议题争议地图 | 同一主张跨议题的横向索引，发现「该吵哪一场」 | `controversy-map-PRD.md` | runi-desktop `?view=map`（已发布在线） |
+| 跨议题争议地图 | 同一主张跨议题的横向索引，发现「该吵哪一场」；**v0.2 视觉增强（2026-09-14，卡 3-4）**：凸包分组底色 / 连线透明度分层 + 缝合线弧线化 / 标签密度三档 | `controversy-map-PRD.md`（v0.2）＋ `controversy-map-PLAN.md` ＋ `controversy-map-VISUAL-REFERENCES.md` | runi-desktop `?view=map`（已发布在线） |
 | ~~力导向辩论图~~ | **已于 2026-09-13 拍板下线（D3）**——单议题对垒感知的职责由争议地图与辩论树覆盖；`?view=force` 相关代码已移除 | — | 代码已移除（`prototypes/` 的 debate-graph 原型保留为历史存档） |
 
 **两图分工（历史注记）**：力导向图原管**议题内部**（正反两军怎么布阵、证据多厚、反驳打在哪），争议地图管**议题之间**（哪些主张横跨多个议题、哪里在跨议题地冲突）。判别准则：**若两张图节点与边完全相同、只有排布算法不同，就是同一个可视化**——所以争议地图引入了树物理上无法承载的 `cluster` 多父节点与 `bridge`/`rebuts` 跨议题边。**D3 拍板后力导向图已下线**：争议地图同时承担两层感知，单议题内部展开交给辩论树。
@@ -72,6 +72,7 @@
 
 - 四份 PRD + 四个原型 + 1 个集成应用，全部知乎风（蓝 #056DE8 / 白 / 黑）。
 - 运行时测试五套 195 项全绿（`debate-graph 52 / debate-room 41 / debate-tree-v2 40 / event-replay 26 / app 36`，Node DOM 桩真实执行页内脚本）。
+- **争议地图 v0.2 视觉增强（2026-09-14，卡 3-4）**：凸包分组底色 / 连线透明度分层 + 缝合线弧线化 / 标签密度三档；`web/` 全量 223 项测试通过，数据层未动。
 
 > **事件推演已升级到 v0.5（沉浸式历史角色扮演）**：本模块经历两次形态变更——v0.4 由「静态分岔图」改为「LLM 生成式沙盘」（玩家仍在局外）；v0.5 进一步把玩家**放进局内**：你是历史事件中的一个角色位，外部事件按历史时间表锁定到来，你逐幕做决定、看后果与代价账本（**无分数、无成败**）。原作轨迹（canon）推演期间**不展示也不注入模型**，仅在终局以可选方式揭示（标「史实」，玩家路径标「架空推演」）。可重复游玩性来自角色位（信息/资源/关系各不相同）。`prototypes/event-replay-prototype.html` 与其 26 项测试**转为历史存档，不再用于演示**；本版走 `web/` + `HostClient`（能力 5/6/7，编号见 `IMPLEMENTATION-PATH.md` 卡 0-1）。实施计划见 `event-replay-PLAN.md`。
 
@@ -85,7 +86,7 @@
 | runi-core 集成 | 实时通信复用 runi 实例通信能力；树存储用本地协议层 | 待做 |
 | dissensus 迁移 | 旧工作区三文件并入 | 待做 |
 
-> **实施顺序与执行手册**：见 **`IMPLEMENTATION-PATH.md`** —— 按「赛道命题 × 真实度落差 × 数据依赖」排序（**不按 PRD 编号**），含 **16 张任务卡**（原 21，五张已作废："辩论间终局上树"随辩论间 v0.4 去树化、"概念对齐走真 Host"随 v0.5 删阶段且 `alignConcepts` 无消费方、"承认校验走真 Host"随 **D6 拍板不落闸门** 作废、"地图 → 力导向图"与"力导向图 → 树"随 **D3 拍板下线** 作废）、每张卡的验收命令，以及**七个决策点**（**七个决策点全部拍板（2026-09-13）**：D1 Host 走路线 A 自建 zhengming-server／D2 随选边制作废（撮合改为预设论点对选边 + 六维画像排序，知乎 style 信号不再需要）／D3 力导向图下线／D4 事件推演走流式输出／D5 对局报告落 rooms/<id>.json／D6 红线 1 不落闸门、checkRestatement 移出契约／D7 质询保留条目锚）。**给 AI 派活时以该文档为准。**
+> **实施顺序与执行手册**：见 **`IMPLEMENTATION-PATH.md`** —— 按「赛道命题 × 真实度落差 × 数据依赖」排序（**不按 PRD 编号**），含 **17 张任务卡**（原 21，五张已作废："辩论间终局上树"随辩论间 v0.4 去树化、"概念对齐走真 Host"随 v0.5 删阶段且 `alignConcepts` 无消费方、"承认校验走真 Host"随 **D6 拍板不落闸门** 作废、"地图 → 力导向图"与"力导向图 → 树"随 **D3 拍板下线** 作废；2026-09-14 新增卡 3-4 地图视觉增强）、每张卡的验收命令，以及**八个决策点**（D1–D7 于 2026-09-13 全部拍板：D1 Host 走路线 A 自建 zhengming-server／D2 随选边制作废（撮合改为预设论点对选边 + 六维画像排序，知乎 style 信号不再需要）／D3 力导向图下线／D4 事件推演走流式输出／D5 对局报告落 rooms/<id>.json／D6 红线 1 不落闸门、checkRestatement 移出契约／D7 质询保留条目锚；D8 于 2026-09-14 拍板：争议地图视觉增强进主表）。**给 AI 派活时以该文档为准。**
 >
 > **并行开发**：辩论树 / 辩论间 / 事件推演三个板块已各建一个 git worktree（`.worktrees/` 下，分支 `feat/debate-tree`、`feat/debate-room`、`feat/event-simulation`）。归属划分、共享文件禁区、合流顺序见该文档 **§13**。
 
@@ -94,11 +95,10 @@
 ```
 docs/design/
 ├── README.md                        ← 本文件（总纲）
-├── IMPLEMENTATION-PATH.md           ← ★ AI 执行手册（实施顺序 + 16 张任务卡 + 验收命令）
-├── debate-tree-PRD.md               ← v0.2 辩论树（含图谱；不再提供进入辩论间的出口）＋ debate-tree-PLAN.md
-├── debate-room-PRD.md               ← v0.6 实时辩论间（选边制撮合 · 轮次制 · 去树化）＋ debate-room-PLAN.md
+├── IMPLEMENTATION-PATH.md           ← ★ AI 执行手册（实施顺序 + 17 张任务卡 + 8 个决策点 + 验收命令）
+├── debate-tree-PRD.md               ← v0.2 辩论树（含图谱；不再提供进入辩论间的出口）＋ debate-tree-PLAN.md├── debate-room-PRD.md               ← v0.6 实时辩论间（选边制撮合 · 轮次制 · 去树化）＋ debate-room-PLAN.md
 ├── event-replay-PRD.md              ← v0.5 事件推演（沉浸式角色扮演）＋ event-replay-PLAN.md
-└── controversy-map-PRD.md           ← 跨议题争议地图（web ?view=map）
+└── controversy-map-PRD.md           ← 跨议题争议地图 v0.2（web ?view=map）＋ controversy-map-PLAN.md ＋ controversy-map-VISUAL-REFERENCES.md
 docs/research/
 ├── zhihu-post-taxonomy.md           ← 知乎语料分类与可辩性调研
 └── ai-social-products.md            ← AI 社交产品调研

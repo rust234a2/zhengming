@@ -14,7 +14,7 @@ import * as d3 from "d3";
 
 import { CONTROVERSY_MAP } from "../src/data/controversyMap";
 import type { MapSimLink, MapSimNode } from "../src/types/map";
-import { ControversyMap } from "../src/ui/ControversyMap";
+import { ControversyMap, HULL_GROUPS, hullPathFor, labelTierFromK, POLARITY_TARGETS } from "../src/ui/ControversyMap";
 
 afterEach(() => {
   cleanup();
@@ -156,6 +156,9 @@ function runSimulation(seed: () => number = seededRandom(42)) {
   const dist: Record<string, number> = { bridge: 165, member: 78, contains: 118, rebuts: 250 };
   const str: Record<string, number> = { bridge: 0.55, member: 0.9, contains: 0.32, rebuts: 0.08 };
   const charge: Record<string, number> = { cluster: -1150, topic: -560, claim: -170 };
+  /* 骨架目标半径随规模自适应：力导向布局的线性尺度 ~ O(√N)（v1 = 43 节点时 520），
+   * 数据扩充后论点云半径同步膨胀，骨架半径必须按 √N 缩放才能继续留在外围。 */
+  const skeletonR = Math.max(520, 80 * Math.sqrt(nodes.length));
 
   const sim = d3
     .forceSimulation<MapSimNode, MapSimLink>(nodes)
@@ -163,8 +166,9 @@ function runSimulation(seed: () => number = seededRandom(42)) {
     .force("charge", d3.forceManyBody<MapSimNode>().strength((n) => charge[n.kind]))
     .force("center", d3.forceCenter(0, 0))
     .force("collide", d3.forceCollide<MapSimNode>().radius((n) => n.radius + (n.kind === "cluster" ? 34 : n.kind === "topic" ? 22 : 13)).strength(0.95))
-    .force("polarity", d3.forceX<MapSimNode>((n) => (n.side === "positive" ? -420 : n.side === "negative" ? 420 : 0)).strength((n) => (n.kind === "cluster" ? 0.1 : 0.035)))
-    .force("skeleton", d3.forceRadial<MapSimNode>((n) => (n.kind === "cluster" ? 520 : 0), 0, 0).strength((n) => (n.kind === "cluster" ? 0.08 : 0)))
+    .force("polarityX", d3.forceX<MapSimNode>((n) => POLARITY_TARGETS.get(n.id)?.tx ?? 0).strength(0.08))
+    .force("polarityY", d3.forceY<MapSimNode>((n) => POLARITY_TARGETS.get(n.id)?.ty ?? 0).strength(0.08))
+    .force("skeleton", d3.forceRadial<MapSimNode>((n) => (n.kind === "cluster" ? skeletonR : 0), 0, 0).strength((n) => (n.kind === "cluster" ? 0.15 : 0)))
     .alphaDecay(0.022)
     .velocityDecay(0.42)
     .stop();
@@ -172,6 +176,80 @@ function runSimulation(seed: () => number = seededRandom(42)) {
   for (let i = 0; i < 400; i += 1) sim.tick();
   sim.stop();
   return { nodes, links };
+}
+
+/**
+ * 聚焦视图布局：复刻组件的聚焦力配置跑一遍。
+ * 与全图布局的两处差异正是本视图的定义：极性分翼力关闭、径向环力接管。
+ * 初始位置故意打散（新邻居撒在环上但半径抖动 ±30%，中心沿用旧位置），
+ * 否则"结果是个环"就只是初始条件的同义反复。
+ */
+function runFocusSimulation(focusedId: string, seed: () => number = seededRandom(7)) {
+  const rng = seed;
+  const inView = new Set<string>([focusedId]);
+  for (const e of CONTROVERSY_MAP.edges) {
+    if (e.source === focusedId) inView.add(e.target);
+    if (e.target === focusedId) inView.add(e.source);
+  }
+  const neighborCount = inView.size - 1;
+  const ring = Math.min(470, Math.max(160, 100 + 30 * Math.sqrt(neighborCount)));
+
+  let k = 0;
+  const nodes: MapSimNode[] = CONTROVERSY_MAP.nodes
+    .filter((n) => inView.has(n.id))
+    .map((n) => {
+      const isCenter = n.id === focusedId;
+      const angle = (k / Math.max(inView.size - 1, 1)) * Math.PI * 2;
+      const r = isCenter ? 0 : ring * (0.7 + rng() * 0.6);
+      k += 1;
+      return {
+        id: n.id,
+        kind: n.kind,
+        label: n.label,
+        side: n.side ?? "neutral",
+        depth: n.kind === "cluster" ? 0 : n.kind === "topic" ? 1 : 2,
+        // 与组件 radiusFor 一致
+        radius: n.kind === "cluster" ? 13 + Math.min((n.topicCount ?? 0) * 2, 16) : n.kind === "topic" ? 10 : 5.5,
+        topicCount: n.topicCount ?? 0,
+        votes: n.votes ?? 0,
+        // 中心沿用"上一个视图里的位置"，其余从环上张开 —— 与真实切换过程一致
+        x: isCenter ? 620 : Math.cos(angle) * r,
+        y: isCenter ? -260 : Math.sin(angle) * r,
+        vx: 0,
+        vy: 0,
+      };
+    });
+
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const links: MapSimLink[] = CONTROVERSY_MAP.edges
+    .filter((e) => inView.has(e.source) && inView.has(e.target))
+    .map((e, i) => ({
+      id: `fl${i}`,
+      source: e.source,
+      target: e.target,
+      relation: e.relation,
+      sourceDepth: byId.get(e.source)!.depth,
+      targetDepth: byId.get(e.target)!.depth,
+    }));
+
+  const dist: Record<string, number> = { bridge: 165, member: 78, contains: 118, rebuts: 250 };
+  const str: Record<string, number> = { bridge: 0.55, member: 0.9, contains: 0.32, rebuts: 0.08 };
+  const charge: Record<string, number> = { cluster: -1150, topic: -560, claim: -170 };
+
+  const sim = d3
+    .forceSimulation<MapSimNode, MapSimLink>(nodes)
+    .force("link", d3.forceLink<MapSimNode, MapSimLink>(links).id((n) => n.id).distance((l) => dist[l.relation]).strength((l) => str[l.relation]))
+    .force("charge", d3.forceManyBody<MapSimNode>().strength((n) => charge[n.kind]))
+    .force("center", d3.forceCenter(0, 0))
+    .force("collide", d3.forceCollide<MapSimNode>().radius((n) => n.radius + (n.kind === "cluster" ? 34 : n.kind === "topic" ? 22 : 13)).strength(0.95))
+    .force("polarity", d3.forceX<MapSimNode>(() => 0).strength(() => 0))
+    .force("focusRing", d3.forceRadial<MapSimNode>((n) => (n.id === focusedId ? 0 : ring), 0, 0).strength((n) => (n.id === focusedId ? 1 : 0.62)))
+    .alphaDecay(0.022)
+    .stop();
+
+  for (let i = 0; i < 500; i += 1) sim.tick();
+  sim.stop();
+  return { nodes, links, ring, focusedId };
 }
 
 describe("争议地图布局质量（真实 d3 模拟）", () => {
@@ -237,14 +315,204 @@ describe("争议地图布局质量（真实 d3 模拟）", () => {
     }
     expect(diff).toBeGreaterThan(1);
   }, 20000);
+
+  it("扇形分翼口径：目标点覆盖全部节点，正方在左、反方在右、中性在上下", () => {
+    for (const n of CONTROVERSY_MAP.nodes) {
+      const t = POLARITY_TARGETS.get(n.id);
+      expect(t).toBeDefined();
+      const side = n.side ?? "neutral";
+      if (side === "positive") expect(t!.tx).toBeLessThan(0);
+      if (side === "negative") expect(t!.tx).toBeGreaterThan(0);
+      if (side === "neutral") expect(Math.abs(t!.ty)).toBeGreaterThan(Math.abs(t!.tx));
+    }
+  });
+
+  it("整体布局不是竖条：全图外接框宽不小于高（v1 forceX 分翼的竖条反面）", () => {
+    const { nodes } = runSimulation();
+    const xs = nodes.map((n) => n.x!);
+    const ys = nodes.map((n) => n.y!);
+    const w = Math.max(...xs) - Math.min(...xs);
+    const h = Math.max(...ys) - Math.min(...ys);
+    expect(w).toBeGreaterThan(h * 0.9);
+  });
+
+  it("扇形分翼不是竖条：任何单侧的目标点横向跨度显著大于纵向跨度", () => {
+    // 旧 forceX 布局的特征是「X 钉死、Y 自由」→ 纵向跨度 >> 横向跨度；
+    // 扇形目标应把这个比例倒过来（左右扇区）或摊平（中性上下两段各自横铺）
+    for (const side of ["positive", "negative"] as const) {
+      const pts = [...POLARITY_TARGETS.entries()]
+        .filter(([id]) => (CONTROVERSY_MAP.nodes.find((n) => n.id === id)?.side ?? "neutral") === side)
+        .map(([, t]) => t);
+      const xs = pts.map((p) => p.tx);
+      const ys = pts.map((p) => p.ty);
+      const spanX = Math.max(...xs) - Math.min(...xs);
+      const spanY = Math.max(...ys) - Math.min(...ys);
+      expect(spanX).toBeGreaterThan(spanY * 0.6);
+    }
+  });
+
+  it("扇形分翼保团块：同组节点在所属扇区内角度连续（不被其他组切散）", () => {
+    // 与组件同口径的分组：簇 → 自身；议题 → 缝合它的簇；论点 → 所属议题的簇
+    const topicCluster = new Map<string, string>();
+    for (const e of CONTROVERSY_MAP.edges) {
+      if (e.relation === "bridge" && !topicCluster.has(e.target)) topicCluster.set(e.target, e.source);
+    }
+    const groupOf = (n: (typeof CONTROVERSY_MAP.nodes)[number]): string => {
+      if (n.kind === "cluster") return n.id;
+      if (n.kind === "topic") return topicCluster.get(n.id) ?? `t:${n.id}`;
+      if (n.topicId) return topicCluster.get(n.topicId) ?? `t:${n.topicId}`;
+      return `solo:${n.id}`;
+    };
+    // 找出「单侧内成员最多」的组
+    const best = { count: 0, side: "", group: "", ids: [] as string[] };
+    const acc = new Map<string, string[]>();
+    for (const n of CONTROVERSY_MAP.nodes) {
+      const side = n.side ?? "neutral";
+      const key = `${side}|${groupOf(n)}`;
+      const ids = acc.get(key) ?? [];
+      ids.push(n.id);
+      acc.set(key, ids);
+    }
+    for (const [key, ids] of acc) {
+      if (ids.length > best.count) {
+        const [side, group] = key.split("|");
+        best.count = ids.length;
+        best.side = side;
+        best.group = group;
+        best.ids = ids;
+      }
+    }
+    expect(best.count).toBeGreaterThanOrEqual(4);
+
+    // 该侧全部目标点按角度排序后，组成员的下标必须是一段连续区间
+    const normDeg = (rad: number) => {
+      let d = (rad * 180) / Math.PI;
+      if (d < 0) d += 360; // 正方扇区跨 180°，负方/中性跨度不绕 0，统一到 [0,360)
+      return d;
+    };
+    const ordered = CONTROVERSY_MAP.nodes
+      .filter((n) => (n.side ?? "neutral") === best.side)
+      .map((n) => {
+        const t = POLARITY_TARGETS.get(n.id)!;
+        return { id: n.id, ang: normDeg(Math.atan2(t.ty, t.tx)) };
+      })
+      .sort((a, b) => a.ang - b.ang);
+    const memberIdx = ordered.map((o, i) => (best.ids.includes(o.id) ? i : -1)).filter((i) => i >= 0);
+    expect(memberIdx.length).toBe(best.ids.length);
+    expect(memberIdx[memberIdx.length - 1] - memberIdx[0]).toBe(best.ids.length - 1);
+  });
+
+  it("聚焦布局：中心压到圆心，论点贴内圈、议题围外环，且都落进相机取景框", () => {
+    const id = richestClusterId();
+    const { nodes, ring } = runFocusSimulation(id);
+    const center = nodes.find((n) => n.id === id)!;
+    const neighbors = nodes.filter((n) => n.id !== id);
+    const radial = (n: MapSimNode) => Math.hypot(n.x - center.x, n.y - center.y);
+
+    // ① 中心被径向力压到圆心（理想 0，forceCenter 会带来小幅平移）
+    expect(Math.hypot(center.x, center.y)).toBeLessThan(ring * 0.35);
+
+    // ② 不是一团糊在圆心：邻居全部离开中心，且没有离谱的离群点
+    const dists = neighbors.map(radial);
+    const mean = dists.reduce((a, b) => a + b, 0) / dists.length;
+    expect(Math.min(...dists)).toBeGreaterThan(100);
+    expect(Math.max(...dists) - Math.min(...dists)).toBeLessThan(mean * 1.2);
+
+    // ③ 径向分层：成员论点被短 member 边拉在内圈，议题落在外环
+    const topics = neighbors.filter((n) => n.kind === "topic").map(radial);
+    const claims = neighbors.filter((n) => n.kind === "claim").map(radial);
+    expect(topics.length).toBeGreaterThan(0);
+    expect(claims.length).toBeGreaterThan(0);
+    expect(Math.max(...claims)).toBeLessThan(Math.min(...topics));
+
+    // ④ 相机取景框（ring + 90）必须装得下整个邻域，否则进聚焦会被裁掉
+    expect(Math.max(...dists)).toBeLessThan(ring + 90);
+
+    // ⑤ 没有重叠
+    for (let i = 0; i < neighbors.length; i += 1) {
+      for (let j = i + 1; j < neighbors.length; j += 1) {
+        const d = Math.hypot(
+          neighbors[i].x - neighbors[j].x,
+          neighbors[i].y - neighbors[j].y,
+        );
+        expect(d).toBeGreaterThan((neighbors[i].radius + neighbors[j].radius) * 0.5);
+      }
+    }
+  }, 20000);
 });
 
 /* ────────── 3. 组件层 ────────── */
+
+/** 骨架视图下议题间冲突线的期望数量：论点级 rebuts 按 (topicA,topicB) 无向去重。 */
+function expectedAggregatedCount(): number {
+  const topicOf = new Map(
+    CONTROVERSY_MAP.nodes.filter((n) => n.kind === "claim").map((n) => [n.id, n.topicId!]),
+  );
+  const pairs = new Set<string>();
+  for (const e of CONTROVERSY_MAP.edges) {
+    if (e.relation !== "rebuts") continue;
+    const a = topicOf.get(e.source);
+    const b = topicOf.get(e.target);
+    if (!a || !b || a === b) continue;
+    pairs.add(a < b ? `${a}|${b}` : `${b}|${a}`);
+  }
+  return pairs.size;
+}
+
+/** 展开论点后（归属边关闭）应渲染的连线数：bridge + 论点级 rebuts。 */
+function emphasisTotal(): number {
+  return CONTROVERSY_MAP.stats.bridge + CONTROVERSY_MAP.stats.rebuts;
+}
 
 function renderMap() {
   const utils = render(<ControversyMap />);
   const svg = utils.container.querySelector("svg.controversy-map-svg") as SVGSVGElement;
   return { ...utils, svg };
+}
+
+/** 点击工具栏按钮（按文案匹配），包在 act 里触发重建。 */
+function clickButton(utils: { container: HTMLElement }, text: string): void {
+  const btn = [...utils.container.querySelectorAll("button")].find((b) =>
+    (b.textContent ?? "").includes(text),
+  )!;
+  expect(btn).toBeTruthy();
+  act(() => {
+    fireEvent.click(btn);
+  });
+}
+
+/** 在节点上模拟「按下即抬起」（无位移）—— 触发选中 + 下钻聚焦。 */
+function clickNode(svg: SVGSVGElement, id: string): void {
+  const node = svg.querySelector(`[data-node-id="${id}"]`) as SVGGElement;
+  expect(node).toBeTruthy();
+  act(() => {
+    fireEvent.pointerDown(node, { clientX: 100, clientY: 100, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(window, { clientX: 100, clientY: 100, pointerId: 1 });
+  });
+}
+
+/** 聚焦视图的期望节点集：目标节点 + 一跳邻居（用完整边集，不受层级开关影响）。 */
+function focusNeighborhood(id: string): Set<string> {
+  const set = new Set<string>([id]);
+  for (const e of CONTROVERSY_MAP.edges) {
+    if (e.source === id) set.add(e.target);
+    if (e.target === id) set.add(e.source);
+  }
+  return set;
+}
+
+/** 聚焦视图的期望连线数：两端都落在邻里集合里的边（诱导子图）。 */
+function inducedEdgeCount(id: string): number {
+  const set = focusNeighborhood(id);
+  return CONTROVERSY_MAP.edges.filter((e) => set.has(e.source) && set.has(e.target)).length;
+}
+
+/** 挑一个相连节点最多的主张簇：保证聚焦视图有足够内容可断言。 */
+function richestClusterId(): string {
+  const clusters = CONTROVERSY_MAP.nodes.filter((n) => n.kind === "cluster");
+  return clusters
+    .reduce((best, n) => (focusNeighborhood(n.id).size > focusNeighborhood(best.id).size ? n : best))
+    .id;
 }
 
 describe("争议地图组件", () => {
@@ -254,16 +522,34 @@ describe("争议地图组件", () => {
     expect(svg.querySelector("[data-zoom-layer]")).toBeTruthy();
   });
 
-  it("节点数量与数据一致", () => {
+  it("骨架视图（默认）只渲染簇 + 议题，论点不进画布", () => {
     const { svg } = renderMap();
-    const nodes = svg.querySelectorAll("[data-node-id]");
-    expect(nodes.length).toBe(CONTROVERSY_MAP.nodes.length);
+    const skeletonCount = CONTROVERSY_MAP.nodes.filter((n) => n.kind !== "claim").length;
+    expect(svg.querySelectorAll("[data-node-id]").length).toBe(skeletonCount);
+    expect(svg.querySelectorAll('[data-node-kind="claim"]').length).toBe(0);
+    expect(svg.querySelectorAll('[data-node-kind="topic"]').length).toBe(
+      CONTROVERSY_MAP.stats.topics,
+    );
   });
 
-  it("连线数量与数据一致（快照必须在 forceLink 改写前取，否则会为 0）", () => {
+  it("骨架视图的连线 = 缝合线 + 议题间冲突聚合线（不是全量 698 条）", () => {
     const { svg } = renderMap();
-    const links = svg.querySelectorAll("[data-link-id]");
-    expect(links.length).toBe(CONTROVERSY_MAP.edges.length);
+    const expected = CONTROVERSY_MAP.stats.bridge + expectedAggregatedCount();
+    const rendered = svg.querySelectorAll("[data-link-id]").length;
+    expect(rendered).toBe(expected);
+    expect(rendered).toBeLessThan(CONTROVERSY_MAP.edges.length);
+  });
+
+  it("展开全部论点后，节点数回到全量；归属边默认隐藏，打开后补全", () => {
+    const { svg, container } = renderMap();
+    clickButton({ container }, "展开全部论点");
+    expect(svg.querySelectorAll("[data-node-id]").length).toBe(CONTROVERSY_MAP.nodes.length);
+
+    // 归属边默认关：只画 bridge + rebuts
+    expect(svg.querySelectorAll("[data-link-id]").length).toBe(emphasisTotal());
+
+    clickButton({ container }, "显示归属边");
+    expect(svg.querySelectorAll("[data-link-id]").length).toBe(CONTROVERSY_MAP.edges.length);
   });
 
   it("连线渲染在节点之下（层级顺序正确）", () => {
@@ -275,89 +561,128 @@ describe("争议地图组件", () => {
     expect(nodeIdx).toBeGreaterThan(linkIdx);
   });
 
-  it("三种节点类型带有 data-node-kind 标记，用于视觉区分", () => {
-    const { svg } = renderMap();
+  it("三种节点类型带有 data-node-kind 标记，用于视觉区分（展开后）", () => {
+    const { svg, container } = renderMap();
+    clickButton({ container }, "展开全部论点");
     for (const kind of ["topic", "claim", "cluster"]) {
       expect(svg.querySelectorAll(`[data-node-kind="${kind}"]`).length).toBeGreaterThan(0);
     }
   });
 
-  it("缝合线与冲突边被单独渲染在强调层（跨议题关系是这张图的重点）", () => {
+  it("强调层：缝合线全量出现；骨架模式下红线是议题间聚合冲突线", () => {
     const { svg } = renderMap();
     const emphasis = svg.querySelector(".cm-links-emphasis");
     expect(emphasis).toBeTruthy();
     const bridge = emphasis!.querySelectorAll('[data-relation="bridge"]');
     const rebuts = emphasis!.querySelectorAll('[data-relation="rebuts"]');
     expect(bridge.length).toBe(CONTROVERSY_MAP.stats.bridge);
-    expect(rebuts.length).toBe(CONTROVERSY_MAP.stats.rebuts);
+    expect(rebuts.length).toBe(expectedAggregatedCount());
   });
 
-  it("悬停节点后，其邻域连线被强调、无关连线被淡化", () => {
+  it("展开论点后，强调层出现全量论点级 rebuts", () => {
+    const { svg, container } = renderMap();
+    clickButton({ container }, "展开全部论点");
+    const emphasis = svg.querySelector(".cm-links-emphasis")!;
+    expect(emphasis.querySelectorAll('[data-relation="rebuts"]').length).toBe(
+      CONTROVERSY_MAP.stats.rebuts,
+    );
+  });
+
+  it("悬停骨架节点后，其邻域连线被强调、无关连线被淡化（按可见连线口径计算）", () => {
     const { svg } = renderMap();
     const cluster = svg.querySelector('[data-node-id^="cl-"]') as SVGGElement;
     expect(cluster).toBeTruthy();
     const id = cluster.getAttribute("data-node-id")!;
 
-    // 高亮语义：节点自身 + 直接邻居构成「邻域」，两端都落在邻域内的边才被点亮。
-    // 期望值必须按这个语义动态算，不能只数 incident 边 —— 邻居之间的边同样在邻域内。
+    // 期望值按「当前可见连线」的端点动态计算，与视图分层解耦
+    const allRendered = [...svg.querySelectorAll("[data-link-id]")];
+    const renderedPairs = allRendered.map((el) => ({
+      s: el.getAttribute("data-src")!,
+      t: el.getAttribute("data-tgt")!,
+    }));
     const neighborhood = new Set<string>([id]);
-    for (const e of CONTROVERSY_MAP.edges) {
-      if (e.source === id) neighborhood.add(e.target);
-      if (e.target === id) neighborhood.add(e.source);
+    for (const { s, t } of renderedPairs) {
+      if (s === id) neighborhood.add(t);
+      if (t === id) neighborhood.add(s);
     }
-    const expectedLit = CONTROVERSY_MAP.edges.filter(
-      (e) => neighborhood.has(e.source) && neighborhood.has(e.target),
+    const expectedLit = renderedPairs.filter(
+      ({ s, t }) => neighborhood.has(s) && neighborhood.has(t),
     ).length;
-    // 邻域必须显著小于全图，否则高亮失去意义
-    expect(expectedLit).toBeLessThan(CONTROVERSY_MAP.edges.length);
+    expect(expectedLit).toBeGreaterThan(0);
+    expect(expectedLit).toBeLessThan(renderedPairs.length);
 
     act(() => {
       fireEvent.mouseEnter(cluster);
     });
 
-    const highlighted = [...svg.querySelectorAll("[data-link-id]")].filter(
+    const highlighted = allRendered.filter(
       (el) => Number(el.getAttribute("opacity")) > 0.5,
     );
     expect(highlighted.length).toBe(expectedLit);
 
-    // 未高亮的边必须被压到很低的透明度，视觉对比才成立
-    const dimmed = [...svg.querySelectorAll("[data-link-id]")].filter(
-      (el) => Number(el.getAttribute("opacity")) <= 0.1,
-    );
-    expect(dimmed.length).toBe(CONTROVERSY_MAP.edges.length - expectedLit);
+    const dimmed = allRendered.filter((el) => Number(el.getAttribute("opacity")) <= 0.1);
+    expect(dimmed.length).toBe(renderedPairs.length - expectedLit);
 
     act(() => {
       fireEvent.mouseLeave(cluster);
     });
-    const afterLeave = [...svg.querySelectorAll("[data-link-id]")].filter(
-      (el) => Number(el.getAttribute("opacity")) > 0.3,
-    );
-    // 离开后不再有"淡化"，全部回到基准可见度
-    expect(afterLeave.length).toBe(CONTROVERSY_MAP.edges.length);
+    const afterLeave = allRendered.filter((el) => Number(el.getAttribute("opacity")) > 0.3);
+    expect(afterLeave.length).toBe(renderedPairs.length);
   });
 
-  it("点击节点选中，再次点击空白处取消选中", () => {
+  it("点击节点即下钻聚焦：中心带圆心标记，面板展示该节点", () => {
     const { svg, container } = renderMap();
     const node = svg.querySelector('[data-node-id^="cl-"]') as SVGGElement;
     const id = node.getAttribute("data-node-id")!;
 
-    // 用 pointerdown + pointerup（无位移）触发选中语义
-    act(() => {
-      fireEvent.pointerDown(node, { clientX: 100, clientY: 100, pointerId: 1, button: 0 });
-      fireEvent.pointerUp(window, { clientX: 100, clientY: 100, pointerId: 1 });
-    });
+    clickNode(svg, id);
 
-    const selected = svg.querySelector(`[data-node-id="${id}"]`);
-    // 选中态：组内出现高亮环（第二个 circle）
-    expect(selected!.querySelectorAll("circle").length).toBeGreaterThan(1);
+    const center = svg.querySelector(`[data-node-id="${id}"]`)!;
+    // 中心环是聚焦态的结构标记
+    expect(center.getAttribute("data-focus-center")).toBe("1");
+    expect(center.querySelector("[data-center-ring]")).toBeTruthy();
+    // 入场动画的挂钩（位置的 transform 在外层，动画在内层，互不打架）
+    expect(center.querySelector(".cm-node-body")).toBeTruthy();
+    expect(container.querySelector(".cm-panel")).toBeTruthy();
+  });
 
-    // 点击背板取消
+  it("点击空白处只取消选中：面板收起、聚焦态保留", () => {
+    const { svg, container } = renderMap();
+    const node = svg.querySelector('[data-node-id^="cl-"]') as SVGGElement;
+    const id = node.getAttribute("data-node-id")!;
+    clickNode(svg, id);
+
     const backdrop = container.querySelector("[data-backdrop]") as SVGRectElement;
     act(() => {
       fireEvent.click(backdrop);
     });
-    const afterClear = svg.querySelector(`[data-node-id="${id}"]`);
-    expect(afterClear!.querySelectorAll("circle").length).toBe(1);
+
+    expect(container.querySelector(".cm-panel")).toBeFalsy();
+    // 聚焦是视图状态，不该被"点空白"顺手取消
+    expect(
+      svg.querySelector(`[data-node-id="${id}"]`)!.getAttribute("data-focus-center"),
+    ).toBe("1");
+  });
+
+  it("悬停非中心的相连节点时出现选中环（中心环与选中环互斥，避免叠环）", () => {
+    const { svg } = renderMap();
+    const id = richestClusterId();
+    clickNode(svg, id);
+
+    const other = [...focusNeighborhood(id)].find((x) => x !== id)!;
+    const otherEl = svg.querySelector(`[data-node-id="${other}"]`) as SVGGElement;
+    // 没有圆心标记 = 它不是当前中心（getAttribute 缺省返回 null）
+    expect(otherEl.hasAttribute("data-focus-center")).toBe(false);
+
+    act(() => {
+      fireEvent.mouseEnter(otherEl);
+    });
+    expect(otherEl.querySelector("[data-selection-ring]")).toBeTruthy();
+
+    act(() => {
+      fireEvent.mouseLeave(otherEl);
+    });
+    expect(otherEl.querySelector("[data-selection-ring]")).toBeFalsy();
   });
 
   it("有缩放控件，且限制在 0.25–3 之间（与树视图的 0.35 下限区分）", () => {
@@ -393,15 +718,11 @@ describe("争议地图组件", () => {
     expect(text).toContain("跨议题");
   });
 
-  it("切换「显示全部标签」不改变节点与连线数量", () => {
+  it("切换「显示全部标签」不改变节点与连线数量（展开模式下验证）", () => {
     const { container, svg } = renderMap();
+    clickButton({ container }, "展开全部论点");
     const before = svg.querySelectorAll("[data-link-id]").length;
-    const btn = [...container.querySelectorAll("button")].find((b) =>
-      (b.textContent ?? "").includes("标签"),
-    )!;
-    act(() => {
-      fireEvent.click(btn);
-    });
+    clickButton({ container }, "标签");
     expect(svg.querySelectorAll("[data-link-id]").length).toBe(before);
     expect(svg.querySelectorAll("[data-node-id]").length).toBe(CONTROVERSY_MAP.nodes.length);
   });
@@ -415,5 +736,454 @@ describe("争议地图组件", () => {
     expect(removed).toContain("pointerup");
     expect(removed).toContain("pointercancel");
     removeSpy.mockRestore();
+  });
+});
+
+/* ────────── 3.5 节点类型开关 ────────── */
+
+describe("争议地图节点类型开关", () => {
+  const kindCount = (kind: string) => CONTROVERSY_MAP.nodes.filter((n) => n.kind === kind).length;
+
+  it("骨架下隐藏议题：只剩主张簇，缝合线与冲突聚合线随之消失，凸包不渲染", () => {
+    const { container, svg } = renderMap();
+    // 骨架模式下论点开关应禁用（论点本来就不显示）
+    const claimBtn = [...container.querySelectorAll("button")].find((b) =>
+      (b.textContent ?? "").includes("隐藏论点"),
+    );
+    expect(claimBtn?.disabled).toBe(true);
+
+    clickButton({ container }, "隐藏议题");
+    expect(svg.querySelectorAll('[data-node-kind="topic"]').length).toBe(0);
+    expect(svg.querySelectorAll('[data-node-kind="cluster"]').length).toBe(kindCount("cluster"));
+    // bridge 端点全是议题 → 整类消失；聚合冲突线的端点也是议题 → 消失
+    expect(svg.querySelectorAll('[data-relation="bridge"]').length).toBe(0);
+    expect(svg.querySelectorAll('[data-relation="rebuts"]').length).toBe(0);
+    // 议题藏掉后包络没有意义（成员不全），凸包层整个不渲染
+    expect(svg.querySelectorAll("[data-hull-id]").length).toBe(0);
+  });
+
+  it("骨架下隐藏主张簇：议题层保留，议题间冲突聚合线仍在；再藏议题会藏空 → 禁用", () => {
+    const { container, svg } = renderMap();
+    clickButton({ container }, "隐藏主张簇");
+    expect(svg.querySelectorAll('[data-node-kind="cluster"]').length).toBe(0);
+    expect(svg.querySelectorAll('[data-node-kind="topic"]').length).toBe(kindCount("topic"));
+    // 纯议题冲突图：红线聚合线保留，缝合线消失
+    expect(svg.querySelectorAll('[data-relation="rebuts"]').length).toBe(expectedAggregatedCount());
+    expect(svg.querySelectorAll('[data-relation="bridge"]').length).toBe(0);
+
+    const hideTopic = [...container.querySelectorAll("button")].find((b) =>
+      (b.textContent ?? "").includes("隐藏议题"),
+    );
+    expect(hideTopic?.disabled).toBe(true);
+  });
+
+  it("全量下隐藏议题 = 簇 + 论点 + member 边（复现「删议题层」形态）", () => {
+    const { container, svg } = renderMap();
+    clickButton({ container }, "展开全部论点");
+    clickButton({ container }, "隐藏议题");
+    expect(svg.querySelectorAll("[data-node-id]").length).toBe(
+      kindCount("cluster") + kindCount("claim"),
+    );
+    expect(svg.querySelectorAll('[data-relation="bridge"]').length).toBe(0);
+    // member 边端点是 论点+主张簇，都不在隐藏集里 → 打开归属边后应全量存在
+    clickButton({ container }, "显示归属边");
+    expect(svg.querySelectorAll('[data-relation="member"]').length).toBe(
+      CONTROVERSY_MAP.edges.filter((e) => e.relation === "member").length,
+    );
+    expect(svg.querySelectorAll('[data-relation="member"]').length).toBeGreaterThan(0);
+  });
+
+  it("隐藏聚焦中心自动退出聚焦，回到全图", () => {
+    const { container, svg } = renderMap();
+    const topicId = CONTROVERSY_MAP.nodes.find((n) => n.kind === "topic")!.id;
+    clickNode(svg, topicId);
+    expect(container.querySelector(".cm-focus-bar")).toBeTruthy();
+    clickButton({ container }, "隐藏议题");
+    expect(container.querySelector(".cm-focus-bar")).toBeNull();
+    expect(svg.querySelectorAll('[data-node-kind="topic"]').length).toBe(0);
+  });
+
+  it("开关可恢复：重新显示议题后节点、缝合线、凸包都回来", () => {
+    const { container, svg } = renderMap();
+    const topicsBefore = svg.querySelectorAll('[data-node-kind="topic"]').length;
+    const bridgesBefore = svg.querySelectorAll('[data-relation="bridge"]').length;
+    const hullsBefore = svg.querySelectorAll("[data-hull-id]").length;
+    expect(hullsBefore).toBeGreaterThan(0);
+
+    clickButton({ container }, "隐藏议题");
+    clickButton({ container }, "显示议题");
+    expect(svg.querySelectorAll('[data-node-kind="topic"]').length).toBe(topicsBefore);
+    expect(svg.querySelectorAll('[data-relation="bridge"]').length).toBe(bridgesBefore);
+    expect(svg.querySelectorAll("[data-hull-id]").length).toBe(hullsBefore);
+  });
+});
+
+/* ────────── 4. 聚焦视图（点击下钻 + 返回上一级） ────────── */
+
+describe("争议地图聚焦视图", () => {
+  it("点节点只显示「该节点 + 一跳邻居」，骨架模式下也会把论点层带出来", () => {
+    const { svg } = renderMap();
+    const id = richestClusterId();
+    const nbh = focusNeighborhood(id);
+    expect(nbh.size).toBeGreaterThan(3);
+
+    clickNode(svg, id);
+
+    const renderedIds = [...svg.querySelectorAll("[data-node-id]")].map((el) =>
+      el.getAttribute("data-node-id"),
+    );
+    expect(new Set(renderedIds)).toEqual(nbh);
+    expect(renderedIds.length).toBe(nbh.size);
+    // 连线 = 诱导子图；归属边在聚焦视图里是"为什么算相连"的依据，必须画出来
+    expect(svg.querySelectorAll("[data-link-id]").length).toBe(inducedEdgeCount(id));
+    // 骨架模式（默认）下论点本来是隐藏的，聚焦把它带出来了
+    expect(svg.querySelectorAll('[data-node-kind="claim"]').length).toBeGreaterThan(0);
+    // 规模必须显著小于全图，否则"聚焦"就没意义
+    expect(nbh.size).toBeLessThan(CONTROVERSY_MAP.nodes.length / 2);
+  });
+
+  it("重复点击同一节点不会叠层（双击因此是幂等的）", () => {
+    const { svg, container } = renderMap();
+    const id = richestClusterId();
+
+    clickNode(svg, id);
+    clickNode(svg, id);
+
+    // 面包屑 = 全图 + 该节点，两层
+    expect(container.querySelectorAll(".cm-crumb").length).toBe(2);
+    expect(svg.querySelectorAll("[data-node-id]").length).toBe(focusNeighborhood(id).size);
+  });
+
+  it("「返回上一级」退回全图，节点与连线数恢复", () => {
+    const { svg, container } = renderMap();
+    const id = richestClusterId();
+    clickNode(svg, id);
+    expect(container.querySelector(".cm-focus-bar")).toBeTruthy();
+
+    clickButton({ container }, "返回上一级");
+
+    expect(container.querySelector(".cm-focus-bar")).toBeFalsy();
+    expect(container.querySelector(".cm-caption")).toBeTruthy();
+    expect(svg.querySelectorAll("[data-node-id]").length).toBe(
+      CONTROVERSY_MAP.nodes.filter((n) => n.kind !== "claim").length,
+    );
+  });
+
+  it("可以连续下钻：面包屑按层级列出，返回上一级回到中间层", () => {
+    const { svg, container } = renderMap();
+    const idA = richestClusterId();
+    clickNode(svg, idA);
+    const nbhA = focusNeighborhood(idA);
+
+    // 在邻居里挑一个「自身也有多个邻居」的节点继续下钻，保证第二层有内容
+    const idB = [...nbhA]
+      .filter((x) => x !== idA)
+      .sort((a, b) => focusNeighborhood(b).size - focusNeighborhood(a).size)[0];
+    clickNode(svg, idB);
+
+    expect(new Set([...svg.querySelectorAll("[data-node-id]")].map((el) => el.getAttribute("data-node-id")))).toEqual(
+      focusNeighborhood(idB),
+    );
+    // 面包屑：全图 › A › B
+    expect(container.querySelectorAll(".cm-crumb").length).toBe(3);
+
+    clickButton({ container }, "返回上一级");
+    expect(svg.querySelectorAll("[data-node-id]").length).toBe(nbhA.size);
+
+    clickButton({ container }, "返回上一级");
+    expect(container.querySelector(".cm-focus-bar")).toBeFalsy();
+  });
+
+  it("面包屑点「全图」可一次跳回顶层", () => {
+    const { svg, container } = renderMap();
+    const idA = richestClusterId();
+    clickNode(svg, idA);
+    const nbhA = focusNeighborhood(idA);
+    const idB = [...nbhA].filter((x) => x !== idA)[0];
+    clickNode(svg, idB);
+
+    const root = [...container.querySelectorAll(".cm-crumb")].find(
+      (el) => el.textContent === "全图",
+    )!;
+    act(() => {
+      fireEvent.click(root);
+    });
+
+    expect(container.querySelector(".cm-focus-bar")).toBeFalsy();
+    expect(svg.querySelectorAll("[data-node-id]").length).toBe(
+      CONTROVERSY_MAP.nodes.filter((n) => n.kind !== "claim").length,
+    );
+  });
+
+  it("切换视图层级会退出聚焦（两种视图状态不叠加）", () => {
+    const { svg, container } = renderMap();
+    clickNode(svg, richestClusterId());
+    expect(container.querySelector(".cm-focus-bar")).toBeTruthy();
+
+    clickButton({ container }, "展开全部论点");
+
+    expect(container.querySelector(".cm-focus-bar")).toBeFalsy();
+    expect(svg.querySelectorAll("[data-node-id]").length).toBe(CONTROVERSY_MAP.nodes.length);
+  });
+
+  it("入场动画的起点是同心环：新出现的邻居从等距的环上张开，而不是堆在圆心", () => {
+    const { svg } = renderMap();
+    const id = richestClusterId();
+    clickNode(svg, id);
+
+    // 骨架模式下这些论点原本不在画布上 —— 它们是"新挂载"的，走的正是入场动画
+    const claimEls = [...svg.querySelectorAll('[data-node-kind="claim"]')];
+    expect(claimEls.length).toBeGreaterThan(2);
+
+    const dists = claimEls.map((el) => {
+      // 注意：cos(π/2) 之类会写成 6.1e-17，正则不能只认 [-\d.]
+      const m = /translate\(([^,]+),([^)]+)\)/.exec(el.getAttribute("transform") ?? "");
+      expect(m).toBeTruthy();
+      return Math.hypot(Number(m![1]), Number(m![2]));
+    });
+    // 等距 = 同一个环；且半径要有意义（不能是圆心附近）
+    expect(Math.max(...dists) - Math.min(...dists)).toBeLessThan(1);
+    expect(Math.min(...dists)).toBeGreaterThan(100);
+  });
+});
+
+/* ────────── 5. 凸包分组（让聚类显形） ────────── */
+
+describe("争议地图凸包分组", () => {
+  it("分组口径来自 bridge 边：成员 = 该主张缝合的议题，不是几何邻近", () => {
+    const clusters = CONTROVERSY_MAP.nodes.filter((n) => n.kind === "cluster");
+    expect(HULL_GROUPS.length).toBe(clusters.length);
+
+    // 用数据层独立重算一遍 bridge 归组，逐组比对
+    const byId = new Map(CONTROVERSY_MAP.nodes.map((n) => [n.id, n]));
+    const bridged = new Map<string, Set<string>>();
+    for (const e of CONTROVERSY_MAP.edges) {
+      if (e.relation !== "bridge") continue;
+      const a = byId.get(e.source);
+      const b = byId.get(e.target);
+      const c = a?.kind === "cluster" ? a : b?.kind === "cluster" ? b : null;
+      const t = a?.kind === "topic" ? a : b?.kind === "topic" ? b : null;
+      if (!c || !t) continue;
+      if (!bridged.has(c.id)) bridged.set(c.id, new Set());
+      bridged.get(c.id)!.add(t.id);
+    }
+    expect(bridged.size).toBe(clusters.length);
+    for (const g of HULL_GROUPS) {
+      expect(new Set(g.members)).toEqual(bridged.get(g.id));
+      expect(g.members.length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it("未被任何主张缝合的议题如实裸露在包络之外（75/106 被覆盖，31 个不在）", () => {
+    const covered = new Set(HULL_GROUPS.flatMap((g) => g.members));
+    expect(covered.size).toBe(75);
+    expect(covered.size).toBeLessThan(CONTROVERSY_MAP.stats.topics);
+    // 覆盖之外的议题是真实存在的，不是被算漏了
+    const byId = new Map(CONTROVERSY_MAP.nodes.map((n) => [n.id, n]));
+    for (const id of covered) {
+      expect(byId.get(id)?.kind).toBe("topic");
+    }
+  });
+
+  it("每个主张簇渲染一块包络，且垫在连线与节点之下", () => {
+    const { svg } = renderMap();
+    const hulls = [...svg.querySelectorAll("[data-hull-id]")];
+    expect(hulls.length).toBe(CONTROVERSY_MAP.nodes.filter((n) => n.kind === "cluster").length);
+
+    for (const h of hulls) {
+      const d = h.getAttribute("d") ?? "";
+      expect(d.startsWith("M")).toBe(true);
+      expect(d).not.toContain("NaN");
+    }
+
+    // 渲染层级：凸包 → 连线 → 节点（包络垫底，绝不遮节点标签）
+    const groups = [...svg.querySelectorAll("g")];
+    const idx = (sel: string): number => groups.indexOf(svg.querySelector(sel) as SVGGElement);
+    expect(idx(".cm-hulls")).toBeGreaterThanOrEqual(0);
+    expect(idx(".cm-hulls")).toBeLessThan(idx(".cm-links"));
+    expect(idx(".cm-links")).toBeLessThan(idx(".cm-nodes"));
+  });
+
+  it("外扩采样成「圆集凸包」：包络必然包住节点，单点也能成圆", () => {
+    const mk = (id: string, x: number, y: number): MapSimNode => ({
+      id,
+      kind: "topic",
+      label: id,
+      side: "neutral",
+      depth: 1,
+      radius: 10,
+      topicCount: 0,
+      votes: 0,
+      x,
+      y,
+    });
+    const byId = new Map<string, MapSimNode>([
+      ["a", mk("a", 0, 0)],
+      ["b", mk("b", 100, 0)],
+      ["c", mk("c", 50, 80)],
+    ]);
+
+    const d = hullPathFor(["a", "b", "c"], byId);
+    expect(d).toBeTruthy();
+    expect(d).not.toContain("NaN");
+
+    const nums = (d!.match(/-?\d+(?:\.\d+)?(?:e-?\d+)?/gi) ?? []).map(Number);
+    const xs = nums.filter((_, i) => i % 2 === 0);
+    const ys = nums.filter((_, i) => i % 2 === 1);
+    const [minX, maxX] = [Math.min(...xs), Math.max(...xs)];
+    const [minY, maxY] = [Math.min(...ys), Math.max(...ys)];
+    // 曲线经过所有控制点，控制点又是"节点外扩 21"后的采样 —— 中心必然落在包围盒内
+    for (const n of byId.values()) {
+      expect(n.x).toBeGreaterThan(minX);
+      expect(n.x).toBeLessThan(maxX);
+      expect(n.y).toBeGreaterThan(minY);
+      expect(n.y).toBeLessThan(maxY);
+    }
+
+    // 退化情形：单个成员（以及 2 个成员的"胶囊"）也要有正常路径，不写特例
+    for (const ids of [["a"], ["a", "b"]]) {
+      const p = hullPathFor(ids, byId);
+      expect(p).toBeTruthy();
+      expect(p).not.toContain("NaN");
+    }
+    // 成员全不在当前视图（聚焦视图的常见情形）→ 不出路径，而不是画出假包络
+    expect(hullPathFor(["a"], new Map<string, MapSimNode>())).toBeNull();
+  });
+
+  it("聚焦视图不渲染包络：成员不全时包络会失真，局部也不需要分组背景", () => {
+    const { svg, container } = renderMap();
+    expect(svg.querySelectorAll("[data-hull-id]").length).toBeGreaterThan(0);
+
+    clickNode(svg, richestClusterId());
+    expect(container.querySelector(".cm-focus-bar")).toBeTruthy();
+    expect(svg.querySelectorAll("[data-hull-id]").length).toBe(0);
+
+    // 退回全图后包络恢复
+    clickButton({ container }, "返回上一级");
+    expect(svg.querySelectorAll("[data-hull-id]").length).toBeGreaterThan(0);
+  });
+});
+
+/* ────────── 6. 连线形态与透明度分层 ────────── */
+
+describe("争议地图连线分层", () => {
+  it("缝合线走弧线（path），冲突线保持直线（line）—— 跨议题关系一眼可辨", () => {
+    const { svg } = renderMap();
+    const bridgePaths = svg.querySelectorAll('.cm-links-emphasis path[data-relation="bridge"]');
+    const rebutLines = svg.querySelectorAll('.cm-links-emphasis line[data-relation="rebuts"]');
+    expect(bridgePaths.length).toBe(CONTROVERSY_MAP.stats.bridge);
+    expect(rebutLines.length).toBe(expectedAggregatedCount());
+
+    for (const p of [...bridgePaths]) {
+      const d = p.getAttribute("d") ?? "";
+      expect(d.startsWith("M")).toBe(true);
+      expect(d).toContain("Q");
+      expect(d).not.toContain("NaN");
+      // 弯向标记只有 ±1 两种，同一条无向边永远往同一侧弯
+      expect(p.getAttribute("data-bow")).toMatch(/^-?1$/);
+      // path 不能有填充，否则会画出半透明的色块
+      expect(p.getAttribute("fill")).toBe("none");
+    }
+  });
+
+  it("常态透明度按关系分层：bridge 0.75 / rebuts 0.6 / member 0.25 / contains 0.2", () => {
+    const { svg, container } = renderMap();
+    clickButton({ container }, "展开全部论点");
+    clickButton({ container }, "显示归属边");
+
+    expect(
+      svg.querySelector('.cm-links-emphasis path[data-relation="bridge"]')!.getAttribute("opacity"),
+    ).toBe("0.75");
+    expect(
+      svg.querySelector('.cm-links-emphasis line[data-relation="rebuts"]')!.getAttribute("opacity"),
+    ).toBe("0.6");
+    expect(
+      svg.querySelector('.cm-links line[data-relation="member"]')!.getAttribute("opacity"),
+    ).toBe("0.25");
+    expect(
+      svg.querySelector('.cm-links line[data-relation="contains"]')!.getAttribute("opacity"),
+    ).toBe("0.2");
+  });
+
+  it("弧线坐标由每帧热路径写入：tick 后 path 的 d 与节点坐标一致", () => {
+    const { svg } = renderMap();
+    const p = svg.querySelector(
+      '.cm-links-emphasis path[data-relation="bridge"]',
+    ) as SVGPathElement;
+    const s = p.getAttribute("data-src")!;
+    const t = p.getAttribute("data-tgt")!;
+    const byId = new Map(
+      [...svg.querySelectorAll("[data-node-id]")].map((el) => {
+        const m = /translate\(([^,]+),([^)]+)\)/.exec(el.getAttribute("transform") ?? "")!;
+        return [el.getAttribute("data-node-id")!, { x: Number(m[1]), y: Number(m[2]) }];
+      }),
+    );
+    const sn = byId.get(s)!;
+    const tn = byId.get(t)!;
+    // 路径起点与终点必须钉在两端节点上（贝塞尔只影响中段弧度）
+    const nums = (p.getAttribute("d") ?? "").match(/-?\d+(?:\.\d+)?(?:e-?\d+)?/gi) ?? [];
+    expect(Number(nums[0])).toBeCloseTo(sn.x, 3);
+    expect(Number(nums[1])).toBeCloseTo(sn.y, 3);
+    expect(Number(nums[nums.length - 2])).toBeCloseTo(tn.x, 3);
+    expect(Number(nums[nums.length - 1])).toBeCloseTo(tn.y, 3);
+  });
+});
+
+/* ────────── 7. 标签密度自适应（语义缩放） ────────── */
+
+describe("争议地图标签密度", () => {
+  it("档位划分：k≥1.2 → near，k<0.6 → far，其余 mid（边界值锁定）", () => {
+    expect(labelTierFromK(1.2)).toBe("near");
+    expect(labelTierFromK(3)).toBe("near");
+    expect(labelTierFromK(1.19)).toBe("mid");
+    expect(labelTierFromK(0.6)).toBe("mid");
+    expect(labelTierFromK(0.59)).toBe("far");
+    expect(labelTierFromK(0.25)).toBe("far");
+  });
+
+  it("滚轮放大跨过阈值后论点标签自动浮现，不必再找开关", async () => {
+    const { svg, container } = renderMap();
+    clickButton({ container }, "展开全部论点");
+
+    const claimLabelCount = (): number =>
+      [...svg.querySelectorAll('[data-node-kind="claim"]')].filter(
+        (n) => n.querySelector("text.cm-node-label") !== null,
+      ).length;
+
+    expect(claimLabelCount()).toBe(0);
+
+    // d3 对 wheel 有 150ms 去抖，等它落定再断言
+    await act(async () => {
+      for (let i = 0; i < 3; i += 1) {
+        fireEvent.wheel(svg, { deltaY: -120, cancelable: true });
+      }
+      await new Promise((r) => setTimeout(r, 300));
+    });
+
+    const transform = svg.querySelector("[data-zoom-layer]")?.getAttribute("transform") ?? "";
+    expect(transform).toMatch(/scale\(1\.\d+\)/);
+    expect(claimLabelCount()).toBe(CONTROVERSY_MAP.stats.claims);
+  });
+
+  it("缩得太小时只留主张簇标签（far 档去掉议题标签，骨架模式）", async () => {
+    const { svg } = renderMap();
+
+    const topicLabelCount = (): number =>
+      [...svg.querySelectorAll('[data-node-kind="topic"]')].filter(
+        (n) => n.querySelector("text.cm-node-label") !== null,
+      ).length;
+    expect(topicLabelCount()).toBe(CONTROVERSY_MAP.stats.topics);
+
+    await act(async () => {
+      // d3 的 wheel 增量是 2^(deltaY×0.002)：三次只到 k≈0.61，恰好停在 mid 档，得四次
+      for (let i = 0; i < 4; i += 1) {
+        fireEvent.wheel(svg, { deltaY: 120, cancelable: true });
+      }
+      await new Promise((r) => setTimeout(r, 300));
+    });
+
+    const transform = svg.querySelector("[data-zoom-layer]")?.getAttribute("transform") ?? "";
+    expect(transform).toMatch(/scale\(0\.\d+\)/);
+    expect(topicLabelCount()).toBe(0);
   });
 });

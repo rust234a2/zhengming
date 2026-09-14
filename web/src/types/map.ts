@@ -18,7 +18,7 @@ export type MapEdgeRelation =
   | "member"
   /** 主张簇 → 议题：这个主张在该议题下也出现过（缝合线） */
   | "bridge"
-  /** 论点 ↔ 论点：跨议题互相矛盾 */
+  /** 论点 ↔ 论点：跨议题互相矛盾；骨架视图下聚合成议题间冲突线 */
   | "rebuts";
 
 /** map.json 里的节点原始形态（字段随 kind 变化，故用可选字段）。 */
@@ -95,6 +95,8 @@ export interface MapSimLink {
   relation: MapEdgeRelation;
   sourceDepth: number;
   targetDepth: number;
+  /** 仅骨架视图：该边由 N 条论点级 rebuts 聚合而来（议题间冲突线） */
+  aggregated?: number;
 }
 
 export interface MapResolvedLink {
@@ -102,4 +104,6 @@ export interface MapResolvedLink {
   relation: MapEdgeRelation;
   source: MapSimNode;
   target: MapSimNode;
+  /** 骨架视图的议题间冲突线：聚合了多少条论点级 rebuts */
+  aggregated?: number;
 }

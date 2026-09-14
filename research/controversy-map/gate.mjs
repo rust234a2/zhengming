@@ -18,7 +18,7 @@ import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
-const PROMPT_VERSION = "v1-generate-both-sides";
+const PROMPT_VERSION = "v2-multi-angle";
 
 // ---------- 规则带（原样移植 classify.py） ----------
 const RULES = [
@@ -106,7 +106,7 @@ async function grayBand(titles) {
         {
           role: "system",
           content:
-            '你是辩论议题的可行性评审。对给定的每个知乎问题标题，分别给出正方（赞成该问题隐含的主流倾向）与反方能给出的最强理由。若任一方说不出有论据支撑的理由，则该题不可辩。只输出 JSON：{"results":[{"title":"…","pro":"正方最强理由，40字内","con":"反方最强理由，40字内","debatable":true/false,"reason":"一句话"}]}',
+            '你是辩论议题的可行性评审。对给定的每个知乎问题标题，给出这个话题下 2~4 个互不相同的讨论角度，每个角度一句话说清它与别的角度差别在哪（30字内）。注意：角度是多元的，不限于正反两派；若给不出 2 个真正互不相同的角度，则该题不可辩。只输出 JSON：{"results":[{"title":"…","angles":["角度1","角度2","角度3"],"debatable":true/false,"reason":"一句话"}]}',
         },
         { role: "user", content: JSON.stringify(batch) },
       ],
@@ -132,7 +132,7 @@ async function grayBand(titles) {
   return titles.map((t) => {
     const c = cache[key(t)];
     return c
-      ? { type: "灰带-LLM", tier: c.debatable ? "甜区/可用（LLM 预判对垒）" : "不可辩", note: `正方:${c.pro}｜反方:${c.con}`, verdict: c.debatable ? "放行" : "拒绝", band: "gray" }
+      ? { type: "灰带-LLM", tier: c.debatable ? "甜区/可用（LLM 多角度判定）" : "不可辩", note: `角度:${(c.angles || []).join("｜")}`, verdict: c.debatable ? "放行" : "拒绝", band: "gray" }
       : { type: "灰带-LLM", tier: "未判定", note: "调用失败", verdict: "灰带", band: "gray" };
   });
 }

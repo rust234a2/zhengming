@@ -1,0 +1,43 @@
+<svg viewBox="0 0 680 262" width="100%" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>替换式下钻与透镜式的对比</title>
+  <desc>左图只保留焦点节点与一跳邻居，其余节点消失；右图同样聚焦，但背景节点以低透明度保留，方位感不丢失。</desc>
+  <style>
+    .th { font-family: system-ui, -apple-system, sans-serif; font-size: 14px; font-weight: 500; fill: #2C2C2A; }
+    .ts { font-family: system-ui, -apple-system, sans-serif; font-size: 12px; fill: #5F5E5A; }
+  </style>
+  <text class="th" x="40" y="46">替换式下钻</text>
+  <text class="ts" x="40" y="64">其余节点消失，方位感丢失</text>
+  <line x1="170" y1="145" x2="228" y2="145" stroke="#B4B2A9" stroke-width="1"/>
+  <line x1="170" y1="145" x2="170" y2="203" stroke="#B4B2A9" stroke-width="1"/>
+  <line x1="170" y1="145" x2="112" y2="145" stroke="#B4B2A9" stroke-width="1"/>
+  <line x1="170" y1="145" x2="170" y2="87" stroke="#B4B2A9" stroke-width="1"/>
+  <circle cx="228" cy="145" r="6" fill="#85B7EB"/>
+  <circle cx="170" cy="203" r="6" fill="#85B7EB"/>
+  <circle cx="112" cy="145" r="6" fill="#85B7EB"/>
+  <circle cx="170" cy="87" r="6" fill="#85B7EB"/>
+  <circle cx="170" cy="145" r="12" fill="#378ADD"/>
+  <text class="th" x="370" y="46">透镜式</text>
+  <text class="ts" x="370" y="64">背景保留，方位不丢</text>
+  <circle cx="400" cy="105" r="4" fill="#B4B2A9" opacity="0.2"/>
+  <circle cx="620" cy="115" r="4" fill="#B4B2A9" opacity="0.2"/>
+  <circle cx="392" cy="165" r="4" fill="#B4B2A9" opacity="0.2"/>
+  <circle cx="612" cy="185" r="4" fill="#B4B2A9" opacity="0.2"/>
+  <circle cx="432" cy="218" r="4" fill="#B4B2A9" opacity="0.2"/>
+  <circle cx="568" cy="218" r="4" fill="#B4B2A9" opacity="0.2"/>
+  <circle cx="398" cy="205" r="4" fill="#B4B2A9" opacity="0.2"/>
+  <circle cx="628" cy="142" r="4" fill="#B4B2A9" opacity="0.2"/>
+  <circle cx="562" cy="82" r="4" fill="#B4B2A9" opacity="0.2"/>
+  <circle cx="438" cy="82" r="4" fill="#B4B2A9" opacity="0.2"/>
+  <circle cx="420" cy="132" r="4" fill="#B4B2A9" opacity="0.2"/>
+  <circle cx="596" cy="98" r="4" fill="#B4B2A9" opacity="0.2"/>
+  <line x1="500" y1="145" x2="558" y2="145" stroke="#B4B2A9" stroke-width="1"/>
+  <line x1="500" y1="145" x2="500" y2="203" stroke="#B4B2A9" stroke-width="1"/>
+  <line x1="500" y1="145" x2="442" y2="145" stroke="#B4B2A9" stroke-width="1"/>
+  <line x1="500" y1="145" x2="500" y2="87" stroke="#B4B2A9" stroke-width="1"/>
+  <circle cx="558" cy="145" r="6" fill="#85B7EB"/>
+  <circle cx="500" cy="203" r="6" fill="#85B7EB"/>
+  <circle cx="442" cy="145" r="6" fill="#85B7EB"/>
+  <circle cx="500" cy="87" r="6" fill="#85B7EB"/>
+  <circle cx="500" cy="145" r="12" fill="#378ADD"/>
+  <text class="ts" x="40" y="238">非相关节点降到 alpha 0.15 即可，不必移除</text>
+</svg>

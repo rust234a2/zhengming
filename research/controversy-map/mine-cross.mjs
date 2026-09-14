@@ -80,48 +80,67 @@ for (const c of claims) {
   (groups[c.reasonType] ||= []).push(c);
 }
 
+/** v2 规模化：大组切滑动窗口（窗口 10、步进 8、重叠 2），单次调用 ≤45 对，防 max_tokens 截断 */
+function windowize(list, size = 10, step = 8, maxWindows = 6) {
+  if (list.length <= size) return [list];
+  const wins = [];
+  for (let i = 0; i < list.length && wins.length < maxWindows; i += step) {
+    wins.push(list.slice(i, i + size));
+    if (i + size >= list.length) break;
+  }
+  return wins;
+}
+
 const allPairs = [];
+const pairSeen = new Set();
 
 for (const [reason, list] of Object.entries(groups)) {
   if (list.length < 2) continue;
-  // 只保留跨议题的组合
-  const cross = list.filter((c) => c.questionId !== list[0].questionId || true);
-  const cacheKey = `g:${reason}:${cross.map((c) => c.id).join("|")}`;
+  list.sort((a, b) => b.voteUp - a.voteUp); // 高赞优先进窗口
+  const windows = windowize(list);
 
-  let pairs;
-  if (cache[cacheKey]) {
-    pairs = cache[cacheKey];
-  } else {
-    try {
-      pairs = await judge(cross);
-      cache[cacheKey] = pairs;
-      fs.writeFileSync(CACHE, JSON.stringify(cache, null, 1), "utf8");
-    } catch (e) {
-      console.log(`  group ${reason} FAILED: ${e.message}`);
-      continue;
+  for (let w = 0; w < windows.length; w++) {
+    const cross = windows[w];
+    const cacheKey = `g:${reason}:w${w}:${cross.map((c) => c.id).join("|")}`;
+
+    let pairs;
+    if (cache[cacheKey]) {
+      pairs = cache[cacheKey];
+    } else {
+      try {
+        pairs = await judge(cross);
+        cache[cacheKey] = pairs;
+        fs.writeFileSync(CACHE, JSON.stringify(cache, null, 1), "utf8");
+      } catch (e) {
+        console.log(`  group ${reason} w${w} FAILED: ${e.message}`);
+        continue;
+      }
+      await new Promise((r) => setTimeout(r, 600));
     }
-    await new Promise((r) => setTimeout(r, 600));
-  }
 
-  for (const p of pairs) {
-    const a = cross[p.i];
-    const b = cross[p.j];
-    if (!a || !b) continue;
-    if (a.questionId === b.questionId) continue; // 只保留跨议题
-    if (p.relation !== "same-claim" && p.relation !== "rebuts") continue;
-    if ((p.confidence ?? 0) < 0.6) continue;
-    allPairs.push({
-      source: a.id,
-      target: b.id,
-      relation: p.relation,
-      label: p.label || "",
-      confidence: p.confidence ?? 0.7,
-      reasonType: reason,
-      sourceTopic: a.questionTitle,
-      targetTopic: b.questionTitle,
-    });
+    for (const p of pairs) {
+      const a = cross[p.i];
+      const b = cross[p.j];
+      if (!a || !b) continue;
+      if (a.questionId === b.questionId) continue; // 只保留跨议题
+      if (p.relation !== "same-claim" && p.relation !== "rebuts") continue;
+      if ((p.confidence ?? 0) < 0.6) continue;
+      const key = [a.id, b.id].sort().join("|") + "|" + p.relation;
+      if (pairSeen.has(key)) continue; // 重叠窗口去重
+      pairSeen.add(key);
+      allPairs.push({
+        source: a.id,
+        target: b.id,
+        relation: p.relation,
+        label: p.label || "",
+        confidence: p.confidence ?? 0.7,
+        reasonType: reason,
+        sourceTopic: a.questionTitle,
+        targetTopic: b.questionTitle,
+      });
+    }
   }
-  console.log(`  ${reason}: ${pairs.length} 对 → 保留跨议题强关系`);
+  console.log(`  ${reason}: ${list.length} 论点 / ${windows.length} 窗口`);
 }
 
 fs.writeFileSync(OUT, JSON.stringify({ generatedAt: new Date().toISOString(), links: allPairs }, null, 2), "utf8");
