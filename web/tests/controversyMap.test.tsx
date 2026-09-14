@@ -2,12 +2,10 @@
  * 跨议题争议地图的验证测试。
  *
  * 覆盖四块：
- *  1. 数据层：真实知乎数据是否自洽（三类节点、无悬空引用、主张簇真的跨议题）；
- *  2. 视图层：议题层移除后图上只剩「主张簇 + 有归属的论点」，且没有孤岛节点；
- *  3. 布局层：真实跑 d3 模拟，验证「成员论点贴着簇、无重叠、非同分布」；
- *  4. 组件层：渲染、层级切换、悬停高亮、点击下钻聚焦、缩放、卸载清理。
- *
- * 视图口径统一取自 CONTROVERSY_GRAPH —— 与组件共用同一份推导，避免测试与实现漂移。
+ *  1. 数据层：真实知乎数据是否自洽（多父结构、无孤岛、主张簇真的跨议题）；
+ *  2. 布局层：真实跑 d3 模拟，验证「同类聚合、骨架撑开、无重叠、非同分布」；
+ *  3. 组件层：渲染、悬停高亮、点击选中、空白清除、缩放、卸载清理；
+ *  4. 关键差异：证明这张图能表达树结构表达不了的东西（跨议题多归属）。
  */
 
 import { render, cleanup, fireEvent, act } from "@testing-library/react";
@@ -16,7 +14,7 @@ import * as d3 from "d3";
 
 import { CONTROVERSY_MAP } from "../src/data/controversyMap";
 import type { MapSimLink, MapSimNode } from "../src/types/map";
-import { ControversyMap, CONTROVERSY_GRAPH } from "../src/ui/ControversyMap";
+import { ControversyMap } from "../src/ui/ControversyMap";
 
 afterEach(() => {
   cleanup();
@@ -27,10 +25,10 @@ function classOf(el: Element): string {
   return el.getAttribute("class") ?? "";
 }
 
-/* ────────── 1. 数据层（原始数据未被删改） ────────── */
+/* ────────── 1. 数据层 ────────── */
 
 describe("争议地图数据层", () => {
-  it("原始数据三类节点都在（议题层只是不参与视图，不是删数据）", () => {
+  it("三种节点类型都存在", () => {
     const kinds = new Set(CONTROVERSY_MAP.nodes.map((n) => n.kind));
     expect(kinds.has("topic")).toBe(true);
     expect(kinds.has("claim")).toBe(true);
@@ -47,6 +45,16 @@ describe("争议地图数据层", () => {
     expect(s.edges).toBe(CONTROVERSY_MAP.edges.length);
   });
 
+  it("图中没有任何孤岛节点（力导向里孤岛会漂浮无意义）", () => {
+    const deg = new Map<string, number>();
+    for (const e of CONTROVERSY_MAP.edges) {
+      deg.set(e.source, (deg.get(e.source) ?? 0) + 1);
+      deg.set(e.target, (deg.get(e.target) ?? 0) + 1);
+    }
+    const isolated = CONTROVERSY_MAP.nodes.filter((n) => !deg.get(n.id));
+    expect(isolated.map((n) => n.id)).toEqual([]);
+  });
+
   it("所有边的两端节点都真实存在（无悬空引用）", () => {
     const ids = new Set(CONTROVERSY_MAP.nodes.map((n) => n.id));
     for (const e of CONTROVERSY_MAP.edges) {
@@ -55,7 +63,7 @@ describe("争议地图数据层", () => {
     }
   });
 
-  it("主张簇的 topicCount 与桥接边数一致（跨议题属性来自原始数据）", () => {
+  it("这是树结构表达不了的结构：存在被多个议题共享的主张簇（多父）", () => {
     const bridgeByCluster = new Map<string, Set<string>>();
     for (const e of CONTROVERSY_MAP.edges) {
       if (e.relation !== "bridge") continue;
@@ -65,15 +73,27 @@ describe("争议地图数据层", () => {
     // 至少有一个簇缝合了 >=3 个议题，否则这张图就没有存在价值
     const multi = [...bridgeByCluster.values()].filter((topics) => topics.size >= 3);
     expect(multi.length).toBeGreaterThanOrEqual(1);
+    // 且该簇的 topicCount 字段与实际一致
     for (const cluster of CONTROVERSY_MAP.nodes.filter((n) => n.kind === "cluster")) {
-      expect(cluster.topicCount).toBe(bridgeByCluster.get(cluster.id)?.size ?? 0);
+      const actual = bridgeByCluster.get(cluster.id)?.size ?? 0;
+      expect(cluster.topicCount).toBe(actual);
+    }
+  });
+
+  it("存在跨议题的冲突边（rebuts），这是最有信息量的关系", () => {
+    const rebuts = CONTROVERSY_MAP.edges.filter((e) => e.relation === "rebuts");
+    expect(rebuts.length).toBeGreaterThan(0);
+    // 冲突必须真的跨议题（两端属于不同议题），否则就是树内已有的关系
+    const topicOf = new Map(
+      CONTROVERSY_MAP.nodes.filter((n) => n.kind === "claim").map((n) => [n.id, n.topicId]),
+    );
+    for (const e of rebuts) {
+      expect(topicOf.get(e.source)).not.toBe(topicOf.get(e.target));
     }
   });
 
   it("每个论点都归属唯一议题，且该议题存在", () => {
-    const topicIds = new Set(
-      CONTROVERSY_MAP.nodes.filter((n) => n.kind === "topic").map((n) => n.id),
-    );
+    const topicIds = new Set(CONTROVERSY_MAP.nodes.filter((n) => n.kind === "topic").map((n) => n.id));
     for (const claim of CONTROVERSY_MAP.nodes.filter((n) => n.kind === "claim")) {
       expect(topicIds.has(claim.topicId!)).toBe(true);
     }
@@ -87,80 +107,7 @@ describe("争议地图数据层", () => {
   });
 });
 
-/* ────────── 2. 视图子集（议题层移除后的图契约） ────────── */
-
-describe("争议地图视图子集", () => {
-  it("图上只有主张簇与论点两类节点", () => {
-    const kinds = new Set(
-      CONTROVERSY_MAP.nodes.filter((n) => CONTROVERSY_GRAPH.nodeIds.has(n.id)).map((n) => n.kind),
-    );
-    expect([...kinds].sort()).toEqual(["claim", "cluster"]);
-  });
-
-  it("议题节点与议题相关边全部不进图", () => {
-    for (const n of CONTROVERSY_MAP.nodes) {
-      if (n.kind !== "topic") continue;
-      expect(CONTROVERSY_GRAPH.nodeIds.has(n.id)).toBe(false);
-    }
-    for (const e of CONTROVERSY_GRAPH.edges) {
-      expect(["member", "rebuts"]).toContain(e.relation);
-    }
-  });
-
-  it("视图里没有孤岛节点（力导向中孤岛只会漂浮，无信息量）", () => {
-    const deg = new Map<string, number>();
-    for (const e of CONTROVERSY_GRAPH.edges) {
-      deg.set(e.source, (deg.get(e.source) ?? 0) + 1);
-      deg.set(e.target, (deg.get(e.target) ?? 0) + 1);
-    }
-    const isolated = [...CONTROVERSY_GRAPH.nodeIds].filter((id) => !deg.get(id));
-    expect(isolated).toEqual([]);
-    // 没有簇归属的论点被排除，正因为它们的唯一关系是「议题包含论点」，议题层一走就是孤岛
-    const nonTopicNodes = CONTROVERSY_MAP.nodes.filter((n) => n.kind !== "topic").length;
-    expect(CONTROVERSY_GRAPH.nodeIds.size).toBeLessThan(nonTopicNodes);
-  });
-
-  it("所有可见边的两端都落在可见节点集内", () => {
-    for (const e of CONTROVERSY_GRAPH.edges) {
-      expect(CONTROVERSY_GRAPH.nodeIds.has(e.source)).toBe(true);
-      expect(CONTROVERSY_GRAPH.nodeIds.has(e.target)).toBe(true);
-    }
-  });
-
-  it("这是树结构表达不了的结构：同一个论点可同时归属多个主张簇", () => {
-    const multi = [...CONTROVERSY_GRAPH.claimClusters.values()].filter((s) => s.size > 1);
-    expect(multi.length).toBeGreaterThan(0);
-    // 骨架视图的「共享成员」线正是由这些多归属论点产生
-    expect(CONTROVERSY_GRAPH.stats.sharePairs).toBeGreaterThan(0);
-  });
-
-  it("骨架视图的每条线两端都是主张簇，且带聚合计数", () => {
-    const clusterIds = new Set(
-      CONTROVERSY_MAP.nodes.filter((n) => n.kind === "cluster").map((n) => n.id),
-    );
-    expect(CONTROVERSY_GRAPH.skeletonLinks.length).toBe(
-      CONTROVERSY_GRAPH.stats.sharePairs + CONTROVERSY_GRAPH.stats.conflictPairs,
-    );
-    for (const l of CONTROVERSY_GRAPH.skeletonLinks) {
-      expect(clusterIds.has(l.a)).toBe(true);
-      expect(clusterIds.has(l.b)).toBe(true);
-      expect(l.count).toBeGreaterThan(0);
-      expect(["bridge", "rebuts"]).toContain(l.relation);
-    }
-  });
-
-  it("展开视图只保留有归属的论点，规模随之收缩", () => {
-    const claimIds = [...CONTROVERSY_GRAPH.nodeIds].filter(
-      (id) => CONTROVERSY_MAP.nodes.find((n) => n.id === id)?.kind === "claim",
-    );
-    expect(claimIds.length).toBe(CONTROVERSY_GRAPH.stats.claims);
-    expect(CONTROVERSY_GRAPH.stats.claims).toBeLessThan(CONTROVERSY_MAP.stats.claims);
-    expect(CONTROVERSY_GRAPH.stats.clusters).toBe(CONTROVERSY_MAP.stats.clusters);
-    expect(CONTROVERSY_GRAPH.stats.rebuts).toBeLessThanOrEqual(CONTROVERSY_MAP.stats.rebuts);
-  });
-});
-
-/* ────────── 3. 布局层（真实跑 d3 模拟） ────────── */
+/* ────────── 2. 布局层（真实跑 d3 模拟） ────────── */
 
 function seededRandom(initial: number) {
   let state = initial >>> 0;
@@ -170,37 +117,34 @@ function seededRandom(initial: number) {
   };
 }
 
-/** 与组件 radiusFor / DEPTH_BY_KIND 一致，避免两边阈值漂移。 */
-function simRadius(kind: "claim" | "cluster", topicCount: number): number {
-  return kind === "cluster" ? 13 + Math.min(topicCount * 2, 16) : 5.5;
-}
-
 /** 用与组件一致的力配置跑一遍模拟，固定种子保证质量门槛不漂移。 */
 function runSimulation(seed: () => number = seededRandom(42)) {
   const rng = seed;
-  const nodes: MapSimNode[] = CONTROVERSY_MAP.nodes
-    .filter((n) => CONTROVERSY_GRAPH.nodeIds.has(n.id))
-    .map((n, i) => {
-      const kind = n.kind as "claim" | "cluster";
-      const angle = i * 2.39996;
-      const r = 120 + Math.sqrt(i) * 46;
-      return {
-        id: n.id,
-        kind,
-        label: n.label,
-        side: n.side ?? "neutral",
-        depth: kind === "cluster" ? 0 : 1,
-        radius: simRadius(kind, n.topicCount ?? 0),
-        topicCount: n.topicCount ?? 0,
-        votes: n.votes ?? 0,
-        x: Math.cos(angle) * r + (rng() - 0.5) * 20,
-        y: Math.sin(angle) * r + (rng() - 0.5) * 20,
-        vx: 0,
-        vy: 0,
-      };
-    });
+  const nodes: MapSimNode[] = CONTROVERSY_MAP.nodes.map((n, i) => {
+    const angle = i * 2.39996;
+    const r = 120 + Math.sqrt(i) * 46;
+    return {
+      id: n.id,
+      kind: n.kind,
+      label: n.label,
+      side: n.side ?? "neutral",
+      depth: n.kind === "cluster" ? 0 : n.kind === "topic" ? 1 : 2,
+      radius:
+        n.kind === "cluster"
+          ? 16 + Math.min(n.topicCount ?? 0, 6) * 2.6
+          : n.kind === "topic"
+            ? 11 + Math.min(n.weight ?? 0, 5) * 1.1
+            : 6.5,
+      topicCount: n.topicCount ?? 0,
+      votes: n.votes ?? 0,
+      x: Math.cos(angle) * r + (rng() - 0.5) * 20,
+      y: Math.sin(angle) * r + (rng() - 0.5) * 20,
+      vx: 0,
+      vy: 0,
+    };
+  });
   const byId = new Map(nodes.map((n) => [n.id, n]));
-  const links: MapSimLink[] = CONTROVERSY_GRAPH.edges.map((e, i) => ({
+  const links: MapSimLink[] = CONTROVERSY_MAP.edges.map((e, i) => ({
     id: `l${i}`,
     source: e.source,
     target: e.target,
@@ -209,35 +153,21 @@ function runSimulation(seed: () => number = seededRandom(42)) {
     targetDepth: byId.get(e.target)!.depth,
   }));
 
-  const dist: Record<string, number> = { bridge: 175, member: 78, rebuts: 250 };
-  const str: Record<string, number> = { bridge: 0.45, member: 0.9, rebuts: 0.08 };
-  const charge: Record<string, number> = { cluster: -1150, claim: -170 };
+  const dist: Record<string, number> = { bridge: 165, member: 78, contains: 118, rebuts: 250 };
+  const str: Record<string, number> = { bridge: 0.55, member: 0.9, contains: 0.32, rebuts: 0.08 };
+  const charge: Record<string, number> = { cluster: -1150, topic: -560, claim: -170 };
+  /* 骨架目标半径随规模自适应：力导向布局的线性尺度 ~ O(√N)（v1 = 43 节点时 520），
+   * 数据扩充后论点云半径同步膨胀，骨架半径必须按 √N 缩放才能继续留在外围。 */
+  const skeletonR = Math.max(520, 80 * Math.sqrt(nodes.length));
 
   const sim = d3
     .forceSimulation<MapSimNode, MapSimLink>(nodes)
-    .force(
-      "link",
-      d3
-        .forceLink<MapSimNode, MapSimLink>(links)
-        .id((n) => n.id)
-        .distance((l) => dist[l.relation])
-        .strength((l) => str[l.relation]),
-    )
+    .force("link", d3.forceLink<MapSimNode, MapSimLink>(links).id((n) => n.id).distance((l) => dist[l.relation]).strength((l) => str[l.relation]))
     .force("charge", d3.forceManyBody<MapSimNode>().strength((n) => charge[n.kind]))
     .force("center", d3.forceCenter(0, 0))
-    .force(
-      "collide",
-      d3
-        .forceCollide<MapSimNode>()
-        .radius((n) => n.radius + (n.kind === "cluster" ? 34 : 13))
-        .strength(0.95),
-    )
-    .force(
-      "polarity",
-      d3
-        .forceX<MapSimNode>((n) => (n.side === "positive" ? -420 : n.side === "negative" ? 420 : 0))
-        .strength(0.12),
-    )
+    .force("collide", d3.forceCollide<MapSimNode>().radius((n) => n.radius + (n.kind === "cluster" ? 34 : n.kind === "topic" ? 22 : 13)).strength(0.95))
+    .force("polarity", d3.forceX<MapSimNode>((n) => (n.side === "positive" ? -420 : n.side === "negative" ? 420 : 0)).strength((n) => (n.kind === "cluster" ? 0.1 : 0.035)))
+    .force("skeleton", d3.forceRadial<MapSimNode>((n) => (n.kind === "cluster" ? skeletonR : 0), 0, 0).strength((n) => (n.kind === "cluster" ? 0.15 : 0)))
     .alphaDecay(0.022)
     .velocityDecay(0.42)
     .stop();
@@ -245,16 +175,6 @@ function runSimulation(seed: () => number = seededRandom(42)) {
   for (let i = 0; i < 400; i += 1) sim.tick();
   sim.stop();
   return { nodes, links };
-}
-
-/** 聚焦视图的期望节点集：目标节点 + 一跳邻居（按可见边集，不受层级开关影响）。 */
-function focusNeighborhood(id: string): Set<string> {
-  const set = new Set<string>([id]);
-  for (const e of CONTROVERSY_GRAPH.edges) {
-    if (e.source === id) set.add(e.target);
-    if (e.target === id) set.add(e.source);
-  }
-  return set;
 }
 
 /**
@@ -265,7 +185,11 @@ function focusNeighborhood(id: string): Set<string> {
  */
 function runFocusSimulation(focusedId: string, seed: () => number = seededRandom(7)) {
   const rng = seed;
-  const inView = focusNeighborhood(focusedId);
+  const inView = new Set<string>([focusedId]);
+  for (const e of CONTROVERSY_MAP.edges) {
+    if (e.source === focusedId) inView.add(e.target);
+    if (e.target === focusedId) inView.add(e.source);
+  }
   const neighborCount = inView.size - 1;
   const ring = Math.min(470, Math.max(160, 100 + 30 * Math.sqrt(neighborCount)));
 
@@ -273,18 +197,18 @@ function runFocusSimulation(focusedId: string, seed: () => number = seededRandom
   const nodes: MapSimNode[] = CONTROVERSY_MAP.nodes
     .filter((n) => inView.has(n.id))
     .map((n) => {
-      const kind = n.kind as "claim" | "cluster";
       const isCenter = n.id === focusedId;
       const angle = (k / Math.max(inView.size - 1, 1)) * Math.PI * 2;
       const r = isCenter ? 0 : ring * (0.7 + rng() * 0.6);
       k += 1;
       return {
         id: n.id,
-        kind,
+        kind: n.kind,
         label: n.label,
         side: n.side ?? "neutral",
-        depth: kind === "cluster" ? 0 : 1,
-        radius: simRadius(kind, n.topicCount ?? 0),
+        depth: n.kind === "cluster" ? 0 : n.kind === "topic" ? 1 : 2,
+        // 与组件 radiusFor 一致
+        radius: n.kind === "cluster" ? 13 + Math.min((n.topicCount ?? 0) * 2, 16) : n.kind === "topic" ? 10 : 5.5,
         topicCount: n.topicCount ?? 0,
         votes: n.votes ?? 0,
         // 中心沿用"上一个视图里的位置"，其余从环上张开 —— 与真实切换过程一致
@@ -296,7 +220,7 @@ function runFocusSimulation(focusedId: string, seed: () => number = seededRandom
     });
 
   const byId = new Map(nodes.map((n) => [n.id, n]));
-  const links: MapSimLink[] = CONTROVERSY_GRAPH.edges
+  const links: MapSimLink[] = CONTROVERSY_MAP.edges
     .filter((e) => inView.has(e.source) && inView.has(e.target))
     .map((e, i) => ({
       id: `fl${i}`,
@@ -307,50 +231,24 @@ function runFocusSimulation(focusedId: string, seed: () => number = seededRandom
       targetDepth: byId.get(e.target)!.depth,
     }));
 
-  const dist: Record<string, number> = { bridge: 175, member: 78, rebuts: 250 };
-  const str: Record<string, number> = { bridge: 0.45, member: 0.9, rebuts: 0.08 };
-  const charge: Record<string, number> = { cluster: -1150, claim: -170 };
+  const dist: Record<string, number> = { bridge: 165, member: 78, contains: 118, rebuts: 250 };
+  const str: Record<string, number> = { bridge: 0.55, member: 0.9, contains: 0.32, rebuts: 0.08 };
+  const charge: Record<string, number> = { cluster: -1150, topic: -560, claim: -170 };
 
   const sim = d3
     .forceSimulation<MapSimNode, MapSimLink>(nodes)
-    .force(
-      "link",
-      d3
-        .forceLink<MapSimNode, MapSimLink>(links)
-        .id((n) => n.id)
-        .distance((l) => dist[l.relation])
-        .strength((l) => str[l.relation]),
-    )
+    .force("link", d3.forceLink<MapSimNode, MapSimLink>(links).id((n) => n.id).distance((l) => dist[l.relation]).strength((l) => str[l.relation]))
     .force("charge", d3.forceManyBody<MapSimNode>().strength((n) => charge[n.kind]))
     .force("center", d3.forceCenter(0, 0))
-    .force(
-      "collide",
-      d3
-        .forceCollide<MapSimNode>()
-        .radius((n) => n.radius + (n.kind === "cluster" ? 34 : 13))
-        .strength(0.95),
-    )
+    .force("collide", d3.forceCollide<MapSimNode>().radius((n) => n.radius + (n.kind === "cluster" ? 34 : n.kind === "topic" ? 22 : 13)).strength(0.95))
     .force("polarity", d3.forceX<MapSimNode>(() => 0).strength(() => 0))
-    .force(
-      "focusRing",
-      d3
-        .forceRadial<MapSimNode>((n) => (n.id === focusedId ? 0 : ring), 0, 0)
-        .strength((n) => (n.id === focusedId ? 1 : 0.62)),
-    )
+    .force("focusRing", d3.forceRadial<MapSimNode>((n) => (n.id === focusedId ? 0 : ring), 0, 0).strength((n) => (n.id === focusedId ? 1 : 0.62)))
     .alphaDecay(0.022)
     .stop();
 
   for (let i = 0; i < 500; i += 1) sim.tick();
   sim.stop();
   return { nodes, links, ring, focusedId };
-}
-
-/** 挑一个相连节点最多的主张簇：保证聚焦视图有足够内容可断言。 */
-function richestClusterId(): string {
-  const clusters = CONTROVERSY_MAP.nodes.filter((n) => n.kind === "cluster");
-  return clusters
-    .reduce((best, n) => (focusNeighborhood(n.id).size > focusNeighborhood(best.id).size ? n : best))
-    .id;
 }
 
 describe("争议地图布局质量（真实 d3 模拟）", () => {
@@ -373,19 +271,29 @@ describe("争议地图布局质量（真实 d3 模拟）", () => {
     }
   });
 
-  it("成员论点紧贴所属主张簇：member 边显著短于全局平均距离", () => {
+  it("主张簇（骨架）被推到离中心较远的位置，撑开整张图", () => {
+    const { nodes } = runSimulation();
+    const clusters = nodes.filter((n) => n.kind === "cluster");
+    const claims = nodes.filter((n) => n.kind === "claim");
+    const avg = (a: MapSimNode[]) =>
+      a.reduce((s, n) => s + Math.hypot(n.x, n.y), 0) / Math.max(a.length, 1);
+    // 骨架在外围、论点在内部聚拢，结构才有层次
+    expect(clusters.length).toBeGreaterThan(0);
+    expect(avg(clusters)).toBeGreaterThan(avg(claims) * 0.8);
+  });
+
+  it("同一主张簇的成员论点，距离明显小于随机节点对", () => {
     const { nodes } = runSimulation();
     const byId = new Map(nodes.map((n) => [n.id, n]));
     const memberPairs: number[] = [];
-    for (const e of CONTROVERSY_GRAPH.edges) {
+    for (const e of CONTROVERSY_MAP.edges) {
       if (e.relation !== "member") continue;
       const s = byId.get(e.source)!;
       const t = byId.get(e.target)!;
       memberPairs.push(Math.hypot(s.x - t.x, s.y - t.y));
     }
-    expect(memberPairs.length).toBeGreaterThan(0);
     const avgMember = memberPairs.reduce((a, b) => a + b, 0) / memberPairs.length;
-
+    // 成员边（claim→cluster）应显著短于整体平均距离
     let total = 0;
     let n = 0;
     for (let i = 0; i < nodes.length; i += 1) {
@@ -394,7 +302,6 @@ describe("争议地图布局质量（真实 d3 模拟）", () => {
         n += 1;
       }
     }
-    // 归属边（claim→cluster）应显著短于整体平均距离 —— 否则"簇"没有空间意义
     expect(avgMember).toBeLessThan(total / n);
   });
 
@@ -408,7 +315,7 @@ describe("争议地图布局质量（真实 d3 模拟）", () => {
     expect(diff).toBeGreaterThan(1);
   }, 20000);
 
-  it("聚焦布局：中心归位、邻居围成一环，且全部落进相机取景框", () => {
+  it("聚焦布局：中心压到圆心，论点贴内圈、议题围外环，且都落进相机取景框", () => {
     const id = richestClusterId();
     const { nodes, ring } = runFocusSimulation(id);
     const center = nodes.find((n) => n.id === id)!;
@@ -424,9 +331,12 @@ describe("争议地图布局质量（真实 d3 模拟）", () => {
     expect(Math.min(...dists)).toBeGreaterThan(100);
     expect(Math.max(...dists) - Math.min(...dists)).toBeLessThan(mean * 1.2);
 
-    // ③ 邻居以成员论点为主：议题层移除后，聚焦一个簇看到的直接关系就是「谁归属于它」
-    const claims = neighbors.filter((n) => n.kind === "claim");
+    // ③ 径向分层：成员论点被短 member 边拉在内圈，议题落在外环
+    const topics = neighbors.filter((n) => n.kind === "topic").map(radial);
+    const claims = neighbors.filter((n) => n.kind === "claim").map(radial);
+    expect(topics.length).toBeGreaterThan(0);
     expect(claims.length).toBeGreaterThan(0);
+    expect(Math.max(...claims)).toBeLessThan(Math.min(...topics));
 
     // ④ 相机取景框（ring + 90）必须装得下整个邻域，否则进聚焦会被裁掉
     expect(Math.max(...dists)).toBeLessThan(ring + 90);
@@ -444,7 +354,28 @@ describe("争议地图布局质量（真实 d3 模拟）", () => {
   }, 20000);
 });
 
-/* ────────── 4. 组件层 ────────── */
+/* ────────── 3. 组件层 ────────── */
+
+/** 骨架视图下议题间冲突线的期望数量：论点级 rebuts 按 (topicA,topicB) 无向去重。 */
+function expectedAggregatedCount(): number {
+  const topicOf = new Map(
+    CONTROVERSY_MAP.nodes.filter((n) => n.kind === "claim").map((n) => [n.id, n.topicId!]),
+  );
+  const pairs = new Set<string>();
+  for (const e of CONTROVERSY_MAP.edges) {
+    if (e.relation !== "rebuts") continue;
+    const a = topicOf.get(e.source);
+    const b = topicOf.get(e.target);
+    if (!a || !b || a === b) continue;
+    pairs.add(a < b ? `${a}|${b}` : `${b}|${a}`);
+  }
+  return pairs.size;
+}
+
+/** 展开论点后（归属边关闭）应渲染的连线数：bridge + 论点级 rebuts。 */
+function emphasisTotal(): number {
+  return CONTROVERSY_MAP.stats.bridge + CONTROVERSY_MAP.stats.rebuts;
+}
 
 function renderMap() {
   const utils = render(<ControversyMap />);
@@ -473,10 +404,28 @@ function clickNode(svg: SVGSVGElement, id: string): void {
   });
 }
 
+/** 聚焦视图的期望节点集：目标节点 + 一跳邻居（用完整边集，不受层级开关影响）。 */
+function focusNeighborhood(id: string): Set<string> {
+  const set = new Set<string>([id]);
+  for (const e of CONTROVERSY_MAP.edges) {
+    if (e.source === id) set.add(e.target);
+    if (e.target === id) set.add(e.source);
+  }
+  return set;
+}
+
 /** 聚焦视图的期望连线数：两端都落在邻里集合里的边（诱导子图）。 */
 function inducedEdgeCount(id: string): number {
   const set = focusNeighborhood(id);
-  return CONTROVERSY_GRAPH.edges.filter((e) => set.has(e.source) && set.has(e.target)).length;
+  return CONTROVERSY_MAP.edges.filter((e) => set.has(e.source) && set.has(e.target)).length;
+}
+
+/** 挑一个相连节点最多的主张簇：保证聚焦视图有足够内容可断言。 */
+function richestClusterId(): string {
+  const clusters = CONTROVERSY_MAP.nodes.filter((n) => n.kind === "cluster");
+  return clusters
+    .reduce((best, n) => (focusNeighborhood(n.id).size > focusNeighborhood(best.id).size ? n : best))
+    .id;
 }
 
 describe("争议地图组件", () => {
@@ -486,37 +435,34 @@ describe("争议地图组件", () => {
     expect(svg.querySelector("[data-zoom-layer]")).toBeTruthy();
   });
 
-  it("骨架视图（默认）：只画主张簇，论点与议题都不在画布上", () => {
+  it("骨架视图（默认）只渲染簇 + 议题，论点不进画布", () => {
     const { svg } = renderMap();
-    expect(svg.querySelectorAll("[data-node-id]").length).toBe(CONTROVERSY_GRAPH.stats.clusters);
-    expect(svg.querySelectorAll('[data-node-kind="topic"]').length).toBe(0);
+    const skeletonCount = CONTROVERSY_MAP.nodes.filter((n) => n.kind !== "claim").length;
+    expect(svg.querySelectorAll("[data-node-id]").length).toBe(skeletonCount);
     expect(svg.querySelectorAll('[data-node-kind="claim"]').length).toBe(0);
+    expect(svg.querySelectorAll('[data-node-kind="topic"]').length).toBe(
+      CONTROVERSY_MAP.stats.topics,
+    );
   });
 
-  it("骨架视图的连线 = 簇间共享成员 + 簇间对抗（比展开视图稀疏得多）", () => {
+  it("骨架视图的连线 = 缝合线 + 议题间冲突聚合线（不是全量 698 条）", () => {
     const { svg } = renderMap();
-    const expected = CONTROVERSY_GRAPH.stats.sharePairs + CONTROVERSY_GRAPH.stats.conflictPairs;
+    const expected = CONTROVERSY_MAP.stats.bridge + expectedAggregatedCount();
     const rendered = svg.querySelectorAll("[data-link-id]").length;
     expect(rendered).toBe(expected);
-    expect(rendered).toBeLessThan(CONTROVERSY_GRAPH.edges.length);
+    expect(rendered).toBeLessThan(CONTROVERSY_MAP.edges.length);
   });
 
-  it("展开全部论点：主张簇直接连到成员论点，没有中间层", () => {
+  it("展开全部论点后，节点数回到全量；归属边默认隐藏，打开后补全", () => {
     const { svg, container } = renderMap();
     clickButton({ container }, "展开全部论点");
+    expect(svg.querySelectorAll("[data-node-id]").length).toBe(CONTROVERSY_MAP.nodes.length);
 
-    expect(svg.querySelectorAll("[data-node-id]").length).toBe(
-      CONTROVERSY_GRAPH.stats.clusters + CONTROVERSY_GRAPH.stats.claims,
-    );
-    expect(svg.querySelectorAll('[data-node-kind="claim"]').length).toBe(
-      CONTROVERSY_GRAPH.stats.claims,
-    );
-    expect(svg.querySelectorAll('[data-node-kind="topic"]').length).toBe(0);
-    // member + rebuts 一次到位，不再有「先显示归属边」这一层开关
-    expect(svg.querySelectorAll("[data-link-id]").length).toBe(CONTROVERSY_GRAPH.edges.length);
-    expect(svg.querySelectorAll('.cm-links [data-relation="member"]').length).toBe(
-      CONTROVERSY_GRAPH.stats.member,
-    );
+    // 归属边默认关：只画 bridge + rebuts
+    expect(svg.querySelectorAll("[data-link-id]").length).toBe(emphasisTotal());
+
+    clickButton({ container }, "显示归属边");
+    expect(svg.querySelectorAll("[data-link-id]").length).toBe(CONTROVERSY_MAP.edges.length);
   });
 
   it("连线渲染在节点之下（层级顺序正确）", () => {
@@ -528,35 +474,31 @@ describe("争议地图组件", () => {
     expect(nodeIdx).toBeGreaterThan(linkIdx);
   });
 
-  it("两种节点类型带有 data-node-kind 标记，用于视觉区分（展开后）", () => {
+  it("三种节点类型带有 data-node-kind 标记，用于视觉区分（展开后）", () => {
     const { svg, container } = renderMap();
     clickButton({ container }, "展开全部论点");
-    for (const kind of ["claim", "cluster"]) {
+    for (const kind of ["topic", "claim", "cluster"]) {
       expect(svg.querySelectorAll(`[data-node-kind="${kind}"]`).length).toBeGreaterThan(0);
     }
   });
 
-  it("强调层：骨架视图下全是簇间聚合线，且没有归属边", () => {
+  it("强调层：缝合线全量出现；骨架模式下红线是议题间聚合冲突线", () => {
     const { svg } = renderMap();
     const emphasis = svg.querySelector(".cm-links-emphasis");
     expect(emphasis).toBeTruthy();
-    expect(emphasis!.querySelectorAll('[data-relation="bridge"]').length).toBe(
-      CONTROVERSY_GRAPH.stats.sharePairs,
-    );
-    expect(emphasis!.querySelectorAll('[data-relation="rebuts"]').length).toBe(
-      CONTROVERSY_GRAPH.stats.conflictPairs,
-    );
-    expect(svg.querySelectorAll('.cm-links [data-relation="member"]').length).toBe(0);
+    const bridge = emphasis!.querySelectorAll('[data-relation="bridge"]');
+    const rebuts = emphasis!.querySelectorAll('[data-relation="rebuts"]');
+    expect(bridge.length).toBe(CONTROVERSY_MAP.stats.bridge);
+    expect(rebuts.length).toBe(expectedAggregatedCount());
   });
 
-  it("展开论点后，强调层只留论点级 rebuts，归属边落回普通层", () => {
+  it("展开论点后，强调层出现全量论点级 rebuts", () => {
     const { svg, container } = renderMap();
     clickButton({ container }, "展开全部论点");
     const emphasis = svg.querySelector(".cm-links-emphasis")!;
     expect(emphasis.querySelectorAll('[data-relation="rebuts"]').length).toBe(
-      CONTROVERSY_GRAPH.stats.rebuts,
+      CONTROVERSY_MAP.stats.rebuts,
     );
-    expect(emphasis.querySelectorAll('[data-relation="bridge"]').length).toBe(0);
   });
 
   it("悬停骨架节点后，其邻域连线被强调、无关连线被淡化（按可见连线口径计算）", () => {
@@ -586,7 +528,9 @@ describe("争议地图组件", () => {
       fireEvent.mouseEnter(cluster);
     });
 
-    const highlighted = allRendered.filter((el) => Number(el.getAttribute("opacity")) > 0.5);
+    const highlighted = allRendered.filter(
+      (el) => Number(el.getAttribute("opacity")) > 0.5,
+    );
     expect(highlighted.length).toBe(expectedLit);
 
     const dimmed = allRendered.filter((el) => Number(el.getAttribute("opacity")) <= 0.1);
@@ -678,18 +622,13 @@ describe("争议地图组件", () => {
     expect(transform).not.toContain("NaN");
   });
 
-  it("工具栏按当前视图展示真实规模（骨架一套口径、展开一套口径）", () => {
+  it("工具栏展示真实数据规模，且含跨议题边数", () => {
     const { container } = renderMap();
     const hint = container.querySelector(".controversy-map-hint")!;
-
-    const skeletonText = hint.textContent ?? "";
-    expect(skeletonText).toContain(String(CONTROVERSY_GRAPH.stats.clusters));
-    expect(skeletonText).toContain(String(CONTROVERSY_GRAPH.stats.sharePairs));
-
-    clickButton({ container }, "展开全部论点");
-    const expandedText = hint.textContent ?? "";
-    expect(expandedText).toContain(String(CONTROVERSY_GRAPH.stats.claims));
-    expect(expandedText).toContain(String(CONTROVERSY_GRAPH.stats.member));
+    const text = hint.textContent ?? "";
+    expect(text).toContain(String(CONTROVERSY_MAP.stats.topics));
+    expect(text).toContain(String(CONTROVERSY_MAP.stats.clusters));
+    expect(text).toContain("跨议题");
   });
 
   it("切换「显示全部标签」不改变节点与连线数量（展开模式下验证）", () => {
@@ -698,9 +637,7 @@ describe("争议地图组件", () => {
     const before = svg.querySelectorAll("[data-link-id]").length;
     clickButton({ container }, "标签");
     expect(svg.querySelectorAll("[data-link-id]").length).toBe(before);
-    expect(svg.querySelectorAll("[data-node-id]").length).toBe(
-      CONTROVERSY_GRAPH.stats.clusters + CONTROVERSY_GRAPH.stats.claims,
-    );
+    expect(svg.querySelectorAll("[data-node-id]").length).toBe(CONTROVERSY_MAP.nodes.length);
   });
 
   it("卸载时移除 window 上的指针监听并停止模拟", () => {
@@ -715,10 +652,10 @@ describe("争议地图组件", () => {
   });
 });
 
-/* ────────── 5. 聚焦视图（点击下钻 + 返回上一级） ────────── */
+/* ────────── 4. 聚焦视图（点击下钻 + 返回上一级） ────────── */
 
 describe("争议地图聚焦视图", () => {
-  it("点节点只显示「该节点 + 一跳邻居」，骨架模式下也会把论点带出来", () => {
+  it("点节点只显示「该节点 + 一跳邻居」，骨架模式下也会把论点层带出来", () => {
     const { svg } = renderMap();
     const id = richestClusterId();
     const nbh = focusNeighborhood(id);
@@ -733,12 +670,10 @@ describe("争议地图聚焦视图", () => {
     expect(renderedIds.length).toBe(nbh.size);
     // 连线 = 诱导子图；归属边在聚焦视图里是"为什么算相连"的依据，必须画出来
     expect(svg.querySelectorAll("[data-link-id]").length).toBe(inducedEdgeCount(id));
-    // 骨架模式（默认）下论点本来不画，聚焦把成员论点带了出来
+    // 骨架模式（默认）下论点本来是隐藏的，聚焦把它带出来了
     expect(svg.querySelectorAll('[data-node-kind="claim"]').length).toBeGreaterThan(0);
-    // 议题节点任何时候都不出现
-    expect(svg.querySelectorAll('[data-node-kind="topic"]').length).toBe(0);
     // 规模必须显著小于全图，否则"聚焦"就没意义
-    expect(nbh.size).toBeLessThan(CONTROVERSY_GRAPH.nodeIds.size / 2);
+    expect(nbh.size).toBeLessThan(CONTROVERSY_MAP.nodes.length / 2);
   });
 
   it("重复点击同一节点不会叠层（双击因此是幂等的）", () => {
@@ -763,7 +698,9 @@ describe("争议地图聚焦视图", () => {
 
     expect(container.querySelector(".cm-focus-bar")).toBeFalsy();
     expect(container.querySelector(".cm-caption")).toBeTruthy();
-    expect(svg.querySelectorAll("[data-node-id]").length).toBe(CONTROVERSY_GRAPH.stats.clusters);
+    expect(svg.querySelectorAll("[data-node-id]").length).toBe(
+      CONTROVERSY_MAP.nodes.filter((n) => n.kind !== "claim").length,
+    );
   });
 
   it("可以连续下钻：面包屑按层级列出，返回上一级回到中间层", () => {
@@ -778,11 +715,9 @@ describe("争议地图聚焦视图", () => {
       .sort((a, b) => focusNeighborhood(b).size - focusNeighborhood(a).size)[0];
     clickNode(svg, idB);
 
-    expect(
-      new Set(
-        [...svg.querySelectorAll("[data-node-id]")].map((el) => el.getAttribute("data-node-id")),
-      ),
-    ).toEqual(focusNeighborhood(idB));
+    expect(new Set([...svg.querySelectorAll("[data-node-id]")].map((el) => el.getAttribute("data-node-id")))).toEqual(
+      focusNeighborhood(idB),
+    );
     // 面包屑：全图 › A › B
     expect(container.querySelectorAll(".cm-crumb").length).toBe(3);
 
@@ -809,7 +744,9 @@ describe("争议地图聚焦视图", () => {
     });
 
     expect(container.querySelector(".cm-focus-bar")).toBeFalsy();
-    expect(svg.querySelectorAll("[data-node-id]").length).toBe(CONTROVERSY_GRAPH.stats.clusters);
+    expect(svg.querySelectorAll("[data-node-id]").length).toBe(
+      CONTROVERSY_MAP.nodes.filter((n) => n.kind !== "claim").length,
+    );
   });
 
   it("切换视图层级会退出聚焦（两种视图状态不叠加）", () => {
@@ -820,9 +757,7 @@ describe("争议地图聚焦视图", () => {
     clickButton({ container }, "展开全部论点");
 
     expect(container.querySelector(".cm-focus-bar")).toBeFalsy();
-    expect(svg.querySelectorAll("[data-node-id]").length).toBe(
-      CONTROVERSY_GRAPH.stats.clusters + CONTROVERSY_GRAPH.stats.claims,
-    );
+    expect(svg.querySelectorAll("[data-node-id]").length).toBe(CONTROVERSY_MAP.nodes.length);
   });
 
   it("入场动画的起点是同心环：新出现的邻居从等距的环上张开，而不是堆在圆心", () => {

@@ -107,21 +107,8 @@ describe("辩论图谱数据层", () => {
 
 /* ────────── 2. 布局层：真实跑 d3 力模拟 ────────── */
 
-/**
- * 固定种子的线性同余随机数。
- * 布局断言必须可复现：用 Math.random 做初始位置时，同一份代码会在阈值边缘偶发翻车
- * （根节点漂移那条实测约 1/5 概率失败），红绿交替会让整组测试失去信号价值。
- */
-function seededRandom(initial: number): () => number {
-  let state = initial >>> 0;
-  return () => {
-    state = (state * 1664525 + 1013904223) >>> 0;
-    return state / 0x100000000;
-  };
-}
-
 /** 复刻组件里的力配置，用于离屏跑模拟并断言布局质量。 */
-function runSimulation(iterations = 400, seed: () => number = seededRandom(20260914)) {
+function runSimulation(iterations = 400) {
   const flat = flattenDebateTree(DEBATE_TREE);
   const meta = new Map<string, { depth: number }>();
   const walk = (node: typeof DEBATE_TREE, depth: number): void => {
@@ -144,8 +131,8 @@ function runSimulation(iterations = 400, seed: () => number = seededRandom(20260
       radius: radiusForType(item.type),
       hasChildren: (item.children ?? []).length > 0,
       expanded: true,
-      x: (seed() - 0.5) * 60,
-      y: (seed() - 0.5) * 60,
+      x: (Math.random() - 0.5) * 60,
+      y: (Math.random() - 0.5) * 60,
     };
   });
 
@@ -268,15 +255,10 @@ describe("力导向布局质量", () => {
     expect(argAvg).toBeGreaterThan(sideAvg * 0.8);
   });
 
-  it("位置不是写死的：换一组初始条件布局随之改变，同一条初始条件可复现", () => {
-    const layout = (seed: number): string[] =>
-      runSimulation(120, seededRandom(seed)).nodes.map(
-        (node) => `${node.id}:${node.x.toFixed(1)},${node.y.toFixed(1)}`,
-      );
-    // 结果随初始条件改变 → 坐标不是硬编码常量
-    expect(layout(1)).not.toEqual(layout(2));
-    // 同样的初始条件必然复现同样的结果 → 布局是可回归的，而不是碰运气
-    expect(layout(1)).toEqual(layout(1));
+  it("位置不是写死的：两次独立模拟结果不同", () => {
+    const first = runSimulation(120).nodes.map((node) => `${node.id}:${node.x.toFixed(1)},${node.y.toFixed(1)}`);
+    const second = runSimulation(120).nodes.map((node) => `${node.id}:${node.x.toFixed(1)},${node.y.toFixed(1)}`);
+    expect(first).not.toEqual(second);
   });
 });
 

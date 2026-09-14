@@ -11,20 +11,14 @@
 
 export type MapNodeKind = "topic" | "claim" | "cluster";
 
-/**
- * 视图层节点类型。议题层已从图上移除 —— 主张簇直接连论点，
- * 所以画布上只会出现这两种节点（数据层的 topic 节点保留，但不进渲染）。
- */
-export type MapGraphKind = "claim" | "cluster";
-
 export type MapEdgeRelation =
-  /** 数据层：议题 → 论点。议题层移除后视图层不再产生此边 */
+  /** 议题 → 论点：单纯归属 */
   | "contains"
-  /** 论点 → 主张簇：论点归属于这个跨议题主张（视图层唯一的归属边） */
+  /** 论点 → 主张簇：该论点属于这个跨议题主张 */
   | "member"
-  /** 数据层：主张簇 → 议题；视图层：主张簇 ↔ 主张簇（两簇共享同一论点，骨架视图推导） */
+  /** 主张簇 → 议题：这个主张在该议题下也出现过（缝合线） */
   | "bridge"
-  /** 论点 ↔ 论点：互相矛盾；骨架视图下聚合为主张簇间的对抗线 */
+  /** 论点 ↔ 论点：跨议题互相矛盾；骨架视图下聚合成议题间冲突线 */
   | "rebuts";
 
 /** map.json 里的节点原始形态（字段随 kind 变化，故用可选字段）。 */
@@ -75,15 +69,15 @@ export interface ControversyMapData {
  */
 export interface MapSimNode {
   id: string;
-  kind: MapGraphKind;
+  kind: MapNodeKind;
   label: string;
-  /** 完整标题（原始文本），渲染详情浮层与悬停标签用。 */
+  /** 完整标题（论点/议题的原始文本），渲染详情浮层与悬停标签用。 */
   fullLabel?: string;
   side: DebateSideLike;
-  /** 距「骨架」的层级：cluster=0、claim=1 —— 用于分层斥力与半径 */
+  /** 距「骨架」的层级：topic=0, cluster=1, claim=2 —— 用于分层斥力与半径 */
   depth: number;
   radius: number;
-  /** 该主张簇横跨多少个议题（cluster 专用），决定视觉权重 */
+  /** 连接的议题数（cluster 专用），决定视觉权重 */
   topicCount: number;
   votes: number;
   x: number;
@@ -101,7 +95,7 @@ export interface MapSimLink {
   relation: MapEdgeRelation;
   sourceDepth: number;
   targetDepth: number;
-  /** 骨架视图的簇间线：由 N 个共享论点 / N 处论点级冲突聚合而来 */
+  /** 仅骨架视图：该边由 N 条论点级 rebuts 聚合而来（议题间冲突线） */
   aggregated?: number;
 }
 
@@ -110,6 +104,6 @@ export interface MapResolvedLink {
   relation: MapEdgeRelation;
   source: MapSimNode;
   target: MapSimNode;
-  /** 骨架视图的簇间线：聚合了多少个共享论点 / 多少处冲突 */
+  /** 骨架视图的议题间冲突线：聚合了多少条论点级 rebuts */
   aggregated?: number;
 }
