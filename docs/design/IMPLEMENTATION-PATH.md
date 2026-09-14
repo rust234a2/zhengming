@@ -38,9 +38,9 @@
 | ~~3-1~~ | ~~地图 → 力导向图~~ **已于 2026-09-13 作废**：D3 拍板力导向图下线 | — | ✗ |
 | ~~3-2~~ | ~~力导向图 → 树~~ **已于 2026-09-13 作废**：同上 | — | ✗ |
 | 3-3 | 地图数据作冷启动种子 | 2-1 | ☐ |
-| 4-1 | 事件库 schema + 准入检查 | 0-2 | ☐ |
-| 4-2 | 入库真实事件 ×3（仅事件头 + 真实发展线） | 4-1 | ☐ |
-| 4-3 | 生成式推演引擎走真 Host | 4-2 | ☐ |
+| 4-1 | 事件库 schema + 准入检查 | 0-2 | 🟡 前端层已落地（`web/src/domain/eventReplay.ts` 的 `validateEventReplay` + 事件库 schema 类型，Vitest 全绿）；准入与 Host 联调待服务端 |
+| 4-2 | 入库真实事件 ×3（仅事件头 + 真实发展线） | 4-1 | 🟡 三例已起草入库（`web/src/data/eventReplays.ts`，来源链接真实，**待人工准入核验**，见文件头审核声明） |
+| 4-3 | 生成式推演引擎走真 Host | 4-2 | 🟡 前端层已落地（reducer / Host 客户端 seam / `?view=event` 界面 / 三层测试 223+，隔离断言齐备）；**服务端能力 5/6/7（actAdvance/replayEnding/replayCanon）未实现**，当前走降级失败态，真模型联调待卡 0-2 |
 | 4-4 | Host 推演追问走真 Host | 4-3 | ☐ |
 | 5-1 | 重建集成应用 | 全部原型改动 | ☐ |
 | 5-2 | 部署 | 5-1 | ☐ |
@@ -407,6 +407,8 @@ desktop ──POST /v1/sessions/{session_id}/turns──▶ core（持有 key，
 - **完成标志**：事件库从 1 个涨到 3 个，且每个都可真跑通
 
 ### 卡 4-3 · 角色扮演推演引擎走真 Host
+
+> **进度（2026-09-14，分支 `feat/event-simulation`）**：前端层已落地——`web/src/domain/eventReplayReducer.ts`（无回溯单轴 reducer）、`web/src/ui/event-replay/eventReplayClient.ts`（白名单请求体 + 流式读取 + 降级透传）、`web/src/ui/EventReplay.tsx` + `eventReplay.css`（`?view=event` 全流程界面）。测试三份：reducer 契约 9 项、事件库 5 项、client 隔离断言（`findCanonKeys` spy）+ UI 红线（推演期间 DOM 搜不到 canon、replayCanon 仅终局触发、无胜负措辞）。**剩余：`zhengming-server` 侧实现能力 5/6/7（含 D4 流式 SSE），真模型联调后本卡才可关。**
 
 - 三个新能力：`actAdvance`（幕推进：处境 + 动作 + 后果 + 账本/关系增量）/ `replayEnding`（终局叙述）/ `replayCanon`（原作揭示，独立通道，仅终局调用）
 - **必须实现的机制**
