@@ -9,16 +9,22 @@
  * （由 zhihu-cli search zhihu 真实检索 + LLM 语义挖掘生成）
  */
 
-export type MapNodeKind = "topic" | "claim" | "cluster";
+export type MapNodeKind =
+  /** 大话题域（视图层推导，不进 map.json）：一组议题的现实领域归属 */
+  | "domain"
+  | "topic"
+  | "claim"
+  | "cluster";
 
 export type MapEdgeRelation =
   /** 议题 → 论点：单纯归属 */
   | "contains"
   /** 论点 → 主张簇：该论点属于这个跨议题主张 */
   | "member"
-  /** 主张簇 → 议题：这个主张在该议题下也出现过（缝合线） */
+  /** 主张簇 → 议题：这个主张在该议题下也出现过（缝合线）；
+   *  域视图下端点改写为 簇→域（去重聚合，见 ControversyMap.buildGraph） */
   | "bridge"
-  /** 论点 ↔ 论点：跨议题互相矛盾 */
+  /** 论点 ↔ 论点：跨议题互相矛盾；骨架/域视图下聚合成 议题间/域间 冲突线 */
   | "rebuts";
 
 /** map.json 里的节点原始形态（字段随 kind 变化，故用可选字段）。 */
@@ -61,6 +67,22 @@ export interface ControversyMapData {
   edges: MapEdgeData[];
 }
 
+/* ────────── 大话题域（assign-domains.mjs 生成，视图层推导用） ────────── */
+
+export interface MapDomainData {
+  id: string;
+  name: string;
+  summary: string;
+  topicIds: string[];
+}
+
+export interface ControversyDomainsData {
+  generatedAt: string;
+  domains: MapDomainData[];
+  /** topicId → domainId，每题恰好一个域 */
+  topicToDomain: Record<string, string>;
+}
+
 /* ────────── 布局层：交给 d3 的可变副本 ────────── */
 
 /**
@@ -95,6 +117,8 @@ export interface MapSimLink {
   relation: MapEdgeRelation;
   sourceDepth: number;
   targetDepth: number;
+  /** 仅骨架视图：该边由 N 条论点级 rebuts 聚合而来（议题间冲突线） */
+  aggregated?: number;
 }
 
 export interface MapResolvedLink {
@@ -102,4 +126,6 @@ export interface MapResolvedLink {
   relation: MapEdgeRelation;
   source: MapSimNode;
   target: MapSimNode;
+  /** 骨架视图的议题间冲突线：聚合了多少条论点级 rebuts */
+  aggregated?: number;
 }
