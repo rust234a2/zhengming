@@ -6,7 +6,8 @@
   "description": "争鸣服务端：Host（StepFun 七能力）+ 辩论间实时房间（WebSocket）+ 对局报告落盘",
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --test test/"
+    "test": "node --test \"test/*.test.mjs\"",
+    "test:e2e": "node test/e2e-room.mjs"
   },
   "engines": {
     "node": ">=20"

@@ -516,7 +516,7 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
             JSON.stringify({
               type: "error",
               code: "CONTENT_REJECTED",
-              message: `发言中含平台禁用表述（${hits.join("、")}）——争鸣只记录分歧，不判定对错。`,
+              message: `发言中含平台禁用表述（${hits.join("、")}）——争鸣只记录分歧，不评判立场。`,
             }),
           );
           return;
