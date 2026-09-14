@@ -56,8 +56,10 @@ export interface OpeningBrief {
   evidenceStatus?: EvidenceStatus;
 }
 
-/** 质询三选一（PRD §1 ②） */
-export type Reaction = "accept" | "press" | "evade";
+/** 提问方收到首次回答后的动作：接受并结束，或使用唯一一次追问。 */
+export type Reaction = "accept" | "press";
+
+export const REACTIONS: readonly Reaction[] = ["accept", "press"] as const;
 
 /** 自由对辩的发言类型（PRD §4） */
 export type FreeType = "反驳" | "举证" | "承认" | "修正" | "寻共识";
@@ -70,7 +72,7 @@ export type RoomPhase =
   | "opening" // ① 立论
   | "crossAnswer" // ② 质询轮 · 回答对方
   | "crossAsk" // ② 质询轮 · 轮到本方提问
-  | "crossReact" // ② 质询轮 · 对方答完，本方三选一
+  | "crossReact" // ② 质询轮 · 对方答完，本方可接受或继续追问
   | "free" // ③ 自由对辩
   | "closing" // ④ 结辩
   | "settled"; // ⑤ 终局
@@ -159,8 +161,10 @@ export interface CrossRecord {
   targetItem: BriefItemKey;
   question: string;
   answer?: string;
-  /** 提问方的三选一反应 */
+  /** 提问方的反应；第二问回答后系统自动推进，不再产生反应动作 */
   reaction?: Reaction;
+  /** 本条问答如何结束 */
+  closedBy?: "accepted" | "questionLimit";
   /** 是否用过继续追问 */
   pressed: boolean;
   at: string;
@@ -198,7 +202,7 @@ export interface RoomReport {
   topic: DebateTopic;
   /** 双方立论结构（含关键定义） */
   briefs: Record<SeatId, OpeningBrief | null>;
-  /** 质询记录（含「指出回避」） */
+  /** 完整质询记录（回避与否由终局 AI 根据问答原文评价） */
   crossRecords: CrossRecord[];
   /** 关键证据（含七档状态） */
   evidence: { seat: SeatId; text: string; status?: EvidenceStatus }[];
@@ -283,6 +287,43 @@ export interface Candidate {
   name: string;
   side: SeatId;
   profile: number[] | null;
+}
+
+/**
+ * 服务端 `/api/topics` 返回的议题形状（比 `DebateTopic` 多出 pool 与 pairingNote 的必填性差异）。
+ * 与 `zhengming-server/server.mjs` 的 `buildTopics()` 输出对齐。
+ */
+export interface HostTopic {
+  questionId: string;
+  title: string;
+  url: string;
+  /** 同一议题下是否同时有真实正反论点 */
+  paired: boolean;
+  /** 是否为跨议题配对（两侧来自不同议题） */
+  crossPaired?: boolean;
+  pairingNote?: string;
+  pro: TopicClaim | null;
+  con: TopicClaim | null;
+  /** 未经筛选的完整论点池（前端暂不消费，保留以便做「换一条论点」） */
+  pool?: { positive: TopicClaim[]; negative: TopicClaim[]; neutral: TopicClaim[] };
+}
+
+/** 可开局议题（前端聚合后的形态） */
+export interface PlayableTopic {
+  questionId: string;
+  title: string;
+  url: string;
+  paired: boolean;
+  crossPaired: boolean;
+  pairingNote?: string;
+  /** 至少一侧有真实论点即可开局（另一侧由真人守） */
+  playable: boolean;
+  /** 该议题可选边的席位（有论点的那些边） */
+  sidesAvailable: SeatId[];
+  /** 是否有可溯源的知乎链接（provenance 红线） */
+  traceable: boolean;
+  pro: TopicClaim | null;
+  con: TopicClaim | null;
 }
 
 export interface RankedCandidate extends Candidate {
