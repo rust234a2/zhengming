@@ -461,6 +461,59 @@ test("直接选择 AI 后 Bot 明确占席并自动完成对侧五阶段动作",
   client.close();
 });
 
+test("AI 思考尚未完成时先广播用户动作", async () => {
+  const storeDir = await fs.mkdtemp(path.join(os.tmpdir(), "zhengming-immediate-state-"));
+  let releaseAi;
+  const aiGate = new Promise((resolve) => {
+    releaseAi = resolve;
+  });
+  let opponentCalls = 0;
+  const delayedHost = async (capability, params, options) => {
+    if (capability === "opponentTurn") {
+      opponentCalls += 1;
+      if (opponentCalls === 2) await aiGate;
+    }
+    return invokeHost(capability, params, { ...options, apiKey: null });
+  };
+  const isolated = await createServer({ port: 0, storeDir, hostInvoker: delayedHost });
+  await new Promise((resolve) => isolated.server.listen(0, "127.0.0.1", resolve));
+  const port = isolated.server.address().port;
+  let client;
+
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/api/matches`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ topicId: isolated.topics[0].questionId, side: "pro", mode: "ai", name: "即时反馈测试" }),
+    });
+    const match = await response.json();
+    client = await new TestWsClient(port, `?roomId=${match.roomId}`).connect();
+    client.send({ type: "join", roomId: match.roomId, seatToken: match.seatToken, name: "即时反馈测试" });
+    await client.waitFor((message) => message.type === "state" && Boolean(message.state.briefs.con));
+
+    client.send({
+      type: "action",
+      action: {
+        kind: "submitBrief",
+        brief: { conclusion: "程序员仍会存在", reasons: ["工程责任仍需由人承担"] },
+      },
+    });
+
+    const immediate = await client.waitFor(
+      (message) =>
+        message.type === "state" &&
+        message.state.briefs.pro?.conclusion === "程序员仍会存在" &&
+        !message.state.transcript.some((turn) => turn.authorId === "con" && turn.kind === "opening"),
+      { timeout: 250 },
+    );
+    assert.equal(immediate.state.turnSeat, "pro");
+  } finally {
+    releaseAi();
+    client?.close();
+    await isolated.close();
+  }
+});
+
 test("GET 不存在的房间 → 404", async () => {
   const res = await fetch(`${baseUrl}/api/rooms/room-does-not-exist`);
   assert.equal(res.status, 404);

@@ -195,6 +195,13 @@ describe("下行消息解码", () => {
     expect(parsed).toMatchObject({ kind: "event", event: { kind: "seatLeft", side: "con" } });
   });
 
+  it("aiThinking event 透传 active 状态", () => {
+    const parsed = parseServerMessage(
+      JSON.stringify({ type: "event", roomId: "room-t", event: { kind: "aiThinking", active: true, at: "t" } }),
+    );
+    expect(parsed).toMatchObject({ kind: "event", event: { kind: "aiThinking", active: true } });
+  });
+
   it("error 消息解出错误码与文案", () => {
     const parsed = parseServerMessage(
       JSON.stringify({ type: "error", code: "ROOM_FULL", message: "房间已满" }),

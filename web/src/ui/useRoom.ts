@@ -33,6 +33,7 @@ export interface UseRoomResult {
   connection: ConnectionState;
   error: string | null;
   errorCode: string | null;
+  aiThinking: boolean;
   /** 是否为重连回到原席位 */
   resumed: boolean;
   send: (action: RoomAction) => void;
@@ -53,6 +54,7 @@ export function useRoom({ roomId, side, name, enabled = true }: UseRoomOptions):
   const [connection, setConnection] = useState<ConnectionState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [aiThinking, setAiThinking] = useState(false);
   const [resumed, setResumed] = useState(false);
   const clientRef = useRef<RoomClient | null>(null);
 
@@ -69,6 +71,7 @@ export function useRoom({ roomId, side, name, enabled = true }: UseRoomOptions):
     setConnection("connecting");
     setError(null);
     setErrorCode(null);
+    setAiThinking(false);
 
     const client = new RoomClient({
       url: roomSocketUrl(roomId),
@@ -78,11 +81,17 @@ export function useRoom({ roomId, side, name, enabled = true }: UseRoomOptions):
         setMySide(info.side);
         setResumed(info.resumed);
       },
+      onEvent: (event) => {
+        if (event.kind === "aiThinking") setAiThinking(event.active === true);
+      },
       onError: (message, code) => {
         setError(message);
         setErrorCode(code);
       },
-      onClose: () => setConnection("closed"),
+      onClose: () => {
+        setConnection("closed");
+        setAiThinking(false);
+      },
     });
     clientRef.current = client;
     client.connect({ roomId, side: side ?? undefined, name });
@@ -109,8 +118,8 @@ export function useRoom({ roomId, side, name, enabled = true }: UseRoomOptions):
   }, []);
 
   return useMemo(
-    () => ({ state, mySide, connection, error, errorCode, resumed, send, leave, clearError }),
-    [state, mySide, connection, error, errorCode, resumed, send, leave, clearError],
+    () => ({ state, mySide, connection, error, errorCode, aiThinking, resumed, send, leave, clearError }),
+    [state, mySide, connection, error, errorCode, aiThinking, resumed, send, leave, clearError],
   );
 }
 

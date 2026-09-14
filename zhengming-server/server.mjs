@@ -744,7 +744,13 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
         );
         room.broadcastEvent({ kind: result.resumed ? "seatResumed" : "seatJoined", side: result.side });
         room.broadcastState();
-        await room.driveBot();
+        const aiJoining = room.state.match?.mode === "ai";
+        if (aiJoining) room.broadcastEvent({ kind: "aiThinking", active: true });
+        try {
+          await room.driveBot();
+        } finally {
+          if (aiJoining) room.broadcastEvent({ kind: "aiThinking", active: false });
+        }
         return;
       }
 
@@ -780,12 +786,21 @@ export async function createServer({ port = DEFAULT_PORT, storeDir, transitionOv
           client.send(JSON.stringify({ type: "error", code: outcome.code, message: outcome.message }));
           return;
         }
-        await client.room.driveBot();
-        // 终局时**先落盘再广播**：客户端收到 settled 快照时，报告已经可以从磁盘回读
-        if (client.room.state.phase === "settled") {
-          await client.room.finish();
-        }
+        const aiWorking = client.room.state.match?.mode === "ai" || client.room.state.phase === "settled";
+        if (aiWorking) client.room.broadcastEvent({ kind: "aiThinking", active: true });
+        // 先确认并广播用户动作，避免真实模型响应时间把用户自己的内容一起卡住。
+        // AI 完成动作后 driveBotRoom 会再次广播权威快照。
         client.room.broadcastState();
+        try {
+          await client.room.driveBot();
+          // 终局报告完成后再下发最终快照；思考态会阻止客户端提前打开中间报告。
+          if (client.room.state.phase === "settled") {
+            await client.room.finish();
+          }
+          client.room.broadcastState();
+        } finally {
+          if (aiWorking) client.room.broadcastEvent({ kind: "aiThinking", active: false });
+        }
         return;
       }
 

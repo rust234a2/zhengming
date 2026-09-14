@@ -115,7 +115,7 @@ curl -X POST http://127.0.0.1:5300/api/host/structureHint \
 ```jsonc
 { "type": "joined", "roomId": "…", "side": "pro", "seatToken": "…", "resumed": false }
 { "type": "state",  "roomId": "…", "state": { /* 权威快照，客户端整体替换本地状态 */ } }
-{ "type": "event",  "roomId": "…", "event": { "kind": "seatJoined|seatLeft|seatResumed", "at": "…" } }
+{ "type": "event",  "roomId": "…", "event": { "kind": "seatJoined|seatLeft|seatResumed|aiThinking", "active": "aiThinking 时为 boolean", "at": "…" } }
 { "type": "error",  "code": "…", "message": "…" }
 ```
 

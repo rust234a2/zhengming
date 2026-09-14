@@ -102,7 +102,7 @@ export function buildActionMessage(action: RoomAction): { type: "action"; action
 export type ServerMessage =
   | { kind: "joined"; roomId: string; side: SeatId; seatToken: string; resumed: boolean }
   | { kind: "state"; state: RoomState }
-  | { kind: "event"; event: { kind: string; side?: SeatId; at?: string } }
+  | { kind: "event"; event: { kind: string; side?: SeatId; active?: boolean; at?: string } }
   | { kind: "error"; code: string; message: string }
   | { kind: "unknown"; raw: string };
 
@@ -141,7 +141,7 @@ export function parseServerMessage(raw: string): ServerMessage {
     }
     case "event": {
       if (!message.event || typeof message.event !== "object") return { kind: "unknown", raw };
-      return { kind: "event", event: message.event as { kind: string; side?: SeatId; at?: string } };
+      return { kind: "event", event: message.event as { kind: string; side?: SeatId; active?: boolean; at?: string } };
     }
     case "error": {
       return {
@@ -225,7 +225,7 @@ export interface RoomClientOptions {
   socketFactory?: (url: string) => SocketLike;
   onState?: (state: RoomState) => void;
   onJoined?: (info: { roomId: string; side: SeatId; seatToken: string; resumed: boolean }) => void;
-  onEvent?: (event: { kind: string; side?: SeatId; at?: string }) => void;
+  onEvent?: (event: { kind: string; side?: SeatId; active?: boolean; at?: string }) => void;
   onError?: (message: string, code: string) => void;
   onClose?: () => void;
   onOpen?: () => void;

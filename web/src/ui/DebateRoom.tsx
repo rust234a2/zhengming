@@ -9,7 +9,7 @@
  * 与原型的关键差别（ROLLOUT v0.7）：
  *   - 对手由用户明确选择：真人走在线候选池，AI 走标注清楚的 Bot 席位
  *   - Host 走**真实 LLM**（服务端 `/api/host/*` → StepFun），不是选项匹配
- *   - 状态**服务端权威**：本组件只发动作、渲染服务端快照，不做乐观更新
+ *   - 状态**服务端权威**：本地只暂显“发送中”内容，不推进阶段；最终仍由服务端快照替换
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -22,6 +22,7 @@ import type {
   MatchMode,
   PlayableTopic,
   Reaction,
+  RoomAction,
   RoomState,
   SeatId,
 } from "../types/debateRoom";
@@ -161,6 +162,38 @@ const TURN_KIND_LABEL: Record<string, string> = {
   sys: "系统",
 };
 
+interface PendingFeedback {
+  action: RoomAction;
+  stateAtSubmit: RoomState | null;
+}
+
+function pendingActionView(action: RoomAction): { label: string; text: string; targetItem?: string } | null {
+  switch (action.kind) {
+    case "submitBrief":
+      return {
+        label: "立论结构",
+        text: [action.brief.conclusion, ...action.brief.reasons].filter(Boolean).join(" · "),
+      };
+    case "submitOpening":
+      return { label: "开篇立论", text: action.text };
+    case "ask":
+      return { label: "质询", text: action.question, targetItem: action.targetItem };
+    case "answer":
+      return { label: "回答", text: action.text };
+    case "react":
+      return {
+        label: "质询回应",
+        text: action.reaction === "accept" ? "接受回答，结束本轮质询。" : "继续追问。",
+      };
+    case "freeSpeak":
+      return { label: action.freeType, text: action.text };
+    case "submitClosing":
+      return { label: "结辩", text: action.text };
+    default:
+      return null;
+  }
+}
+
 /* ═══════════════ 主组件 ═══════════════ */
 
 type Phase = { kind: "lobby" } | { kind: "room" };
@@ -177,6 +210,7 @@ export function DebateRoom() {
   const [hintDegraded, setHintDegraded] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<PlayableTopic | null>(null);
+  const [pendingFeedback, setPendingFeedback] = useState<PendingFeedback | null>(null);
 
   const { topics, loading: topicsLoading, error: topicsError, hostConfigured, reload } = useTopics();
 
@@ -186,6 +220,7 @@ export function DebateRoom() {
     connection,
     error: socketError,
     errorCode: socketErrorCode,
+    aiThinking,
     resumed,
     send,
     leave,
@@ -219,10 +254,15 @@ export function DebateRoom() {
   }, []);
 
   useEffect(() => {
-    if (state?.phase === "settled" && state.report && !reportOpen) {
+    if (state?.phase === "settled" && state.report && !reportOpen && !aiThinking) {
       setReportOpen(true);
     }
-  }, [state?.phase, state?.report, reportOpen]);
+  }, [aiThinking, state?.phase, state?.report, reportOpen]);
+
+  useEffect(() => {
+    if (!pendingFeedback) return;
+    if (socketError || state !== pendingFeedback.stateAtSubmit) setPendingFeedback(null);
+  }, [pendingFeedback, socketError, state]);
 
   /* ── 服务端重启后旧 token 已失效：清理旧局并回到匹配页 ── */
   useEffect(() => {
@@ -278,9 +318,10 @@ export function DebateRoom() {
   const act = useCallback(
     (action: Parameters<typeof send>[0]) => {
       setHostHint(null);
+      setPendingFeedback({ action, stateAtSubmit: state });
       send(action);
     },
-    [send],
+    [send, state],
   );
 
   /* ── Host 结构提示 ── */
@@ -311,6 +352,8 @@ export function DebateRoom() {
 
   const spec = useMemo(() => (state ? composerFor(state, effectiveSide) : null), [state, effectiveSide]);
   const topic = state?.topic ?? selectedTopic;
+  const pendingView = pendingFeedback ? pendingActionView(pendingFeedback.action) : null;
+  const showAiThinking = aiThinking || Boolean(pendingFeedback && state?.match.mode === "ai");
 
   const turnTarget = useMemo(() => {
     if (!state || !effectiveSide) return undefined;
@@ -462,13 +505,34 @@ export function DebateRoom() {
                   </article>
                 );
               })
-            ) : (
+            ) : !pendingView ? (
               <div className="dr-stream-empty">
                 {state?.phase === "waiting"
                   ? state.match?.reason || "已进入真人候选池，等待实际在线的相反立场用户。"
                   : "还没有发言记录。"}
               </div>
-            )}
+            ) : null}
+
+            {pendingView ? (
+              <article className="dr-turn mine pending" aria-label="待发送发言">
+                <div className="dr-turn-head">
+                  <b>{state?.seats[effectiveSide ?? "pro"]?.name ?? "我"}</b>
+                  {effectiveSide ? <span className={`dr-tag ${effectiveSide}`}>{seatLabel(effectiveSide)}</span> : null}
+                  <span className="dr-turn-kind">{pendingView.label}</span>
+                  {pendingView.targetItem ? <span className="dr-turn-target">瞄准 {pendingView.targetItem}</span> : null}
+                  <span className="dr-pending-label">发送中</span>
+                </div>
+                <p>{pendingView.text}</p>
+              </article>
+            ) : null}
+
+            {showAiThinking ? (
+              <div className="dr-ai-thinking" role="status" aria-live="polite">
+                <span className="dr-thinking-dots" aria-hidden="true"><i /><i /><i /></span>
+                <b>AI 正在思考</b>
+                <span>完成后会在这里继续输出</span>
+              </div>
+            ) : null}
           </div>
 
           {spec ? (
@@ -482,7 +546,7 @@ export function DebateRoom() {
               currentBriefTarget={turnTarget}
               hostHint={hostHint}
               hostHintLoading={hostHintLoading}
-              disabled={connection !== "open"}
+              disabled={connection !== "open" || Boolean(pendingFeedback)}
               onBrief={(brief: OpeningBrief) => act({ kind: "submitBrief", brief })}
               onOpening={(text: string) => act({ kind: "submitOpening", text })}
               onAsk={(targetItem, question) => act({ kind: "ask", targetItem, question })}
