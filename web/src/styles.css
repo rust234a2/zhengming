@@ -1600,6 +1600,32 @@ textarea {
   stroke-width: 4px;
 }
 
+/* 凸包分组层（.cm-hulls）：整张图最底层，只负责「让聚类显形」。
+   透明度必须够低（0.06–0.12），否则会吃掉节点标签的对比度；
+   描边用同色系细线、绝不用黑 —— 黑描边会让包络读起来像"边框/容器"而非"氛围"。 */
+.cm-hull {
+  stroke-width: 1;
+  fill-opacity: 0.07;
+  stroke-opacity: 0.2;
+  transition: fill-opacity 160ms ease, stroke-opacity 160ms ease;
+}
+
+/* 悬停/选中时给包络分档：含高亮成员的浮起，其余退到背景。
+   不做这层分档，39 块底色会在读数时糊成一片。 */
+.cm-hull.is-context { fill-opacity: 0.14; stroke-opacity: 0.42; }
+.cm-hull.is-muted { fill-opacity: 0.018; stroke-opacity: 0.05; }
+
+.cm-lg .hull {
+  display: inline-block;
+  width: 15px;
+  height: 10px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: rgba(15, 111, 229, 0.14);
+  border: 1px solid rgba(15, 111, 229, 0.42);
+  vertical-align: -1px;
+}
+
 .cm-links line,
 .cm-links-emphasis line {
   transition: opacity 140ms ease;
@@ -1656,6 +1682,15 @@ textarea {
 
 :root[data-theme="dark"] .cm-em-bridge { color: #f0be6a; }
 :root[data-theme="dark"] .cm-em-rebuts { color: #ef8477; }
+
+/* 暗色底 #0b1424 上低透明度几乎不可见，整体上调一档 */
+:root[data-theme="dark"] .cm-hull { fill-opacity: 0.13; stroke-opacity: 0.32; }
+:root[data-theme="dark"] .cm-hull.is-context { fill-opacity: 0.22; stroke-opacity: 0.55; }
+:root[data-theme="dark"] .cm-hull.is-muted { fill-opacity: 0.03; stroke-opacity: 0.08; }
+:root[data-theme="dark"] .cm-lg .hull {
+  background: rgba(127, 176, 242, 0.16);
+  border-color: rgba(127, 176, 242, 0.5);
+}
 
 :root[data-theme="dark"] .cm-node-label {
   fill: #cbd5f5 !important;

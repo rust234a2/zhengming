@@ -14,7 +14,7 @@ import * as d3 from "d3";
 
 import { CONTROVERSY_MAP } from "../src/data/controversyMap";
 import type { MapSimLink, MapSimNode } from "../src/types/map";
-import { ControversyMap } from "../src/ui/ControversyMap";
+import { ControversyMap, HULL_GROUPS, hullPathFor } from "../src/ui/ControversyMap";
 
 afterEach(() => {
   cleanup();
@@ -778,5 +778,122 @@ describe("争议地图聚焦视图", () => {
     // 等距 = 同一个环；且半径要有意义（不能是圆心附近）
     expect(Math.max(...dists) - Math.min(...dists)).toBeLessThan(1);
     expect(Math.min(...dists)).toBeGreaterThan(100);
+  });
+});
+
+/* ────────── 5. 凸包分组（让聚类显形） ────────── */
+
+describe("争议地图凸包分组", () => {
+  it("分组口径来自 bridge 边：成员 = 该主张缝合的议题，不是几何邻近", () => {
+    const clusters = CONTROVERSY_MAP.nodes.filter((n) => n.kind === "cluster");
+    expect(HULL_GROUPS.length).toBe(clusters.length);
+
+    // 用数据层独立重算一遍 bridge 归组，逐组比对
+    const byId = new Map(CONTROVERSY_MAP.nodes.map((n) => [n.id, n]));
+    const bridged = new Map<string, Set<string>>();
+    for (const e of CONTROVERSY_MAP.edges) {
+      if (e.relation !== "bridge") continue;
+      const a = byId.get(e.source);
+      const b = byId.get(e.target);
+      const c = a?.kind === "cluster" ? a : b?.kind === "cluster" ? b : null;
+      const t = a?.kind === "topic" ? a : b?.kind === "topic" ? b : null;
+      if (!c || !t) continue;
+      if (!bridged.has(c.id)) bridged.set(c.id, new Set());
+      bridged.get(c.id)!.add(t.id);
+    }
+    expect(bridged.size).toBe(clusters.length);
+    for (const g of HULL_GROUPS) {
+      expect(new Set(g.members)).toEqual(bridged.get(g.id));
+      expect(g.members.length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it("未被任何主张缝合的议题如实裸露在包络之外（75/106 被覆盖，31 个不在）", () => {
+    const covered = new Set(HULL_GROUPS.flatMap((g) => g.members));
+    expect(covered.size).toBe(75);
+    expect(covered.size).toBeLessThan(CONTROVERSY_MAP.stats.topics);
+    // 覆盖之外的议题是真实存在的，不是被算漏了
+    const byId = new Map(CONTROVERSY_MAP.nodes.map((n) => [n.id, n]));
+    for (const id of covered) {
+      expect(byId.get(id)?.kind).toBe("topic");
+    }
+  });
+
+  it("每个主张簇渲染一块包络，且垫在连线与节点之下", () => {
+    const { svg } = renderMap();
+    const hulls = [...svg.querySelectorAll("[data-hull-id]")];
+    expect(hulls.length).toBe(CONTROVERSY_MAP.nodes.filter((n) => n.kind === "cluster").length);
+
+    for (const h of hulls) {
+      const d = h.getAttribute("d") ?? "";
+      expect(d.startsWith("M")).toBe(true);
+      expect(d).not.toContain("NaN");
+    }
+
+    // 渲染层级：凸包 → 连线 → 节点（包络垫底，绝不遮节点标签）
+    const groups = [...svg.querySelectorAll("g")];
+    const idx = (sel: string): number => groups.indexOf(svg.querySelector(sel) as SVGGElement);
+    expect(idx(".cm-hulls")).toBeGreaterThanOrEqual(0);
+    expect(idx(".cm-hulls")).toBeLessThan(idx(".cm-links"));
+    expect(idx(".cm-links")).toBeLessThan(idx(".cm-nodes"));
+  });
+
+  it("外扩采样成「圆集凸包」：包络必然包住节点，单点也能成圆", () => {
+    const mk = (id: string, x: number, y: number): MapSimNode => ({
+      id,
+      kind: "topic",
+      label: id,
+      side: "neutral",
+      depth: 1,
+      radius: 10,
+      topicCount: 0,
+      votes: 0,
+      x,
+      y,
+    });
+    const byId = new Map<string, MapSimNode>([
+      ["a", mk("a", 0, 0)],
+      ["b", mk("b", 100, 0)],
+      ["c", mk("c", 50, 80)],
+    ]);
+
+    const d = hullPathFor(["a", "b", "c"], byId);
+    expect(d).toBeTruthy();
+    expect(d).not.toContain("NaN");
+
+    const nums = (d!.match(/-?\d+(?:\.\d+)?(?:e-?\d+)?/gi) ?? []).map(Number);
+    const xs = nums.filter((_, i) => i % 2 === 0);
+    const ys = nums.filter((_, i) => i % 2 === 1);
+    const [minX, maxX] = [Math.min(...xs), Math.max(...xs)];
+    const [minY, maxY] = [Math.min(...ys), Math.max(...ys)];
+    // 曲线经过所有控制点，控制点又是"节点外扩 21"后的采样 —— 中心必然落在包围盒内
+    for (const n of byId.values()) {
+      expect(n.x).toBeGreaterThan(minX);
+      expect(n.x).toBeLessThan(maxX);
+      expect(n.y).toBeGreaterThan(minY);
+      expect(n.y).toBeLessThan(maxY);
+    }
+
+    // 退化情形：单个成员（以及 2 个成员的"胶囊"）也要有正常路径，不写特例
+    for (const ids of [["a"], ["a", "b"]]) {
+      const p = hullPathFor(ids, byId);
+      expect(p).toBeTruthy();
+      expect(p).not.toContain("NaN");
+    }
+    // 成员全不在当前视图（聚焦视图的常见情形）→ 不出路径，而不是画出假包络
+    expect(hullPathFor(["a"], new Map<string, MapSimNode>())).toBeNull();
+  });
+
+  it("聚焦视图不渲染包络：成员不全时包络会失真，局部也不需要分组背景", () => {
+    const { svg, container } = renderMap();
+    expect(svg.querySelectorAll("[data-hull-id]").length).toBeGreaterThan(0);
+
+    clickNode(svg, richestClusterId());
+    expect(container.querySelector(".cm-focus-bar")).toBeTruthy();
+    expect(svg.querySelectorAll("[data-hull-id]").length).toBe(0);
+
+    // 退回全图后包络恢复
+    clickButton({ container }, "返回上一级");
+    expect(svg.querySelectorAll("[data-hull-id]").length).toBeGreaterThan(0);
   });
 });

@@ -175,6 +175,79 @@ const DEPTH_BY_KIND: Record<MapNodeKind, number> = { cluster: 0, topic: 1, claim
 /** 数据层节点索引（模块级常量）：骨架聚合议题间冲突时查 claim.topicId 用。 */
 const nodeByIdStatic = new Map(CONTROVERSY_MAP.nodes.map((n) => [n.id, n]));
 
+/* ────────── 凸包分组（让聚类自己显形） ────────── */
+
+/**
+ * 分组依据是 **bridge 边**（数据事实）：一个主张簇缝合了哪些议题。
+ * 但包络的**形状**是当前布局的产物，会随力模拟变化 —— 两者必须在图例里分开讲，
+ * 否则会被读成「这几个议题有共同归属」。这是凸包唯一的误读风险。
+ */
+export interface HullGroup {
+  /** 主张簇 id：包络以簇命名，颜色也取簇的立场 */
+  id: string;
+  side: DebateSideLike;
+  /** 该簇缝合的议题 id（不含簇自身，渲染时补上） */
+  members: string[];
+}
+
+/** 绕每个节点采样的圆周点数：把「点集凸包」升级为「圆集凸包」（Minkowski 和的近似）。 */
+const HULL_SAMPLES = 12;
+/** 包络在节点半径之外再留的呼吸空间。 */
+const HULL_PAD = 11;
+
+/**
+ * 39 个包络的分组表，模块级只算一次。
+ * 106 议题里只有 75 个被 bridge 覆盖，所以另外 31 个议题不会落进任何包络 ——
+ * 这不是缺陷，是真实信息：「尚未被归入任何跨议题主张」，图例须写明。
+ */
+export const HULL_GROUPS: HullGroup[] = (() => {
+  const map = new Map<string, HullGroup>();
+  for (const e of CONTROVERSY_MAP.edges) {
+    if (e.relation !== "bridge") continue;
+    const a = nodeByIdStatic.get(e.source);
+    const b = nodeByIdStatic.get(e.target);
+    const c = a?.kind === "cluster" ? a : b?.kind === "cluster" ? b : null;
+    const t = a?.kind === "topic" ? a : b?.kind === "topic" ? b : null;
+    if (!c || !t) continue;
+    let g = map.get(c.id);
+    if (!g) {
+      g = { id: c.id, side: (c.side ?? "neutral") as DebateSideLike, members: [] };
+      map.set(c.id, g);
+    }
+    if (!g.members.includes(t.id)) g.members.push(t.id);
+  }
+  return [...map.values()];
+})();
+
+const HULL_GROUP_BY_ID = new Map(HULL_GROUPS.map((g) => [g.id, g]));
+
+/** 闭合 Catmull-Rom：曲线**经过**每个控制点，所以外扩后的包络不会切进节点。 */
+const hullCurve = d3.line<[number, number]>().curve(d3.curveCatmullRomClosed.alpha(0.5));
+
+/**
+ * 把每个成员节点"撑"成一个半径 r+pad 的圆环再取凸包 —— 单点也能成圆，
+ * 两点的簇会得到一枚胶囊，因此不需要为退化情形写特例。
+ */
+export function hullPathFor(ids: string[], byId: Map<string, MapSimNode>): string | null {
+  const pts: [number, number][] = [];
+  for (const id of ids) {
+    const n = byId.get(id);
+    if (!n) continue;
+    const r = n.radius + HULL_PAD;
+    for (let i = 0; i < HULL_SAMPLES; i++) {
+      const a = (i / HULL_SAMPLES) * Math.PI * 2;
+      pts.push([n.x + Math.cos(a) * r, n.y + Math.sin(a) * r]);
+    }
+  }
+  if (pts.length < 3) return null;
+  const hull = d3.polygonHull(pts);
+  return hull && hull.length >= 3 ? hullCurve(hull) : null;
+}
+
+function hullFillFor(side: DebateSideLike): string {
+  return side === "positive" ? "#0f6fe5" : side === "negative" ? "#d9574d" : "#64748b";
+}
+
 /* ────────── 聚焦视图（下钻） ────────── */
 
 /**
@@ -506,6 +579,17 @@ export function ControversyMap() {
       el.setAttribute("x2", String(tn.x));
       el.setAttribute("y2", String(tn.y));
     }
+    // 凸包分组：每帧按当前坐标重算包络。
+    // 39 组 × 平均 44 个采样点，量级远低于连线写入，暂时不分帧节流；
+    // 若日后簇数上到数百，这里按 alpha 高低隔帧更新即可。
+    const hullEls = svg.querySelectorAll<SVGPathElement>("[data-hull-id]");
+    for (const el of hullEls) {
+      const gid = el.getAttribute("data-hull-id");
+      const group = gid ? HULL_GROUP_BY_ID.get(gid) : undefined;
+      if (!group) continue;
+      const d = hullPathFor([group.id, ...group.members], byId);
+      if (d) el.setAttribute("d", d);
+    }
     // 标签跟随节点（挂在节点组内，无需单独处理）
   }, []);
 
@@ -691,6 +775,18 @@ export function ControversyMap() {
   }, [activeId, adjacency]);
 
   const isDim = (id: string): boolean => highlighted !== null && !highlighted.has(id);
+
+  /**
+   * 悬停/选中时给包络分档：含高亮成员的包络浮起（is-context），其余退到背景（is-muted）。
+   * 不做这层分档的话，39 块底色会在读数时糊成一片，反而比不加更乱。
+   */
+  const hullClassOf = (groupId: string): string => {
+    if (highlighted === null) return "cm-hull";
+    const group = HULL_GROUP_BY_ID.get(groupId);
+    if (!group) return "cm-hull";
+    const hit = highlighted.has(group.id) || group.members.some((m) => highlighted.has(m));
+    return hit ? "cm-hull is-context" : "cm-hull is-muted";
+  };
 
   /* ---------- 缩放按钮 ---------- */
 
@@ -969,6 +1065,11 @@ export function ControversyMap() {
             <i className="ring" />聚焦视图的圆心标记（该节点的全部相连节点会围成一环）
           </span>
         </div>
+        <div>
+          <span className="cm-lg" style={{ fontSize: 11, color: "#64748b" }}>
+            <i className="hull" />底色包络 = 该主张缝合的议题（成员来自 bridge 边，形状随布局变化）
+          </span>
+        </div>
       </div>
 
       <svg
@@ -985,6 +1086,26 @@ export function ControversyMap() {
         <rect data-backdrop="1" width={size.width} height={size.height} fill="transparent" />
         <g data-zoom-layer>
           <g transform={`translate(${size.width / 2},${size.height / 2})`}>
+            {/*
+              凸包分组层：置于所有连线之下（整张图的最底层）。
+              它的职责只是「让聚类显形」—— 39 个同位同色的簇原本没有团块感，
+              加一层低透明度包络后，「这几个议题是一伙的」才成为一眼可见的事实。
+              聚焦视图下不画：那时成员多半不全，包络会失真，局部也不需要分组背景。
+            */}
+            {focusId === null && (
+              <g className="cm-hulls">
+                {HULL_GROUPS.map((g) => (
+                  <path
+                    key={g.id}
+                    data-hull-id={g.id}
+                    className={hullClassOf(g.id)}
+                    fill={hullFillFor(g.side)}
+                    stroke={hullFillFor(g.side)}
+                  />
+                ))}
+              </g>
+            )}
+
             {/* 普通关系边 */}
             <g className="cm-links">
               {linkLayer.map((l) => (
