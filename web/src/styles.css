@@ -875,6 +875,234 @@ textarea {
   .debate-room-stats { display: none; }
 }
 
+/* ────────── 辩论树：对齐 prototypes/debate-tree-prototype.html ────────── */
+.debate-app {
+  --dt-blue: #056de8;
+  --dt-blue-bg: #e8f1ff;
+  --dt-blue-soft: #f0f6ff;
+  --dt-ink: #121212;
+  --dt-muted: #8590a6;
+  --dt-line: #ebebeb;
+  --dt-page: #f6f6f6;
+  --dt-neutral: #a9aebc;
+  --dt-warn: #c96a00;
+  min-height: 100vh;
+  background: #ffffff;
+  color: var(--dt-ink);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.dt-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--dt-line);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+}
+
+.dt-logo {
+  color: var(--dt-blue);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.dt-crumb { color: var(--dt-muted); font-size: 13px; }
+.dt-crumb b { color: var(--dt-ink); font-weight: 500; }
+.dt-spacer { flex: 1; }
+
+.dt-button {
+  min-height: 32px;
+  padding: 6px 15px;
+  border: 0;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.dt-button.primary { background: var(--dt-blue); color: #ffffff; }
+.dt-button.primary:hover { background: #0455c4; }
+.dt-button.ghost { background: #f6f7f9; color: var(--dt-ink); }
+.dt-button.ghost:hover { background: #eceef2; color: var(--dt-blue); }
+
+.dt-topic {
+  max-width: 1200px;
+  margin: 16px auto 0;
+  padding: 18px 34px;
+}
+
+.dt-topic-tag {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 1px 8px;
+  border-radius: 4px;
+  background: var(--dt-blue-bg);
+  color: var(--dt-blue);
+  font-size: 12px;
+}
+
+.dt-topic h1 {
+  max-width: 900px;
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.dt-topic > p { margin: 6px 0 0; color: var(--dt-muted); font-size: 12px; }
+.dt-balance { margin-top: 14px; }
+.dt-balance-bar { height: 8px; display: flex; overflow: hidden; border-radius: 4px; background: #eeeeee; }
+.dt-balance-bar i { display: block; height: 100%; }
+.dt-balance-bar .pro { background: var(--dt-blue); }
+.dt-balance-bar .neu { background: #c3c8d4; }
+.dt-balance-bar .con { background: var(--dt-ink); }
+
+.dt-legend {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 8px;
+  color: var(--dt-muted);
+  font-size: 12px;
+}
+
+.dt-legend > span { white-space: nowrap; }
+.dt-legend i { width: 8px; height: 8px; display: inline-block; margin-right: 5px; border-radius: 2px; }
+.dt-legend i.pro { background: var(--dt-blue); }
+.dt-legend i.neu { background: var(--dt-neutral); }
+.dt-legend i.con { background: var(--dt-ink); }
+.dt-legend .warning { margin-left: auto; color: var(--dt-warn); white-space: normal; text-align: right; }
+
+.dt-layout {
+  max-width: 1200px;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);
+  align-items: start;
+  gap: 16px;
+  margin: 14px auto 40px;
+  padding: 0 24px;
+}
+
+.dt-tree-panel { min-width: 0; padding: 14px 8px; }
+.dt-panel-title { margin-bottom: 12px; color: var(--dt-muted); font-size: 13px; font-weight: 500; }
+.dt-detail { position: sticky; top: 68px; min-width: 0; }
+.dt-detail-section { padding: 2px 8px 18px; }
+.dt-detail-section + .dt-detail-section { padding-top: 14px; border-top: 1px solid var(--dt-line); }
+
+.dt-row { position: relative; margin: 6px 0; padding-left: 26px; }
+.dt-row::before { content: ""; position: absolute; top: 0; bottom: 0; left: 2px; width: 2px; background: var(--dt-line); }
+.dt-row::after { content: ""; position: absolute; top: 30px; left: 2px; width: 16px; height: 2px; background: var(--dt-line); }
+.dt-row.root-row { padding-left: 0; }
+.dt-row.root-row::before, .dt-row.root-row::after { display: none; }
+.dt-branch > .dt-row:last-child::before { height: 30px; bottom: auto; }
+
+.dt-node {
+  position: relative;
+  min-width: 0;
+  padding: 10px 12px 9px 14px;
+  border-radius: 8px;
+  background: #f7f8fa;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.dt-node:hover { background: #f0f2f5; }
+.dt-node.selected { background: #e8f3ff; }
+.dt-node.root { background: var(--dt-blue); color: #ffffff; }
+.dt-node.root:hover, .dt-node.root.selected { background: #0565d6; }
+.dt-node-header { min-height: 19px; display: flex; align-items: center; padding-right: 190px; }
+
+.dt-tag, .dt-root-tag {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 3px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.dt-tag.pro { background: var(--dt-blue); }
+.dt-tag.con { background: var(--dt-ink); }
+.dt-tag.neu { background: var(--dt-neutral); }
+.dt-tag.question { border: 1px dashed var(--dt-blue); background: #ffffff; color: var(--dt-blue); }
+.dt-node.root .dt-tag { background: rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.8); }
+.dt-root-tag { margin-left: 8px; background: rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.8); }
+
+.dt-fold { margin-left: 8px; padding: 1px 7px; border-radius: 4px; background: var(--dt-blue-soft); color: var(--dt-blue); font-size: 11px; }
+.dt-fold b { font-weight: 500; }
+.dt-node.root .dt-fold { background: rgba(255, 255, 255, 0.16); color: #ffffff; }
+
+.dt-node-text { display: block; margin: 3px 0 2px; font-size: 14px; font-weight: 500; line-height: 1.55; }
+.dt-node.root .dt-node-text { font-size: 15px; font-weight: 600; }
+.dt-evidence { display: block; margin: 4px 0 2px; padding: 4px 8px; border-left: 2px solid var(--dt-line); border-radius: 0 4px 4px 0; background: var(--dt-page); color: var(--dt-muted); font-size: 12px; line-height: 1.5; }
+.dt-evidence b { margin-right: 6px; color: #6b7484; font-size: 11px; }
+
+.dt-node-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; color: var(--dt-muted); font-size: 12px; }
+.dt-node.root .dt-node-meta { color: rgba(255, 255, 255, 0.75); }
+.dt-node-meta a { padding: 1px 6px; border-radius: 3px; background: #ffffff; color: #a2abba; font-size: 11px; text-decoration: none; }
+.dt-node-meta a:hover { color: var(--dt-blue); }
+.dt-awaiting { color: var(--dt-warn); }
+.dt-votes { display: inline-flex; align-items: center; gap: 2px; }
+.dt-votes button { padding: 1px 4px; border: 0; border-radius: 4px; background: transparent; color: inherit; font-size: 12px; cursor: pointer; }
+.dt-votes button:hover { background: var(--dt-blue-bg); color: var(--dt-blue); }
+
+.dt-quick-actions { position: absolute; top: 8px; right: 10px; z-index: 2; display: none; gap: 4px; }
+.dt-node:hover .dt-quick-actions, .dt-node:focus-within .dt-quick-actions { display: flex; }
+.dt-quick-actions button { padding: 1px 7px; border: 0; border-radius: 4px; background: #ffffff; color: var(--dt-muted); font: inherit; font-size: 11px; cursor: pointer; }
+.dt-quick-actions button:hover { color: var(--dt-blue); }
+
+.dt-minimap-svg { width: 100%; max-height: 190px; display: block; }
+.dt-minimap-legend { display: flex; flex-wrap: wrap; gap: 5px 12px; margin-top: 8px; color: var(--dt-muted); font-size: 11px; }
+.dt-empty { padding: 30px 0; color: var(--dt-muted); font-size: 13px; text-align: center; }
+.dt-detail-type { margin-bottom: 8px; }
+.dt-detail h2 { margin: 0 0 8px; font-size: 15px; font-weight: 500; line-height: 1.55; }
+.dt-detail-author { margin: 0 0 12px; color: var(--dt-muted); font-size: 12px; }
+.dt-detail-evidence, .dt-source { margin: 0 0 12px; padding: 8px 10px; border-radius: 6px; background: var(--dt-page); color: var(--dt-muted); font-size: 12px; }
+.dt-source a { color: var(--dt-blue); }
+.dt-agent-card { margin-bottom: 14px; padding: 12px; border-radius: 8px; background: var(--dt-blue-soft); }
+.dt-agent-card > b { color: var(--dt-blue); font-size: 12px; }
+.dt-agent-card p { margin: 4px 0 10px; font-size: 13px; }
+.dt-detail-actions { display: grid; gap: 8px; }
+
+.dt-modal-mask { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-start; justify-content: center; padding-top: 12vh; background: rgba(18, 18, 18, 0.4); }
+.dt-modal { width: min(520px, calc(100vw - 32px)); padding: 22px; border-radius: 8px; background: #ffffff; }
+.dt-modal h2 { margin: 0 0 4px; font-size: 16px; }
+.dt-modal > p { margin: 0 0 14px; color: var(--dt-muted); font-size: 12px; }
+.dt-stance-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.dt-stance-picker button { min-height: 34px; border: 0; border-radius: 6px; background: #f7f8fa; color: var(--dt-muted); font: inherit; cursor: pointer; }
+.dt-stance-picker button.selected { background: var(--dt-blue-soft); color: var(--dt-blue); font-weight: 600; }
+.dt-modal textarea { width: 100%; min-height: 96px; padding: 10px; border: 1px solid var(--dt-line); border-radius: 8px; font: inherit; resize: vertical; }
+.dt-modal textarea:focus { border-color: var(--dt-blue); outline: none; }
+.dt-modal textarea.evidence { min-height: 56px; margin-top: 8px; }
+.dt-modal .dt-modal-hint { margin: 8px 0 14px; }
+.dt-modal .dt-modal-error { margin: -6px 0 12px; color: #c43d2f; }
+.dt-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+@media (max-width: 760px) {
+  .dt-topbar { height: auto; min-height: 52px; padding: 10px 16px; gap: 10px; flex-wrap: wrap; }
+  .dt-crumb { order: 3; width: 100%; }
+  .dt-topic { margin-top: 8px; padding: 14px 18px; }
+  .dt-topic h1 { font-size: 17px; }
+  .dt-legend { gap: 7px 14px; flex-wrap: wrap; }
+  .dt-legend .warning { width: 100%; margin-left: 0; text-align: left; }
+  .dt-layout { display: flex; flex-direction: column; margin-top: 4px; padding: 0 12px 24px; }
+  .dt-tree-panel, .dt-detail { width: 100%; }
+  .dt-detail { position: static; border-top: 1px solid var(--dt-line); }
+  .dt-minimap { display: none; }
+  .dt-node-header { padding-right: 0; }
+  .dt-quick-actions { position: static; display: flex; margin-bottom: 7px; }
+  .dt-row { padding-left: 20px; }
+  .dt-node-text { overflow-wrap: anywhere; }
+}
+
 /* ────────── 跨议题争议地图 ──────────
  * 与力导向树共享同一套 `--debate-*` 变量，但视觉上刻意区分：
  * 缝合线用金色、冲突用红色，因为「跨议题关系」才是这张图存在的理由。
@@ -1080,4 +1308,3 @@ textarea {
   .controversy-map-hint span { display: none; }
   .controversy-map-legend { gap: 9px; font-size: 11px; }
 }
-
