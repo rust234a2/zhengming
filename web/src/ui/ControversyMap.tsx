@@ -16,7 +16,7 @@
  *   2. simulation 只创建一次，靠 nodes()/force() 复用。
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 
 import { CONTROVERSY_MAP } from "../data/controversyMap";
@@ -175,6 +175,36 @@ const DEPTH_BY_KIND: Record<MapNodeKind, number> = { cluster: 0, topic: 1, claim
 /** 数据层节点索引（模块级常量）：骨架聚合议题间冲突时查 claim.topicId 用。 */
 const nodeByIdStatic = new Map(CONTROVERSY_MAP.nodes.map((n) => [n.id, n]));
 
+/* ────────── 聚焦视图（下钻） ────────── */
+
+/**
+ * 点节点进入的「聚焦视图」：只保留该节点 + 它的一跳邻居。
+ * 同心环半径随邻居数增大 —— 邻居越多环越大，节点不会挤成一坨。
+ */
+function ringRadiusFor(neighborCount: number): number {
+  return Math.min(470, Math.max(160, 100 + 30 * Math.sqrt(neighborCount)));
+}
+
+/** 聚焦时生效的力配置（供 mount 时创建的力通过 ref 读取最新值）。 */
+interface FocusState {
+  id: string;
+  /** 邻居所在的同心环半径 */
+  ring: number;
+  neighborCount: number;
+}
+
+/**
+ * 聚焦视图的相机变换：内容中心固定在模拟原点，取一个"整个同心环刚好装得下"的缩放。
+ * 进入聚焦、重置视图共用同一套取景参数。
+ */
+function focusCameraTransform(ring: number, width: number, height: number): d3.ZoomTransform {
+  const k = Math.min(
+    MAX_ZOOM,
+    Math.max(MIN_ZOOM, Math.min(width, height) / (2 * (ring + 90))),
+  );
+  return d3.zoomIdentity.translate((width / 2) * (1 - k), (height / 2) * (1 - k)).scale(k);
+}
+
 export function ControversyMap() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -190,6 +220,19 @@ export function ControversyMap() {
    */
   const [showClaims, setShowClaims] = useState(false);
   const [showStructEdges, setShowStructEdges] = useState(false);
+  /**
+   * 聚焦路径（root → … → 当前中心）：点节点下钻一层，只显示「该节点 + 一跳邻居」。
+   * 数组即层级栈 —— 「返回上一级」弹一层，面包屑可跳级，空数组 = 全图。
+   */
+  const [focusPath, setFocusPath] = useState<string[]>([]);
+  const focusId = focusPath.length > 0 ? focusPath[focusPath.length - 1] : null;
+  /**
+   * 焦点快照。d3 的力是挂载时创建一次的（闭包），只能通过 ref 读到最新焦点，
+   * 否则切换聚焦后径向力还按旧值布局。
+   */
+  const focusRef = useRef<FocusState | null>(null);
+  /** 相机动作意图：退出聚焦时把视图适配回全图（push 时不需要标记）。 */
+  const cameraIntentRef = useRef<"exit" | "none">("none");
   const [size, setSize] = useState({ width: 1000, height: 660 });
   const [snapshot, setSnapshot] = useState<RenderSnapshot>({ nodes: [], links: [] });
 
@@ -209,33 +252,81 @@ export function ControversyMap() {
   /**
    * @param withClaims false = 骨架视图：只保留 簇 + 议题；
    *                   论点级 rebuts 聚合成「议题间冲突」线（claim.topicId 归并），不丢冲突信号。
+   * @param focusedId  非空 = 聚焦视图：只保留该节点 + 一跳邻居（用完整边集，
+   *                   所以骨架模式下聚焦也会把论点层带出来 —— 这是下钻的信息增量）。
    */
   const buildGraph = useCallback(
-    (withClaims: boolean): { nodes: MapSimNode[]; links: MapSimLink[] } => {
+    (
+      withClaims: boolean,
+      focusedId: string | null,
+    ): { nodes: MapSimNode[]; links: MapSimLink[]; focus: FocusState | null } => {
       const prev = new Map(nodesRef.current.map((n) => [n.id, n]));
 
+      const toSimNode = (n: (typeof CONTROVERSY_MAP.nodes)[number]): MapSimNode => {
+        const old = prev.get(n.id);
+        return {
+          id: n.id,
+          kind: n.kind,
+          label: n.label,
+          fullLabel: n.fullLabel ?? n.label,
+          side: (n.side ?? "neutral") as DebateSideLike,
+          depth: DEPTH_BY_KIND[n.kind],
+          radius: radiusFor(n.kind, n.weight ?? 0, n.topicCount ?? 0),
+          topicCount: n.topicCount ?? 0,
+          votes: n.votes ?? 0,
+          x: old?.x ?? 0,
+          y: old?.y ?? 0,
+          vx: 0,
+          vy: 0,
+          fx: null,
+          fy: null,
+        };
+      };
+
+      const makeLink = (
+        id: string,
+        e: (typeof CONTROVERSY_MAP.edges)[number],
+        byId: Map<string, MapSimNode>,
+      ): MapSimLink | null => {
+        const s = byId.get(e.source);
+        const t = byId.get(e.target);
+        if (!s || !t) return null;
+        return {
+          id,
+          source: e.source,
+          target: e.target,
+          relation: e.relation,
+          sourceDepth: s.depth,
+          targetDepth: t.depth,
+        };
+      };
+
+      /* ── 聚焦视图：该节点 + 一跳邻居（诱导子图） ── */
+      if (focusedId) {
+        const inView = new Set<string>([focusedId]);
+        for (const e of CONTROVERSY_MAP.edges) {
+          if (e.source === focusedId) inView.add(e.target);
+          if (e.target === focusedId) inView.add(e.source);
+        }
+        const nodes = CONTROVERSY_MAP.nodes.filter((n) => inView.has(n.id)).map(toSimNode);
+        const byId = new Map(nodes.map((n) => [n.id, n]));
+        const links: MapSimLink[] = [];
+        for (const [i, e] of CONTROVERSY_MAP.edges.entries()) {
+          if (!inView.has(e.source) || !inView.has(e.target)) continue;
+          const link = makeLink(`fl${i}-${e.relation}`, e, byId);
+          if (link) links.push(link);
+        }
+        return {
+          nodes,
+          links,
+          focus: { id: focusedId, ring: ringRadiusFor(nodes.length - 1), neighborCount: nodes.length - 1 },
+        };
+      }
+
+      /* ── 全图：骨架（默认）或全量 ── */
       const nodes: MapSimNode[] = CONTROVERSY_MAP.nodes
         .filter((n) => withClaims || n.kind !== "claim")
-        .map((n) => {
-          const old = prev.get(n.id);
-          return {
-            id: n.id,
-            kind: n.kind,
-            label: n.label,
-            fullLabel: n.fullLabel ?? n.label,
-            side: (n.side ?? "neutral") as DebateSideLike,
-            depth: DEPTH_BY_KIND[n.kind],
-            radius: radiusFor(n.kind, n.weight ?? 0, n.topicCount ?? 0),
-            topicCount: n.topicCount ?? 0,
-            votes: n.votes ?? 0,
-            x: old?.x ?? 0,
-            y: old?.y ?? 0,
-            vx: 0,
-            vy: 0,
-            fx: null,
-            fy: null,
-          };
-        });
+        .map(toSimNode);
 
       const byId = new Map(nodes.map((n) => [n.id, n]));
       const links: MapSimLink[] = [];
@@ -256,18 +347,8 @@ export function ControversyMap() {
           }
           continue;
         }
-
-        const s = byId.get(e.source);
-        const t = byId.get(e.target);
-        if (!s || !t) continue;
-        links.push({
-          id: `l${i}-${e.relation}`,
-          source: e.source,
-          target: e.target,
-          relation: e.relation,
-          sourceDepth: s.depth,
-          targetDepth: t.depth,
-        });
+        const link = makeLink(`l${i}-${e.relation}`, e, byId);
+        if (link) links.push(link);
       }
 
       for (const [key, { a, b, count }] of topicConflicts) {
@@ -284,7 +365,7 @@ export function ControversyMap() {
           aggregated: count,
         });
       }
-      return { nodes, links };
+      return { nodes, links, focus: null };
     },
     [],
   );
@@ -310,18 +391,38 @@ export function ControversyMap() {
           .radius((n) => n.radius + (n.kind === "cluster" ? 34 : n.kind === "topic" ? 22 : 13))
           .strength(0.95),
       )
-      // 立场分翼（v1 着色）：正/负立场的簇与论点被推向左右两翼（原型 forceX ±420 等效）
+      // 立场分翼（v1 着色）：正/负立场的簇与论点被推向左右两翼（原型 forceX ±420 等效）。
+      // 聚焦视图下让位给径向环力（否则分翼会把邻居压成一条竖线）。
       .force(
         "polarity",
         d3
           .forceX<MapSimNode>((n) =>
-            (n.kind === "claim" || n.kind === "cluster") && n.side === "positive"
-              ? -420
-              : (n.kind === "claim" || n.kind === "cluster") && n.side === "negative"
-                ? 420
+            focusRef.current
+              ? 0
+              : n.kind === "claim" || n.kind === "cluster"
+                ? n.side === "positive"
+                  ? -420
+                  : n.side === "negative"
+                    ? 420
+                    : 0
                 : 0,
           )
-          .strength(0.12),
+          .strength(() => (focusRef.current ? 0 : 0.12)),
+      )
+      // 聚焦视图：中心节点拉回原点、邻居落在同心环上（非聚焦时强度 0，不影响原布局）
+      .force(
+        "focusRing",
+        d3
+          .forceRadial<MapSimNode>((n) => {
+            const f = focusRef.current;
+            if (!f) return 0;
+            return n.id === f.id ? 0 : f.ring;
+          }, 0, 0)
+          .strength((n) => {
+            const f = focusRef.current;
+            if (!f) return 0;
+            return n.id === f.id ? 1 : 0.62;
+          }),
       )
       .alphaDecay(0.022)
       .on("tick", () => syncDomPositions());
@@ -339,7 +440,8 @@ export function ControversyMap() {
   useEffect(() => {
     const simulation = simulationRef.current;
     if (!simulation) return;
-    const { nodes, links } = buildGraph(showClaims);
+    const { nodes, links, focus } = buildGraph(showClaims, focusId);
+    focusRef.current = focus;
     nodesRef.current = nodes;
     nodesByIdRef.current = new Map(nodes.map((n) => [n.id, n]));
     linksRef.current = links;
@@ -357,9 +459,17 @@ export function ControversyMap() {
     simulation.nodes(nodes);
     linkForceRef.current?.links(links);
 
-    // 初次布局用黄金角撒点，避免全部叠在原点
+    // 初次布局用黄金角撒点，避免全部叠在原点；
+    // 聚焦视图下新出现的邻居直接撒到同心环上 —— 入场就是"从中心向外张开"的动画。
+    const ringNeighbors = focus ? nodes.filter((n) => n.id !== focus.id) : [];
+    const ringIndex = new Map(ringNeighbors.map((n, i) => [n.id, i]));
     for (const [i, n] of nodes.entries()) {
-      if (n.x === 0 && n.y === 0) {
+      if (n.x !== 0 || n.y !== 0) continue;
+      if (focus && n.id !== focus.id) {
+        const angle = ((ringIndex.get(n.id) ?? 0) / Math.max(ringNeighbors.length, 1)) * Math.PI * 2;
+        n.x = Math.cos(angle) * focus.ring;
+        n.y = Math.sin(angle) * focus.ring;
+      } else {
         const angle = i * 2.39996;
         const r = 120 + Math.sqrt(i) * 46;
         n.x = Math.cos(angle) * r;
@@ -369,7 +479,7 @@ export function ControversyMap() {
 
     setSnapshot({ nodes, links: linkSnapshot });
     simulation.alpha(0.95).restart();
-  }, [buildGraph, showClaims]);
+  }, [buildGraph, focusId, showClaims]);
 
   /* ---------- 逐帧坐标写入 ---------- */
 
@@ -458,6 +568,35 @@ export function ControversyMap() {
     };
   }, []);
 
+  /* ---------- 聚焦（下钻）操作 ---------- */
+
+  /** 下钻一层：只显示该节点 + 一跳邻居。重复点同一节点不会叠层（双击因此是幂等的）。 */
+  const focusOn = useCallback((id: string): void => {
+    setSelectedId(id);
+    setFocusPath((prev) => (prev[prev.length - 1] === id ? prev : [...prev, id]));
+  }, []);
+
+  /** 返回上一级：弹一层；退到顶层时相机动画适配回全图。 */
+  const goBack = useCallback((): void => {
+    if (focusPath.length === 0) return;
+    const next = focusPath.slice(0, -1);
+    cameraIntentRef.current = next.length === 0 ? "exit" : "none";
+    setFocusPath(next);
+    setSelectedId(next[next.length - 1] ?? null);
+  }, [focusPath]);
+
+  /** 面包屑跳级：depth = -1 表示回到全图，否则聚焦到该层。 */
+  const goToLevel = useCallback(
+    (depth: number): void => {
+      const next = depth < 0 ? [] : focusPath.slice(0, depth + 1);
+      if (next.length === focusPath.length) return;
+      cameraIntentRef.current = next.length === 0 ? "exit" : "none";
+      setFocusPath(next);
+      setSelectedId(next[next.length - 1] ?? null);
+    },
+    [focusPath],
+  );
+
   /* ---------- 拖拽 ---------- */
 
   const pointerToSimSpace = useCallback(
@@ -514,8 +653,9 @@ export function ControversyMap() {
     const onUp = (): void => {
       const drag = dragStateRef.current;
       if (!drag) return;
-      // 与原型一致：松手后保持钉住（拖到哪固定到哪），双击才解除固定
-      if (!drag.moved) setSelectedId(drag.nodeId);
+      // 与原型一致：松手后保持钉住（拖到哪固定到哪），双击才解除固定。
+      // 无位移 = 点击：选中并下钻进「聚焦视图」（点同一节点不叠层，故双击是幂等的）。
+      if (!drag.moved) focusOn(drag.nodeId);
       dragStateRef.current = null;
       simulationRef.current?.alphaTarget(0);
     };
@@ -527,7 +667,7 @@ export function ControversyMap() {
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
     };
-  }, [pointerToSimSpace, syncDomPositions]);
+  }, [focusOn, pointerToSimSpace, syncDomPositions]);
 
   /* ---------- 邻接计算（高亮用，按当前视图的可见边） ---------- */
 
@@ -565,9 +705,19 @@ export function ControversyMap() {
     const svg = svgRef.current;
     const behavior = zoomBehaviorRef.current;
     if (!svg || !behavior) return;
+    const focus = focusRef.current;
+    if (focus) {
+      // 聚焦态下"重置"= 重新框住当前邻域（弹回全图坐标会让人瞬间迷路）
+      d3.select(svg)
+        .transition()
+        .duration(320)
+        .call(behavior.transform, focusCameraTransform(focus.ring, size.width, size.height));
+      simulationRef.current?.alpha(0.5).restart();
+      return;
+    }
     d3.select(svg).transition().duration(240).call(behavior.transform, d3.zoomIdentity);
     simulationRef.current?.alpha(0.6).restart();
-  }, []);
+  }, [size.height, size.width]);
 
   /** 缩放平移到「全部节点可见」：数据量大后手动找节点太累，一键适配。 */
   const fitView = useCallback((): void => {
@@ -596,6 +746,32 @@ export function ControversyMap() {
     d3.select(svg).transition().duration(320).call(behavior.transform, t);
   }, [size.height, size.width]);
 
+  /* ---------- 视图切换的相机动画 ---------- */
+
+  /**
+   * 聚焦时把相机拉近到同心环（"进入"动作），退出聚焦时适配回全图（"返回"动作）。
+   * 与力的重启、新节点的入场动画共同构成一次完整的过渡。
+   */
+  useEffect(() => {
+    const svg = svgRef.current;
+    const behavior = zoomBehaviorRef.current;
+    if (!svg || !behavior) return;
+    const intent = cameraIntentRef.current;
+    cameraIntentRef.current = "none";
+
+    const focus = focusRef.current;
+    if (focusId && focus) {
+      d3.select(svg)
+        .transition()
+        .duration(520)
+        .ease(d3.easeCubicOut)
+        .call(behavior.transform, focusCameraTransform(focus.ring, size.width, size.height));
+      return;
+    }
+    if (focusId) return; // 焦点布局还没建好，等下一次 effect
+    if (intent === "exit") fitView();
+  }, [fitView, focusId, size.height, size.width]);
+
   /* ---------- 渲染 ---------- */
 
   const resolvedLinks: MapResolvedLink[] = useMemo(() => {
@@ -610,8 +786,9 @@ export function ControversyMap() {
   }, [snapshot]);
 
   // 连线在下、节点在上：分两组渲染，保证层级正确。
-  // member/contains 是纯结构边，数量最大（429 条）——默认藏起来，只在「展开论点 + 打开归属边」时画。
-  const structVisible = showClaims && showStructEdges;
+  // member/contains 是纯结构边，数量最大（429 条）——全量模式下默认藏起来、按需打开；
+  // 但聚焦视图里它们正是"为什么这些节点算相连"的依据，必须画。
+  const structVisible = focusId !== null || (showClaims && showStructEdges);
   const linkLayer = resolvedLinks.filter(
     (l) => (l.relation === "member" || l.relation === "contains") && structVisible,
   );
@@ -654,10 +831,10 @@ export function ControversyMap() {
       return (
         <>
           <h2>{full(activeNode)}</h2>
-          <div className="cm-meta">论点数：{claims.length}</div>
+          <div className="cm-meta">论点数：{claims.length}（点击可下钻到该论点的聚焦视图）</div>
           <ul>
             {claims.map((c) => (
-              <li key={c.id} onClick={() => setSelectedId(c.id)}>{trunc(full(c), 44)}</li>
+              <li key={c.id} onClick={() => focusOn(c.id)}>{trunc(full(c), 44)}</li>
             ))}
           </ul>
         </>
@@ -676,15 +853,15 @@ export function ControversyMap() {
         <div className="cm-meta">缝合 {touched.size} 个议题 · 成员边 {activeNode.weight ?? 0}</div>
         <ul>
           {members.map((c) => (
-            <li key={c.id} onClick={() => setSelectedId(c.id)}>{trunc(full(c), 44)}</li>
+            <li key={c.id} onClick={() => focusOn(c.id)}>{trunc(full(c), 44)}</li>
           ))}
         </ul>
       </>
     );
-  }, [activeNode, nodeById]);
+  }, [activeNode, focusOn, nodeById]);
 
   return (
-    <div className="controversy-map" ref={containerRef}>
+    <div className={`controversy-map${focusId ? " is-focused" : ""}`} ref={containerRef}>
       <div className="controversy-map-toolbar">
         <div className="controversy-map-hint">
           <strong>跨议题争议地图 · 真实数据</strong>
@@ -695,10 +872,16 @@ export function ControversyMap() {
           </span>
         </div>
         <div className="controversy-map-actions">
-          <button type="button" onClick={() => setShowClaims((v) => !v)}>
+          <button
+            type="button"
+            onClick={() => {
+              goToLevel(-1); // 聚焦态下切换视图语义不明确，先退回全图
+              setShowClaims((v) => !v);
+            }}
+          >
             {showClaims ? "返回骨架视图" : "展开全部论点"}
           </button>
-          {showClaims ? (
+          {showClaims && !focusId ? (
             <button
               type="button"
               onClick={() => setShowStructEdges((v) => !v)}
@@ -725,10 +908,40 @@ export function ControversyMap() {
         </div>
       </div>
 
-      <div className="cm-caption">
-        默认骨架视图（簇 + 议题 + 缝合线 + 议题间冲突聚合线）；「展开全部论点」后可查看论点层细节，
-        再打开「显示归属边」补全归属关系。悬停或点击节点查看详情；拖动节点可固定到新位置，双击取消固定。
-      </div>
+      {focusId ? (
+        <div className="cm-focus-bar" role="navigation" aria-label="聚焦层级">
+          <button type="button" className="cm-focus-back" onClick={goBack}>
+            ← 返回上一级
+          </button>
+          <span className="cm-crumb" onClick={() => goToLevel(-1)}>
+            全图
+          </span>
+          {focusPath.map((id, i) => {
+            const n = nodeById.get(id);
+            const last = i === focusPath.length - 1;
+            return (
+              <Fragment key={`${id}-${i}`}>
+                <i className="cm-crumb-sep">›</i>
+                <span
+                  className={`cm-crumb${last ? " is-current" : ""}`}
+                  onClick={() => goToLevel(i)}
+                  title={n?.fullLabel ?? n?.label ?? id}
+                >
+                  {trunc(n?.label ?? id, 16)}
+                </span>
+              </Fragment>
+            );
+          })}
+          <span className="cm-focus-count">
+            {snapshot.nodes.length - 1} 个相连节点 · 点节点继续下钻
+          </span>
+        </div>
+      ) : (
+        <div className="cm-caption">
+          默认骨架视图（簇 + 议题 + 缝合线 + 议题间冲突聚合线）；点任一节点可下钻到「该节点 + 相连节点」的
+          聚焦视图，再从顶部返回。悬停查看详情；拖动节点可固定，双击取消固定。
+        </div>
+      )}
 
       <div className="controversy-map-legend">
         <div>
@@ -749,6 +962,11 @@ export function ControversyMap() {
         <div>
           <span className="cm-lg" style={{ fontSize: 11, color: "#64748b" }}>
             骨架视图下的红线 = 议题间冲突（由论点级 rebuts 聚合）
+          </span>
+        </div>
+        <div>
+          <span className="cm-lg" style={{ fontSize: 11, color: "#64748b" }}>
+            <i className="ring" />聚焦视图的圆心标记（该节点的全部相连节点会围成一环）
           </span>
         </div>
       </div>
@@ -830,13 +1048,15 @@ export function ControversyMap() {
               {snapshot.nodes.map((n) => {
                 const dim = isDim(n.id);
                 const isActive = activeId === n.id;
+                /** 聚焦视图的圆心节点：常驻脉冲环标记"当前中心" */
+                const isCenter = n.id === focusId;
                 // 标签策略与原型一致：骨架节点常显（截 20 字）；
-                // 论点默认隐藏，仅邻域高亮 / 悬停 / 「显示全部标签」时显示
+                // 论点默认隐藏，仅邻域高亮 / 悬停 / 聚焦视图 / 「显示全部标签」时显示
                 const text =
                   n.kind === "claim"
                     ? isActive
                       ? trunc(n.fullLabel ?? n.label, 26)
-                      : highlighted?.has(n.id) || showAllLabels
+                      : highlighted?.has(n.id) || showAllLabels || focusId
                         ? trunc(n.fullLabel ?? n.label, 22)
                         : ""
                     : trunc(n.label, 20);
@@ -846,8 +1066,9 @@ export function ControversyMap() {
                     key={n.id}
                     data-node-id={n.id}
                     data-node-kind={n.kind}
+                    data-focus-center={isCenter ? "1" : undefined}
                     transform={`translate(${n.x},${n.y})`}
-                    className="cm-node"
+                    className={`cm-node${isCenter ? " is-center" : ""}`}
                     opacity={dim ? 0.14 : 1}
                     onPointerDown={(e) => handleNodePointerDown(e, n.id)}
                     onDoubleClick={(e) => {
@@ -867,33 +1088,47 @@ export function ControversyMap() {
                       transition: "opacity 140ms ease",
                     }}
                   >
-                    <circle
-                      r={n.radius}
-                      fill={fillForNode(n)}
-                      stroke={strokeForNode(n)}
-                      strokeWidth={n.kind === "cluster" ? 2 : n.kind === "topic" ? 1.6 : 0}
-                    />
-                    {/* 邻域高亮环，让"这个节点的关系网"一眼可见 */}
-                    {isActive && (
+                    {/* 入场动画包一层：位置的 transform 在外层命令行内联，动画的 scale/opacity 在内层，互不打架 */}
+                    <g className="cm-node-body">
                       <circle
-                        r={n.radius + 6}
-                        fill="none"
-                        stroke={n.kind === "cluster" ? "#e8a33d" : "#0f6fe5"}
-                        strokeWidth="1.6"
+                        r={n.radius}
+                        fill={fillForNode(n)}
+                        stroke={strokeForNode(n)}
+                        strokeWidth={n.kind === "cluster" ? 2 : n.kind === "topic" ? 1.6 : 0}
                       />
-                    )}
-                    {showLabel && (
-                      <text
-                        className="cm-node-label"
-                        textAnchor="middle"
-                        y={n.radius + 13}
-                        fill={n.kind === "cluster" ? "#7a4b00" : "#334155"}
-                        fontSize={n.kind === "cluster" ? 11.5 : n.kind === "topic" ? 10.5 : 10}
-                        fontWeight={n.kind === "cluster" ? 600 : 400}
-                      >
-                        {text}
-                      </text>
-                    )}
+                      {/* 中心/选中环：中心环是结构标记（常驻脉冲），选中环是交互态，两者不同时出现 */}
+                      {isCenter ? (
+                        <circle
+                          data-center-ring="1"
+                          className="cm-focus-ring"
+                          r={n.radius + 9}
+                          fill="none"
+                          stroke="#e8a33d"
+                          strokeWidth="1.8"
+                          strokeDasharray="4 4"
+                        />
+                      ) : isActive ? (
+                        <circle
+                          data-selection-ring="1"
+                          r={n.radius + 6}
+                          fill="none"
+                          stroke={n.kind === "cluster" ? "#e8a33d" : "#0f6fe5"}
+                          strokeWidth="1.6"
+                        />
+                      ) : null}
+                      {showLabel && (
+                        <text
+                          className="cm-node-label"
+                          textAnchor="middle"
+                          y={n.radius + 13}
+                          fill={n.kind === "cluster" ? "#7a4b00" : "#334155"}
+                          fontSize={n.kind === "cluster" ? 11.5 : n.kind === "topic" ? 10.5 : 10}
+                          fontWeight={n.kind === "cluster" ? 600 : 400}
+                        >
+                          {text}
+                        </text>
+                      )}
+                    </g>
                   </g>
                 );
               })}

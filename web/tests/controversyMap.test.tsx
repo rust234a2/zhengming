@@ -177,6 +177,80 @@ function runSimulation(seed: () => number = seededRandom(42)) {
   return { nodes, links };
 }
 
+/**
+ * 聚焦视图布局：复刻组件的聚焦力配置跑一遍。
+ * 与全图布局的两处差异正是本视图的定义：极性分翼力关闭、径向环力接管。
+ * 初始位置故意打散（新邻居撒在环上但半径抖动 ±30%，中心沿用旧位置），
+ * 否则"结果是个环"就只是初始条件的同义反复。
+ */
+function runFocusSimulation(focusedId: string, seed: () => number = seededRandom(7)) {
+  const rng = seed;
+  const inView = new Set<string>([focusedId]);
+  for (const e of CONTROVERSY_MAP.edges) {
+    if (e.source === focusedId) inView.add(e.target);
+    if (e.target === focusedId) inView.add(e.source);
+  }
+  const neighborCount = inView.size - 1;
+  const ring = Math.min(470, Math.max(160, 100 + 30 * Math.sqrt(neighborCount)));
+
+  let k = 0;
+  const nodes: MapSimNode[] = CONTROVERSY_MAP.nodes
+    .filter((n) => inView.has(n.id))
+    .map((n) => {
+      const isCenter = n.id === focusedId;
+      const angle = (k / Math.max(inView.size - 1, 1)) * Math.PI * 2;
+      const r = isCenter ? 0 : ring * (0.7 + rng() * 0.6);
+      k += 1;
+      return {
+        id: n.id,
+        kind: n.kind,
+        label: n.label,
+        side: n.side ?? "neutral",
+        depth: n.kind === "cluster" ? 0 : n.kind === "topic" ? 1 : 2,
+        // 与组件 radiusFor 一致
+        radius: n.kind === "cluster" ? 13 + Math.min((n.topicCount ?? 0) * 2, 16) : n.kind === "topic" ? 10 : 5.5,
+        topicCount: n.topicCount ?? 0,
+        votes: n.votes ?? 0,
+        // 中心沿用"上一个视图里的位置"，其余从环上张开 —— 与真实切换过程一致
+        x: isCenter ? 620 : Math.cos(angle) * r,
+        y: isCenter ? -260 : Math.sin(angle) * r,
+        vx: 0,
+        vy: 0,
+      };
+    });
+
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const links: MapSimLink[] = CONTROVERSY_MAP.edges
+    .filter((e) => inView.has(e.source) && inView.has(e.target))
+    .map((e, i) => ({
+      id: `fl${i}`,
+      source: e.source,
+      target: e.target,
+      relation: e.relation,
+      sourceDepth: byId.get(e.source)!.depth,
+      targetDepth: byId.get(e.target)!.depth,
+    }));
+
+  const dist: Record<string, number> = { bridge: 165, member: 78, contains: 118, rebuts: 250 };
+  const str: Record<string, number> = { bridge: 0.55, member: 0.9, contains: 0.32, rebuts: 0.08 };
+  const charge: Record<string, number> = { cluster: -1150, topic: -560, claim: -170 };
+
+  const sim = d3
+    .forceSimulation<MapSimNode, MapSimLink>(nodes)
+    .force("link", d3.forceLink<MapSimNode, MapSimLink>(links).id((n) => n.id).distance((l) => dist[l.relation]).strength((l) => str[l.relation]))
+    .force("charge", d3.forceManyBody<MapSimNode>().strength((n) => charge[n.kind]))
+    .force("center", d3.forceCenter(0, 0))
+    .force("collide", d3.forceCollide<MapSimNode>().radius((n) => n.radius + (n.kind === "cluster" ? 34 : n.kind === "topic" ? 22 : 13)).strength(0.95))
+    .force("polarity", d3.forceX<MapSimNode>(() => 0).strength(() => 0))
+    .force("focusRing", d3.forceRadial<MapSimNode>((n) => (n.id === focusedId ? 0 : ring), 0, 0).strength((n) => (n.id === focusedId ? 1 : 0.62)))
+    .alphaDecay(0.022)
+    .stop();
+
+  for (let i = 0; i < 500; i += 1) sim.tick();
+  sim.stop();
+  return { nodes, links, ring, focusedId };
+}
+
 describe("争议地图布局质量（真实 d3 模拟）", () => {
   it("所有节点坐标有限，无 NaN", () => {
     const { nodes } = runSimulation();
@@ -240,6 +314,44 @@ describe("争议地图布局质量（真实 d3 模拟）", () => {
     }
     expect(diff).toBeGreaterThan(1);
   }, 20000);
+
+  it("聚焦布局：中心压到圆心，论点贴内圈、议题围外环，且都落进相机取景框", () => {
+    const id = richestClusterId();
+    const { nodes, ring } = runFocusSimulation(id);
+    const center = nodes.find((n) => n.id === id)!;
+    const neighbors = nodes.filter((n) => n.id !== id);
+    const radial = (n: MapSimNode) => Math.hypot(n.x - center.x, n.y - center.y);
+
+    // ① 中心被径向力压到圆心（理想 0，forceCenter 会带来小幅平移）
+    expect(Math.hypot(center.x, center.y)).toBeLessThan(ring * 0.35);
+
+    // ② 不是一团糊在圆心：邻居全部离开中心，且没有离谱的离群点
+    const dists = neighbors.map(radial);
+    const mean = dists.reduce((a, b) => a + b, 0) / dists.length;
+    expect(Math.min(...dists)).toBeGreaterThan(100);
+    expect(Math.max(...dists) - Math.min(...dists)).toBeLessThan(mean * 1.2);
+
+    // ③ 径向分层：成员论点被短 member 边拉在内圈，议题落在外环
+    const topics = neighbors.filter((n) => n.kind === "topic").map(radial);
+    const claims = neighbors.filter((n) => n.kind === "claim").map(radial);
+    expect(topics.length).toBeGreaterThan(0);
+    expect(claims.length).toBeGreaterThan(0);
+    expect(Math.max(...claims)).toBeLessThan(Math.min(...topics));
+
+    // ④ 相机取景框（ring + 90）必须装得下整个邻域，否则进聚焦会被裁掉
+    expect(Math.max(...dists)).toBeLessThan(ring + 90);
+
+    // ⑤ 没有重叠
+    for (let i = 0; i < neighbors.length; i += 1) {
+      for (let j = i + 1; j < neighbors.length; j += 1) {
+        const d = Math.hypot(
+          neighbors[i].x - neighbors[j].x,
+          neighbors[i].y - neighbors[j].y,
+        );
+        expect(d).toBeGreaterThan((neighbors[i].radius + neighbors[j].radius) * 0.5);
+      }
+    }
+  }, 20000);
 });
 
 /* ────────── 3. 组件层 ────────── */
@@ -280,6 +392,40 @@ function clickButton(utils: { container: HTMLElement }, text: string): void {
   act(() => {
     fireEvent.click(btn);
   });
+}
+
+/** 在节点上模拟「按下即抬起」（无位移）—— 触发选中 + 下钻聚焦。 */
+function clickNode(svg: SVGSVGElement, id: string): void {
+  const node = svg.querySelector(`[data-node-id="${id}"]`) as SVGGElement;
+  expect(node).toBeTruthy();
+  act(() => {
+    fireEvent.pointerDown(node, { clientX: 100, clientY: 100, pointerId: 1, button: 0 });
+    fireEvent.pointerUp(window, { clientX: 100, clientY: 100, pointerId: 1 });
+  });
+}
+
+/** 聚焦视图的期望节点集：目标节点 + 一跳邻居（用完整边集，不受层级开关影响）。 */
+function focusNeighborhood(id: string): Set<string> {
+  const set = new Set<string>([id]);
+  for (const e of CONTROVERSY_MAP.edges) {
+    if (e.source === id) set.add(e.target);
+    if (e.target === id) set.add(e.source);
+  }
+  return set;
+}
+
+/** 聚焦视图的期望连线数：两端都落在邻里集合里的边（诱导子图）。 */
+function inducedEdgeCount(id: string): number {
+  const set = focusNeighborhood(id);
+  return CONTROVERSY_MAP.edges.filter((e) => set.has(e.source) && set.has(e.target)).length;
+}
+
+/** 挑一个相连节点最多的主张簇：保证聚焦视图有足够内容可断言。 */
+function richestClusterId(): string {
+  const clusters = CONTROVERSY_MAP.nodes.filter((n) => n.kind === "cluster");
+  return clusters
+    .reduce((best, n) => (focusNeighborhood(n.id).size > focusNeighborhood(best.id).size ? n : best))
+    .id;
 }
 
 describe("争议地图组件", () => {
@@ -397,28 +543,59 @@ describe("争议地图组件", () => {
     expect(afterLeave.length).toBe(renderedPairs.length);
   });
 
-  it("点击节点选中，再次点击空白处取消选中", () => {
+  it("点击节点即下钻聚焦：中心带圆心标记，面板展示该节点", () => {
     const { svg, container } = renderMap();
     const node = svg.querySelector('[data-node-id^="cl-"]') as SVGGElement;
     const id = node.getAttribute("data-node-id")!;
 
-    // 用 pointerdown + pointerup（无位移）触发选中语义
-    act(() => {
-      fireEvent.pointerDown(node, { clientX: 100, clientY: 100, pointerId: 1, button: 0 });
-      fireEvent.pointerUp(window, { clientX: 100, clientY: 100, pointerId: 1 });
-    });
+    clickNode(svg, id);
 
-    const selected = svg.querySelector(`[data-node-id="${id}"]`);
-    // 选中态：组内出现高亮环（第二个 circle）
-    expect(selected!.querySelectorAll("circle").length).toBeGreaterThan(1);
+    const center = svg.querySelector(`[data-node-id="${id}"]`)!;
+    // 中心环是聚焦态的结构标记
+    expect(center.getAttribute("data-focus-center")).toBe("1");
+    expect(center.querySelector("[data-center-ring]")).toBeTruthy();
+    // 入场动画的挂钩（位置的 transform 在外层，动画在内层，互不打架）
+    expect(center.querySelector(".cm-node-body")).toBeTruthy();
+    expect(container.querySelector(".cm-panel")).toBeTruthy();
+  });
 
-    // 点击背板取消
+  it("点击空白处只取消选中：面板收起、聚焦态保留", () => {
+    const { svg, container } = renderMap();
+    const node = svg.querySelector('[data-node-id^="cl-"]') as SVGGElement;
+    const id = node.getAttribute("data-node-id")!;
+    clickNode(svg, id);
+
     const backdrop = container.querySelector("[data-backdrop]") as SVGRectElement;
     act(() => {
       fireEvent.click(backdrop);
     });
-    const afterClear = svg.querySelector(`[data-node-id="${id}"]`);
-    expect(afterClear!.querySelectorAll("circle").length).toBe(1);
+
+    expect(container.querySelector(".cm-panel")).toBeFalsy();
+    // 聚焦是视图状态，不该被"点空白"顺手取消
+    expect(
+      svg.querySelector(`[data-node-id="${id}"]`)!.getAttribute("data-focus-center"),
+    ).toBe("1");
+  });
+
+  it("悬停非中心的相连节点时出现选中环（中心环与选中环互斥，避免叠环）", () => {
+    const { svg } = renderMap();
+    const id = richestClusterId();
+    clickNode(svg, id);
+
+    const other = [...focusNeighborhood(id)].find((x) => x !== id)!;
+    const otherEl = svg.querySelector(`[data-node-id="${other}"]`) as SVGGElement;
+    // 没有圆心标记 = 它不是当前中心（getAttribute 缺省返回 null）
+    expect(otherEl.hasAttribute("data-focus-center")).toBe(false);
+
+    act(() => {
+      fireEvent.mouseEnter(otherEl);
+    });
+    expect(otherEl.querySelector("[data-selection-ring]")).toBeTruthy();
+
+    act(() => {
+      fireEvent.mouseLeave(otherEl);
+    });
+    expect(otherEl.querySelector("[data-selection-ring]")).toBeFalsy();
   });
 
   it("有缩放控件，且限制在 0.25–3 之间（与树视图的 0.35 下限区分）", () => {
@@ -472,5 +649,134 @@ describe("争议地图组件", () => {
     expect(removed).toContain("pointerup");
     expect(removed).toContain("pointercancel");
     removeSpy.mockRestore();
+  });
+});
+
+/* ────────── 4. 聚焦视图（点击下钻 + 返回上一级） ────────── */
+
+describe("争议地图聚焦视图", () => {
+  it("点节点只显示「该节点 + 一跳邻居」，骨架模式下也会把论点层带出来", () => {
+    const { svg } = renderMap();
+    const id = richestClusterId();
+    const nbh = focusNeighborhood(id);
+    expect(nbh.size).toBeGreaterThan(3);
+
+    clickNode(svg, id);
+
+    const renderedIds = [...svg.querySelectorAll("[data-node-id]")].map((el) =>
+      el.getAttribute("data-node-id"),
+    );
+    expect(new Set(renderedIds)).toEqual(nbh);
+    expect(renderedIds.length).toBe(nbh.size);
+    // 连线 = 诱导子图；归属边在聚焦视图里是"为什么算相连"的依据，必须画出来
+    expect(svg.querySelectorAll("[data-link-id]").length).toBe(inducedEdgeCount(id));
+    // 骨架模式（默认）下论点本来是隐藏的，聚焦把它带出来了
+    expect(svg.querySelectorAll('[data-node-kind="claim"]').length).toBeGreaterThan(0);
+    // 规模必须显著小于全图，否则"聚焦"就没意义
+    expect(nbh.size).toBeLessThan(CONTROVERSY_MAP.nodes.length / 2);
+  });
+
+  it("重复点击同一节点不会叠层（双击因此是幂等的）", () => {
+    const { svg, container } = renderMap();
+    const id = richestClusterId();
+
+    clickNode(svg, id);
+    clickNode(svg, id);
+
+    // 面包屑 = 全图 + 该节点，两层
+    expect(container.querySelectorAll(".cm-crumb").length).toBe(2);
+    expect(svg.querySelectorAll("[data-node-id]").length).toBe(focusNeighborhood(id).size);
+  });
+
+  it("「返回上一级」退回全图，节点与连线数恢复", () => {
+    const { svg, container } = renderMap();
+    const id = richestClusterId();
+    clickNode(svg, id);
+    expect(container.querySelector(".cm-focus-bar")).toBeTruthy();
+
+    clickButton({ container }, "返回上一级");
+
+    expect(container.querySelector(".cm-focus-bar")).toBeFalsy();
+    expect(container.querySelector(".cm-caption")).toBeTruthy();
+    expect(svg.querySelectorAll("[data-node-id]").length).toBe(
+      CONTROVERSY_MAP.nodes.filter((n) => n.kind !== "claim").length,
+    );
+  });
+
+  it("可以连续下钻：面包屑按层级列出，返回上一级回到中间层", () => {
+    const { svg, container } = renderMap();
+    const idA = richestClusterId();
+    clickNode(svg, idA);
+    const nbhA = focusNeighborhood(idA);
+
+    // 在邻居里挑一个「自身也有多个邻居」的节点继续下钻，保证第二层有内容
+    const idB = [...nbhA]
+      .filter((x) => x !== idA)
+      .sort((a, b) => focusNeighborhood(b).size - focusNeighborhood(a).size)[0];
+    clickNode(svg, idB);
+
+    expect(new Set([...svg.querySelectorAll("[data-node-id]")].map((el) => el.getAttribute("data-node-id")))).toEqual(
+      focusNeighborhood(idB),
+    );
+    // 面包屑：全图 › A › B
+    expect(container.querySelectorAll(".cm-crumb").length).toBe(3);
+
+    clickButton({ container }, "返回上一级");
+    expect(svg.querySelectorAll("[data-node-id]").length).toBe(nbhA.size);
+
+    clickButton({ container }, "返回上一级");
+    expect(container.querySelector(".cm-focus-bar")).toBeFalsy();
+  });
+
+  it("面包屑点「全图」可一次跳回顶层", () => {
+    const { svg, container } = renderMap();
+    const idA = richestClusterId();
+    clickNode(svg, idA);
+    const nbhA = focusNeighborhood(idA);
+    const idB = [...nbhA].filter((x) => x !== idA)[0];
+    clickNode(svg, idB);
+
+    const root = [...container.querySelectorAll(".cm-crumb")].find(
+      (el) => el.textContent === "全图",
+    )!;
+    act(() => {
+      fireEvent.click(root);
+    });
+
+    expect(container.querySelector(".cm-focus-bar")).toBeFalsy();
+    expect(svg.querySelectorAll("[data-node-id]").length).toBe(
+      CONTROVERSY_MAP.nodes.filter((n) => n.kind !== "claim").length,
+    );
+  });
+
+  it("切换视图层级会退出聚焦（两种视图状态不叠加）", () => {
+    const { svg, container } = renderMap();
+    clickNode(svg, richestClusterId());
+    expect(container.querySelector(".cm-focus-bar")).toBeTruthy();
+
+    clickButton({ container }, "展开全部论点");
+
+    expect(container.querySelector(".cm-focus-bar")).toBeFalsy();
+    expect(svg.querySelectorAll("[data-node-id]").length).toBe(CONTROVERSY_MAP.nodes.length);
+  });
+
+  it("入场动画的起点是同心环：新出现的邻居从等距的环上张开，而不是堆在圆心", () => {
+    const { svg } = renderMap();
+    const id = richestClusterId();
+    clickNode(svg, id);
+
+    // 骨架模式下这些论点原本不在画布上 —— 它们是"新挂载"的，走的正是入场动画
+    const claimEls = [...svg.querySelectorAll('[data-node-kind="claim"]')];
+    expect(claimEls.length).toBeGreaterThan(2);
+
+    const dists = claimEls.map((el) => {
+      // 注意：cos(π/2) 之类会写成 6.1e-17，正则不能只认 [-\d.]
+      const m = /translate\(([^,]+),([^)]+)\)/.exec(el.getAttribute("transform") ?? "");
+      expect(m).toBeTruthy();
+      return Math.hypot(Number(m![1]), Number(m![2]));
+    });
+    // 等距 = 同一个环；且半径要有意义（不能是圆心附近）
+    expect(Math.max(...dists) - Math.min(...dists)).toBeLessThan(1);
+    expect(Math.min(...dists)).toBeGreaterThan(100);
   });
 });
