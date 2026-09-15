@@ -1,120 +1,133 @@
-# 争鸣（Dissensus）
+<h1 align="center">争鸣 Dissensus</h1>
 
-在知乎的问题社区上，用「辩论」替代「点赞」作为连接方式——把观点不同的人撮合到一起，用硬规则保证交锋质量，把每一次交锋沉淀为社区公共资产。
+<p align="center"><strong>让分歧不止于站队，而是成为可以追问、复盘和继续生长的公共讨论。</strong></p>
 
-知乎黑客松「灵魂匹配局：社区连接与兴趣社交」参赛作品。
+<p align="center">知乎黑客松「灵魂匹配局：社区连接与兴趣社交」参赛作品</p>
 
----
+<p align="center"><code>React 18</code> · <code>TypeScript</code> · <code>D3</code> · <code>Node.js</code> · <code>WebSocket</code> · <code>StepFun</code></p>
 
-## 本仓库与 runi 的关系
+![争鸣的跨议题争议地图](prototypes/visual-references/map-screenshot.png)
 
-2026-09-13 从 `runi` monorepo 独立成仓，分两步：
+## 产品是什么
 
-1. 迁出产品文档、交互原型、运行时测试与数据管线
-2. 把 Runi 桌面端里的**三个争鸣视图**抽出为 `web/` 独立前端工程
+争鸣围绕知乎的真实问题组织讨论：先从争议地图发现值得谈的问题，再选择立场进入实时辩论，或在辩论树中异步补充论点、证据和追问。事件推演则把用户放进具体社会事件的角色位置，让复杂判断在信息、资源和关系约束中展开。
 
-| | 内容 |
-|---|---|
-| **本仓库 `zhengming/`** | 争鸣的**全部**产品代码与文档：`docs/` + `prototypes/` + `research/` + `web/` |
-| **`../runi/`（Runi monorepo）** | Runi 桌面端应用本身。**已不再包含任何争鸣代码** |
+产品不以裁定谁赢为目标。AI Host 负责整理结构、提出追问和生成复盘，最终留下共识、分歧与仍待回答的问题。
 
-抽出的三个视图原先挂在 Runi 的 `App.tsx` 路由上，现在各自是 `web/` 里的独立入口：
+## 四种核心体验
 
-| 视图 | 入口 | 文件 |
+| 模块 | 入口 | 现在可以做什么 |
 |---|---|---|
-| 跨议题争议地图 | `?view=map` | `web/src/ui/ControversyMap.tsx` |
-| 辩论树（桌面版） | `?view=debate` | `web/src/ui/DebateTreePrototype.tsx` |
+| **辩论树** | `/?view=debate` | 浏览真实议题，在任意节点补充观点、证据或追问；折叠状态保存在本地 |
+| **争议地图** | `/?view=map` | 查看跨议题主张簇、缝合关系与反驳关系；支持缩放、聚焦、语义标签和层级切换 |
+| **辩论间** | `/?view=room` | 选议题、选边，并选择真人匹配或 AI 对辩；按立论、质询、自由对辩、结辩和报告推进 |
+| **事件推演** | `/?view=event` | 选择或生成社会事件，以局内角色逐幕决策；已有可核验事件可在终局选择查看事实线 |
 
-> 力导向辩论图（`?view=force`）已于 2026-09-13 拍板下线（设计文档 D3），相关代码已移除。
+贯穿所有模块的四条原则：
 
-搬迁时确认了一件好事：这些视图**原本就与 Runi 完全解耦**——只依赖 `react` 与 `d3`，不碰 runi-protocol / Tauri / 后端状态。真正共享的只有 `App.tsx` 的路由分支与 `styles.css` 里的样式块，都已按区块切开搬走（样式块是自包含的：CSS 变量就定义在各组件自己的根类里）。
+1. **先承认，再推进**：理解对方是继续讨论的前提，但不设置机械复述闸门。
+2. **追问权替代验证权**：AI 可以指出需要澄清之处，不替用户裁定对错。
+3. **模拟与事实分离**：事件推演期间不展示、也不向模型注入原作轨迹。
+4. **不判输赢**：报告呈现六维讨论画像和文本依据，不生成胜负结论。
 
-**现在本仓库对 runi 没有任何依赖，包括数据管线**——`build-ts.mjs` 的输出已改指 `web/src/data/controversyMap.ts`（同仓库内），不再跨仓写入。
+## 快速开始
 
-## 目录
-
-```
-zhengming/
-├── docs/design/                    产品文档（仅 Markdown）
-│   ├── README.md                   ★ 总纲（产品全景、核心洞察、三条红线、演示路线）
-│   ├── IMPLEMENTATION-PATH.md      ★ AI 执行手册（17 张任务卡 + 验收命令 + 8 个决策点，全部已拍板）
-│   ├── debate-tree-PRD.md          v0.2 辩论树（不再提供进入辩论间的出口）
-│   ├── debate-room-PRD.md          v0.6 实时辩论间（选边制撮合 · 轮次制 · 去树化）＋ debate-room-PLAN.md
-│   ├── event-replay-PRD.md         事件推演
-│   └── controversy-map-PRD.md      跨议题争议地图 v0.2 ＋ controversy-map-PLAN.md ＋ controversy-map-VISUAL-REFERENCES.md
-├── docs/research/                  调研与数据层
-│   ├── zhihu-post-taxonomy.md      知乎语料分类与可辩性调研
-│   └── ai-social-products.md       AI 社交产品调研
-├── prototypes/                     HTML 原型、截图、Node 测试与集成构建器
-│   ├── *-prototype.html            可直接打开的交互原型
-│   ├── *.test.mjs                  五套运行时测试
-│   ├── build-app.mjs               集成构建脚本
-│   └── zhengming-app.html          生成物，禁止手改
-├── research/                       可执行研究资产与数据
-│   ├── controversy-map/            争议地图六步数据管线
-│   └── zhihu-corpus/               知乎语料、采集与分类脚本
-└── web/                            ★ 桌面三视图（Vite + React 18 + TS + d3）
-    ├── src/ui/                     两张图：ControversyMap / DebateTreePrototype（DebateForceTree 已于 2026-09-13 下线）
-    ├── src/data/                   数据（controversyMap 由管线生成）
-    ├── src/types/                  图模型类型
-    ├── src/App.tsx                 ?view= 路由壳 + 落地页
-    ├── src/styles.css              从 runi 切出的争鸣样式块（自包含）
-    └── tests/                      vitest（56 项）
-```
-
-## 怎么跑
-
-本机 `npm` / `npx` **不可用**（shim 会触发黑名单 `wsl.exe`），一律用绝对路径调 node：
-
-```bash
-NODE="C:/Users/Lenovo/.workbuddy/binaries/node/versions/22.22.2-3/node.exe"
-```
-
-**五套运行时测试**（在 `prototypes/` 下）—— 基线 **195 项全绿**
-
-```bash
-cd prototypes
-for t in debate-graph debate-room debate-tree-v2 event-replay app; do "$NODE" $t.test.mjs; done
-# 期望：52 / 41 / 40 / 26 / 36 全通过
-```
-
-**重建集成单页应用**（改过任何原型后必做）
-
-```bash
-cd prototypes && "$NODE" build-app.mjs
-```
-
-**跨议题争议地图数据管线**（需 `DEEPSEEK_API_KEY`；每步产物落盘，可断点续跑）
-
-```bash
-cd research/controversy-map
-for s in parse extract-claims mine-cross build-map build-ts; do "$NODE" $s.mjs; done
-```
-
-> 检索用 `zhihu-cli search zhihu`（完整长文），**不要**用 `question_answers`（仅 100/日且只有 200 字摘要）。
-
-**桌面三视图前端工程**（在 `web/` 下）—— 基线 **56 项全绿**（controversyMap 26 + debateForceTree 30）
+需要 Node.js 20 或更高版本。首次运行先安装前端依赖并编译辩论间领域模块：
 
 ```bash
 cd web
-"$NODE" ./node_modules/typescript/bin/tsc -b        # 类型检查
-"$NODE" ./node_modules/vitest/vitest.mjs run        # 测试（约 45s）
-"$NODE" ./node_modules/vite/bin/vite.js build       # 构建 → dist/（纯静态，可部署）
-"$NODE" ./node_modules/vite/bin/vite.js             # 本地开发服务器（127.0.0.1:5299）
+npm install
+npm run build:domain
 ```
 
-> `node_modules` 已随迁入一并复制（约 116 MB / 8200 文件），**不需要 `npm install`**。
-> 它是 gitignore 的，所以新克隆的仓库需要自己装依赖——但那台机器上 npm 可用时再装即可。
->
-> 打开方式：开发服务器或 `dist/` 均可，用 `?view=map` / `?view=debate` 切换，不带参数是落地索引页。
+复制服务端配置，并按需填写 StepFun 密钥：
 
-## 环境注意（踩过的坑）
+```bash
+cd ../zhengming-server
+cp .env.example .env
+# 编辑 .env：STEPFUN_API_KEY=...
+npm start
+```
 
-- **`npm` 不可用**，用绝对路径 node；bash 缺 coreutils（`ls` / `cat` / `rm` / `head` / `dirname` 全报 command not found）→ 文件操作走 node `fs`
-- **换行是 CRLF**（`core.autocrlf=true`，无 `.gitattributes`）→ 写跨行正则必须用 `\r?\n`，只写 `\n` 会**静默失配**
-- **知乎 CLI 不在 PATH**：`C:\Users\Lenovo\AppData\Local\ZhihuCLI\current\zhihu-cli.exe`；`status` 需带 `--skill-version 0.2.1 --min-cli-version 0.1.0`；`search zhihu --count` 上限 10
-- **自检字符串必须在真实产物里真的可能出现**，否则守卫是安慰剂——写完守卫请故意不修，验证它确实会报错
+另开一个终端启动前端：
 
-## 并行开发
+```bash
+cd web
+npm run dev
+```
 
-辩论树 / 辩论间 / 事件推演三个模块各有一个 git worktree（在仓库内 `.worktrees/`，已 gitignore）。归属划分、共享文件禁区、合流顺序见 `docs/design/IMPLEMENTATION-PATH.md` **§13**。
+访问 `http://127.0.0.1:5299/?view=room`。开发服务器会把 `/api/*` 和 `/ws/*` 代理到 `127.0.0.1:5300`。未配置密钥时服务仍可启动，并明确标记降级状态；自定义事件生成需要真实模型。
+
+## 系统结构
+
+```mermaid
+flowchart LR
+    U[用户浏览器] --> W[React 四个产品视图]
+    W -->|REST /api| S[Node 服务]
+    W -->|WebSocket /ws| S
+    S --> H[九项 Host 能力]
+    H --> M[StepFun]
+    P[知乎研究管线] --> D[生成数据]
+    D --> W
+    D --> S
+```
+
+前端只使用同源相对地址；开发环境由 Vite 代理，生产环境由 Nginx 或 Caddy 代理。服务端使用原生 Node HTTP 与 WebSocket，负责撮合、权威房间状态、AI 对手、Host 调用和报告落盘。
+
+## 仓库结构
+
+```text
+zhengming/
+├── web/                 Vite + React 应用、领域逻辑和 Vitest 测试
+├── zhengming-server/    REST、WebSocket、撮合、Host 与房间报告
+├── research/            知乎语料、争议地图发现与生成管线
+├── prototypes/          交互原型、视觉参考、运行时测试和集成构建器
+└── docs/                产品设计、契约、实施与部署文档（仅 Markdown）
+```
+
+`web/src/data/controversyMap.ts` 是生成物，不要手工修改；数据更新应从 `research/controversy-map/` 管线进入。`prototypes/zhengming-app.html` 同样由 `prototypes/build-app.mjs` 生成。
+
+## 测试与构建
+
+```bash
+cd web
+npm test               # Vitest + Testing Library
+npm run build:domain   # 生成服务端复用的辩论间领域模块
+npm run build          # 类型检查并构建 web/dist
+
+cd ../zhengming-server
+npm test               # Host、HTTP、WebSocket 与撮合集成测试
+```
+
+当前基线为前端 **350 项**、服务端 **66 项**测试通过。修改原型后，还需运行对应的 `prototypes/*.test.mjs`，并执行：
+
+```bash
+node prototypes/build-app.mjs
+```
+
+## 部署
+
+推荐使用单域名部署，保持浏览器、API 和 WebSocket 同源：
+
+```text
+Nginx / Caddy :80/:443
+├── /       -> web/dist
+├── /api/*  -> 127.0.0.1:5300
+└── /ws/*   -> 127.0.0.1:5300
+```
+
+构建前先运行 `npm run build:domain`。生产服务器还必须保留 `research/controversy-map/claims.json`，并为 `zhengming-server/rooms/` 提供可写目录。完整操作与平台方案见 [部署路径](docs/design/DEPLOY-PATH.md)。
+
+当前版本适合演示和小规模试用：房间活跃状态仍在单进程内存中，服务重启会中断进行中的房间；尚未实现完整用户认证和公网限流。公开部署时不要暴露 `5300`，并将 `STEPFUN_API_KEY` 只放在服务端环境变量中。
+
+## 设计文档
+
+- [产品总纲](docs/design/README.md)：产品洞察、模块关系与红线
+- [实施路径](docs/design/IMPLEMENTATION-PATH.md)：任务卡、决策点和验收命令
+- [Host 契约](docs/design/host-contract.md)：九项能力的输入、输出与错误结构
+- [辩论间 PRD](docs/design/debate-room-PRD.md) · [辩论树 PRD](docs/design/debate-tree-PRD.md)
+- [争议地图 PRD](docs/design/controversy-map-PRD.md) · [事件推演 PRD](docs/design/event-replay-PRD.md)
+
+## 项目来源
+
+本项目于 2026-09-13 从 `runi` monorepo 独立成仓，现已不依赖 Runi。历史交互稿仍保留在 `prototypes/`，实际可运行产品以 `web/` 与 `zhengming-server/` 为准。
