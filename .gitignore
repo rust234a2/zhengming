@@ -14,6 +14,10 @@ dist-domain/
 # 多 worktree 开发目录（各模块分支的独立工作区）
 .worktrees/
 
+# 本地产品需求与交互原型（不发布到远端仓库）
+docs/design/*-PRD.md
+prototypes/
+
 # LLM 管线断点续跑缓存（可重新生成，不必入库）
 research/controversy-map/.*-cache.json
 docs/research/controversy-map/.claim-cache.json

@@ -6,8 +6,6 @@
 
 <p align="center"><code>React 18</code> · <code>TypeScript</code> · <code>D3</code> · <code>Node.js</code> · <code>WebSocket</code> · <code>StepFun</code></p>
 
-![争鸣的跨议题争议地图](prototypes/visual-references/map-screenshot.png)
-
 ## 产品是什么
 
 争鸣围绕知乎的真实问题组织讨论：先从争议地图发现值得谈的问题，再选择立场进入实时辩论，或在辩论树中异步补充论点、证据和追问。事件推演则把用户放进具体社会事件的角色位置，让复杂判断在信息、资源和关系约束中展开。
@@ -81,11 +79,10 @@ zhengming/
 ├── web/                 Vite + React 应用、领域逻辑和 Vitest 测试
 ├── zhengming-server/    REST、WebSocket、撮合、Host 与房间报告
 ├── research/            知乎语料、争议地图发现与生成管线
-├── prototypes/          交互原型、视觉参考、运行时测试和集成构建器
 └── docs/                产品设计、契约、实施与部署文档（仅 Markdown）
 ```
 
-`web/src/data/controversyMap.ts` 是生成物，不要手工修改；数据更新应从 `research/controversy-map/` 管线进入。`prototypes/zhengming-app.html` 同样由 `prototypes/build-app.mjs` 生成。
+`web/src/data/controversyMap.ts` 是生成物，不要手工修改；数据更新应从 `research/controversy-map/` 管线进入。
 
 ## 测试与构建
 
@@ -99,11 +96,7 @@ cd ../zhengming-server
 npm test               # Host、HTTP、WebSocket 与撮合集成测试
 ```
 
-当前基线为前端 **350 项**、服务端 **66 项**测试通过。修改原型后，还需运行对应的 `prototypes/*.test.mjs`，并执行：
-
-```bash
-node prototypes/build-app.mjs
-```
+当前基线为前端 **350 项**、服务端 **66 项**测试通过。
 
 ## 部署
 
@@ -125,9 +118,7 @@ Nginx / Caddy :80/:443
 - [产品总纲](docs/design/README.md)：产品洞察、模块关系与红线
 - [实施路径](docs/design/IMPLEMENTATION-PATH.md)：任务卡、决策点和验收命令
 - [Host 契约](docs/design/host-contract.md)：九项能力的输入、输出与错误结构
-- [辩论间 PRD](docs/design/debate-room-PRD.md) · [辩论树 PRD](docs/design/debate-tree-PRD.md)
-- [争议地图 PRD](docs/design/controversy-map-PRD.md) · [事件推演 PRD](docs/design/event-replay-PRD.md)
 
 ## 项目来源
 
-本项目于 2026-09-13 从 `runi` monorepo 独立成仓，现已不依赖 Runi。历史交互稿仍保留在 `prototypes/`，实际可运行产品以 `web/` 与 `zhengming-server/` 为准。
+本项目于 2026-09-13 从 `runi` monorepo 独立成仓，现已不依赖 Runi。实际可运行产品以 `web/` 与 `zhengming-server/` 为准。
